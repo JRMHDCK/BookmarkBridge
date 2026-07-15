@@ -78,6 +78,14 @@ toute implémentation de lecture ou de synchronisation des favoris.
   sélection multiple interdits), validation stricte du nom `Bookmarks.plist`
   (`wrongFile` sinon), annulation → `cancelled`. Ne crée/persiste/lit/décode rien.
   Présentation du panneau injectable ; logique de mapping testée sans NSOpenPanel réel (4).
+- **Accès réel Safari — validation de la chaîne** : test d'intégration headless exerçant
+  la chaîne réelle complète (coordinator → creator/store réels → locator autorisé →
+  accès sandbox lecture seule → reader → decoder → `BookmarkTree`) sur un fichier
+  temporaire, avec redémarrage simulé et preuve read-only (taille + date inchangées).
+  Harnais de diagnostic `SafariAccessValidationView` (argument de lancement
+  `--validate-safari-access`, macOS) pour la validation manuelle sur le vrai
+  `~/Library/Safari/Bookmarks.plist`, et `SafariAccessValidationReport` (comptage
+  dossiers/favoris/nœuds, testé).
 
 ### Modifié
 - Passage du projet en **Swift 6** (`SWIFT_VERSION = 6.0`) avec concurrence stricte
