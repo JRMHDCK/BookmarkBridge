@@ -38,6 +38,11 @@ toute implémentation de lecture ou de synchronisation des favoris.
   pur `Data` → `BookmarkTree` immuable, sans accès fichier. Percent-encode
   automatiquement les URL Unicode et ne rejette que les entrées irrécupérables ;
   `capturedAt` laissé en sentinelle (`.distantPast`), horodaté par le reader. Tests (14).
+- **Accès fichier sandbox (lecture seule)** : API `FileAccessProviding` refactorée en
+  accès à portée délimitée `withReadOnlyAccess { }` (fermeture systématique via
+  `defer`), `SandboxFileAccessProvider` et l'abstraction injectable
+  `SecurityScopedFileControlling` (+ implémentation système). Encapsule
+  `start/stopAccessingSecurityScopedResource`, indépendant de Safari. Tests (7).
 
 ### Modifié
 - Passage du projet en **Swift 6** (`SWIFT_VERSION = 6.0`) avec concurrence stricte
