@@ -139,6 +139,13 @@ toute implémentation de lecture ou de synchronisation des favoris.
   `DefaultChromeProfileLocator` (dossier Chrome par défaut, URL de `Local State`,
   énumération **dynamique** des profils contenant un fichier `Bookmarks`, dossiers
   système exclus, tri déterministe). Dossier injecté ; tests en dossiers temporaires (8).
+- **Lecture Chrome (palier 5 — reader & provider)** : `ChromeBookmarkReader` (pur
+  orchestrateur par profil : accès lecture seule au dossier Chrome → lecture du seul
+  fichier `Bookmarks` du profil → décodage → `BookmarkTree` + `capturedAt`) et
+  `ChromeSourceProvider` (abstraction `BrowserSourceProviding` : résout le dossier
+  autorisé, énumère les profils, lit `Local State` pour les noms, construit un reader/
+  source par profil « Chrome — … » ; `authorizationRequired` propagé). Profils jamais
+  mélangés. Tests sur dossiers temporaires + fixtures (4).
 
 ### Modifié
 - Passage du projet en **Swift 6** (`SWIFT_VERSION = 6.0`) avec concurrence stricte

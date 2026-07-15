@@ -21,6 +21,12 @@ struct FailingBookmarkReader: BookmarkReading {
     }
 }
 
+/// A `BookmarkSourceLocating` double returning a preconfigured location or error.
+struct StubBookmarkSourceLocator: BookmarkSourceLocating {
+    let result: Result<BrowserLocation, BookmarkError>
+    func locate(_ browser: Browser) throws -> BrowserLocation { try result.get() }
+}
+
 /// A shared authorization flag, so a gated reader and a fake requester can
 /// coordinate in tests (authorize → the same reader then succeeds).
 final class AuthorizationBox: @unchecked Sendable {
