@@ -21,6 +21,34 @@ struct FailingBookmarkReader: BookmarkReading {
     }
 }
 
+/// A configurable `SecurityScopedBookmarkCreating` double that records the URLs
+/// it was asked to bookmark.
+final class StubBookmarkCreator: SecurityScopedBookmarkCreating, @unchecked Sendable {
+    var result: Result<Data, Error>
+    private(set) var requestedURLs: [URL] = []
+
+    init(_ result: Result<Data, Error>) { self.result = result }
+
+    func makeBookmark(for url: URL) throws -> Data {
+        requestedURLs.append(url)
+        return try result.get()
+    }
+}
+
+/// A configurable `SecurityScopedBookmarkResolving` double that records the data
+/// it was asked to resolve.
+final class StubBookmarkResolver: SecurityScopedBookmarkResolving, @unchecked Sendable {
+    var result: Result<ResolvedBookmark, Error>
+    private(set) var resolvedData: [Data] = []
+
+    init(_ result: Result<ResolvedBookmark, Error>) { self.result = result }
+
+    func resolve(_ data: Data) throws -> ResolvedBookmark {
+        resolvedData.append(data)
+        return try result.get()
+    }
+}
+
 /// A spy controller for `SandboxFileAccessProvider`: configurable outcomes plus
 /// start/stop counters, so tests can assert resource balancing without touching
 /// the real filesystem or Safari.

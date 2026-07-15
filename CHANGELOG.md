@@ -57,6 +57,11 @@ toute implémentation de lecture ou de synchronisation des favoris.
   `Application Support/BookmarkBridge/`, écriture atomique, permissions 0700/0600,
   création du dossier à la demande, gestion des données absentes/corrompues, purge).
   Répertoire injectable ; tests exclusivement en dossier temporaire.
+- **Accès réel Safari — bookmark security-scoped** : protocoles
+  `SecurityScopedBookmarkCreating` / `SecurityScopedBookmarkResolving` (+ type
+  `ResolvedBookmark` exposant `isStale`) et implémentations système
+  (`.withSecurityScope` read-only). Doubles de test réutilisables ; tests du type,
+  des doubles (frais/périmé/erreur) et du chemin d'erreur du resolver réel.
 
 ### Modifié
 - Passage du projet en **Swift 6** (`SWIFT_VERSION = 6.0`) avec concurrence stricte
