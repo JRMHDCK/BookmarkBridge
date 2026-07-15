@@ -154,6 +154,13 @@ toute implémentation de lecture ou de synchronisation des favoris.
   `AuthorizedBookmarkSourceLocator` (résolution du bookmark security-scoped, paramétré par
   navigateur — Safari fichier, Chrome dossier). Renommages depuis les types Safari-only ;
   comportement Safari inchangé. Tests (adaptés + Chrome + directory authorizer).
+- **Lecture Chrome (palier 7 — intégration Dashboard)** : `DashboardViewModel` refondu
+  autour des **providers** (`BrowserSourceProviding`) avec **découverte dynamique** — carte
+  de niveau navigateur avant autorisation, puis une carte par source/profil après. Ajout de
+  `SafariSourceProvider` et `CompositeAuthorizationRequester` (route Safari/Chrome vers le bon
+  coordinateur). `AppDependencies` fournit les providers Safari + Chrome réels ;
+  `BookmarkBridgeApp` câble les deux coordinateurs (fichier Safari / dossier Chrome). Dashboard
+  affiche désormais une carte par source (Safari + un profil Chrome par carte). Safari inchangé.
 
 ### Modifié
 - Passage du projet en **Swift 6** (`SWIFT_VERSION = 6.0`) avec concurrence stricte

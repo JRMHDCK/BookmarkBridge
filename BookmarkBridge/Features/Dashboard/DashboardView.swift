@@ -230,8 +230,8 @@ private extension DashboardViewModel.SourceState {
 
 #Preview("Dashboard (in-memory)") {
     DashboardView(
-        viewModel: DashboardViewModel(readers: [
-            InMemoryBookmarkReader(browser: .safari, tree: .sample(for: .safari))
+        viewModel: DashboardViewModel(providers: [
+            SafariSourceProvider(reader: InMemoryBookmarkReader(browser: .safari, tree: .sample(for: .safari)))
         ])
     )
 }

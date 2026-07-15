@@ -21,6 +21,37 @@ struct FailingBookmarkReader: BookmarkReading {
     }
 }
 
+/// A `BrowserSourceProviding` double returning fixed readers, or throwing.
+struct StubSourceProvider: BrowserSourceProviding {
+    let browser: Browser
+    let readers: [any BookmarkReading]
+    let error: BookmarkError?
+
+    init(browser: Browser, readers: [any BookmarkReading] = [], error: BookmarkError? = nil) {
+        self.browser = browser
+        self.readers = readers
+        self.error = error
+    }
+
+    func makeReaders() async throws -> [BookmarkReading] {
+        if let error { throw error }
+        return readers
+    }
+}
+
+/// A `BrowserSourceProviding` double that throws `authorizationRequired` until
+/// its box is authorized, then returns fixed readers.
+struct GatedSourceProvider: BrowserSourceProviding {
+    let browser: Browser
+    let box: AuthorizationBox
+    let readers: [any BookmarkReading]
+
+    func makeReaders() async throws -> [BookmarkReading] {
+        guard box.isAuthorized else { throw BookmarkError.authorizationRequired(browser) }
+        return readers
+    }
+}
+
 /// A `BookmarkSourceLocating` double returning a preconfigured location or error.
 struct StubBookmarkSourceLocator: BookmarkSourceLocating {
     let result: Result<BrowserLocation, BookmarkError>

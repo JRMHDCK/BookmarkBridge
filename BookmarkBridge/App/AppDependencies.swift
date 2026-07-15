@@ -7,22 +7,22 @@ import Foundation
 
 /// The composition root's dependency graph.
 ///
-/// Holds the concrete services the app runs against, all behind `Core` protocols
-/// so that features depend on abstractions, never implementations. It is
-/// assembled once and injected downward.
+/// Holds the concrete services the app runs against, all behind `Core`
+/// abstractions so that features depend on protocols, never implementations. It
+/// is assembled once and injected downward.
 ///
-/// Safari is wired to the **real** read-only chain (authorized source locator →
-/// sandbox file access → reader → decoder). On first launch, before the user has
-/// authorized access, reading yields `BookmarkError.authorizationRequired`; the
-/// authorization action itself is wired at the app layer (macOS). Diff and backup
-/// remain in-memory doubles — those features are not implemented yet.
+/// Safari and Chrome are wired to their **real** read-only chains via
+/// `BrowserSourceProviding`. Before the user authorizes access, sources surface
+/// `authorizationRequired`; the authorization actions are wired at the app layer
+/// (macOS). Diff and backup remain in-memory doubles — those features are not
+/// implemented yet.
 nonisolated struct AppDependencies {
-    let bookmarkReaders: [BookmarkReading]
+    let providers: [any BrowserSourceProviding]
     let differ: BookmarkDiffing
     let backup: BookmarkBackup
 
-    /// Shared store for the persisted security-scoped bookmark. Exposed so the
-    /// app-layer authorization flow persists to the same location the readers
+    /// Shared store for the persisted security-scoped bookmarks. Exposed so the
+    /// app-layer authorization flow persists to the same location the providers
     /// resolve from.
     let bookmarkStore: BookmarkStore
 
@@ -30,13 +30,13 @@ nonisolated struct AppDependencies {
     let bookmarkCreator: SecurityScopedBookmarkCreating
 
     init(
-        bookmarkReaders: [BookmarkReading],
+        providers: [any BrowserSourceProviding],
         differ: BookmarkDiffing,
         backup: BookmarkBackup,
         bookmarkStore: BookmarkStore,
         bookmarkCreator: SecurityScopedBookmarkCreating
     ) {
-        self.bookmarkReaders = bookmarkReaders
+        self.providers = providers
         self.differ = differ
         self.backup = backup
         self.bookmarkStore = bookmarkStore
@@ -45,26 +45,40 @@ nonisolated struct AppDependencies {
 }
 
 extension AppDependencies {
-    /// The production graph: the real Safari read-only reader, wired through the
-    /// persisted security-scoped bookmark. Chrome is intentionally absent until
-    /// it is implemented. Diff and backup use in-memory doubles for now.
+    /// The production graph: real Safari and Chrome read-only providers, wired
+    /// through the persisted security-scoped bookmarks. Diff and backup use
+    /// in-memory doubles for now.
     static func bootstrap() -> AppDependencies {
         let store = ApplicationSupportBookmarkStore.inApplicationSupport()
         let creator = SystemSecurityScopedBookmarkCreator()
+        let resolver = SystemSecurityScopedBookmarkResolver()
 
         let safariReader = SafariBookmarkReader(
             locator: AuthorizedBookmarkSourceLocator(
                 browser: .safari,
                 store: store,
-                resolver: SystemSecurityScopedBookmarkResolver(),
+                resolver: resolver,
                 creator: creator
             ),
             fileAccess: SandboxFileAccessProvider(),
             decoder: SafariBookmarkDecoder()
         )
+        let safariProvider = SafariSourceProvider(reader: safariReader)
+
+        let chromeProvider = ChromeSourceProvider(
+            directoryLocator: AuthorizedBookmarkSourceLocator(
+                browser: .chrome,
+                store: store,
+                resolver: resolver,
+                creator: creator
+            ),
+            fileAccess: SandboxFileAccessProvider(),
+            profileLocator: DefaultChromeProfileLocator(),
+            decoder: ChromeBookmarkDecoder()
+        )
 
         return AppDependencies(
-            bookmarkReaders: [safariReader],
+            providers: [safariProvider, chromeProvider],
             differ: InMemoryBookmarkDiffer(),
             backup: InMemoryBackupStore(),
             bookmarkStore: store,

@@ -8,12 +8,14 @@ import Observation
 
 /// Presentation state and orchestration for the dashboard.
 ///
-/// State is tracked **per source** (a browser, optionally narrowed to a profile),
-/// so a browser with several profiles (Chrome) shows one card per profile, and
-/// adding a browser stays additive. The ViewModel depends only on
-/// `BookmarkReading` (to read) and, optionally, on `BookmarkAuthorizationRequesting`
-/// (to (re)authorize) — never on file formats, the sandbox, or AppKit. Reading is
-/// strictly read-only.
+/// State is tracked **per source**. Sources are discovered dynamically through
+/// `BrowserSourceProviding`: a single-profile browser (Safari) yields one source;
+/// a multi-profile browser (Chrome) yields one per profile once authorized.
+/// Before a browser is authorized, a single **browser-level** card stands in for
+/// its (not-yet-known) sources.
+///
+/// The ViewModel depends only on the provider/reader/authorizer abstractions —
+/// never on file formats, the sandbox, or AppKit. Reading is strictly read-only.
 @MainActor
 @Observable
 final class DashboardViewModel {
@@ -39,14 +41,15 @@ final class DashboardViewModel {
         sources.contains { $0.status == .loading }
     }
 
-    private let readers: [BookmarkReading]
+    private let providers: [any BrowserSourceProviding]
     private let authorizer: (any BookmarkAuthorizationRequesting)?
+    private var readers: [BookmarkSourceID: any BookmarkReading] = [:]
 
     init(
-        readers: [BookmarkReading],
+        providers: [any BrowserSourceProviding],
         authorizer: (any BookmarkAuthorizationRequesting)? = nil
     ) {
-        self.readers = readers
+        self.providers = providers
         self.authorizer = authorizer
     }
 
@@ -55,66 +58,118 @@ final class DashboardViewModel {
         await reloadAll()
     }
 
-    /// Reloads every configured source. It never prompts for authorization on
-    /// its own — an unauthorized source simply stays `.authorizationRequired`.
+    /// Rediscovers and reloads every browser. Never prompts for authorization on
+    /// its own — an unauthorized browser simply shows an `authorizationRequired`
+    /// card.
     func reloadAll() async {
-        sources = readers.map { SourceState(source: $0.source, status: .loading) }
-        for reader in readers {
-            await refresh(reader)
+        sources = []
+        readers = [:]
+        for provider in providers {
+            await discover(provider)
         }
     }
 
-    /// Reloads a single source (used by "Réessayer"). It never prompts; if
-    /// authorization is missing, the status naturally returns to
-    /// `.authorizationRequired`.
+    /// Reloads a single card ("Réessayer"). A discovered source re-reads itself;
+    /// a browser-level card re-runs discovery. Never prompts.
     func retry(_ sourceID: BookmarkSourceID) async {
-        guard let reader = reader(for: sourceID) else { return }
-        setStatus(.loading, for: sourceID)
-        await refresh(reader)
+        if let reader = readers[sourceID] {
+            setStatus(.loading, for: sourceID)
+            await refresh(reader)
+        } else if let provider = provider(for: sourceID.browser) {
+            await discover(provider)
+        }
     }
 
-    /// Requests authorization for a source, then reloads it on success. A user
-    /// cancellation returns silently to the authorization prompt; a genuine
-    /// failure is surfaced as `.failed`.
+    /// Requests authorization for a source's browser, then rediscovers it on
+    /// success. Cancellation returns silently to the authorization prompt; a
+    /// genuine failure is surfaced as `.failed`.
     func authorize(_ sourceID: BookmarkSourceID) async {
-        guard let authorizer, let reader = reader(for: sourceID) else { return }
+        guard let authorizer, let provider = provider(for: sourceID.browser) else { return }
         setStatus(.loading, for: sourceID)
         do {
             let granted = try await authorizer.requestAuthorization(for: sourceID.browser)
             if granted {
-                await refresh(reader)
+                await discover(provider)
             } else {
-                setStatus(.authorizationRequired, for: sourceID)
+                setBrowserLevelStatus(.authorizationRequired, for: sourceID.browser)
             }
         } catch {
-            setStatus(.failed(message(for: error)), for: sourceID)
+            setBrowserLevelStatus(.failed(message(for: error)), for: sourceID.browser)
         }
     }
 
-    // MARK: - Private
+    // MARK: - Discovery & reading
 
-    private func refresh(_ reader: BookmarkReading) async {
+    private func discover(_ provider: any BrowserSourceProviding) async {
+        do {
+            let discovered = try await provider.makeReaders()
+            replaceSources(for: provider.browser, with: discovered)
+            for reader in discovered {
+                await refresh(reader)
+            }
+        } catch let error as BookmarkError where Self.isAuthorizationRequired(error) {
+            setBrowserLevelStatus(.authorizationRequired, for: provider.browser)
+        } catch {
+            setBrowserLevelStatus(.failed(message(for: error)), for: provider.browser)
+        }
+    }
+
+    private func refresh(_ reader: any BookmarkReading) async {
         do {
             let tree = try await reader.readBookmarkTree()
             setStatus(.loaded(BrowserBookmarkSummary(tree: tree)), for: reader.source.id)
-        } catch let error as BookmarkError {
-            if case .authorizationRequired = error {
-                setStatus(.authorizationRequired, for: reader.source.id)
-            } else {
-                setStatus(.failed(message(for: error)), for: reader.source.id)
-            }
+        } catch let error as BookmarkError where Self.isAuthorizationRequired(error) {
+            setStatus(.authorizationRequired, for: reader.source.id)
         } catch {
             setStatus(.failed(message(for: error)), for: reader.source.id)
         }
     }
 
-    private func reader(for sourceID: BookmarkSourceID) -> BookmarkReading? {
-        readers.first { $0.source.id == sourceID }
+    // MARK: - Sources bookkeeping
+
+    private func provider(for browser: Browser) -> (any BrowserSourceProviding)? {
+        providers.first { $0.browser == browser }
+    }
+
+    /// Replaces a browser's cards (in place) with the discovered per-source cards.
+    private func replaceSources(for browser: Browser, with discovered: [any BookmarkReading]) {
+        removeReaders(for: browser)
+        let index = insertionIndex(for: browser)
+        sources.removeAll { $0.source.browser == browser }
+        let newStates = discovered.map { reader -> SourceState in
+            readers[reader.source.id] = reader
+            return SourceState(source: reader.source, status: .loading)
+        }
+        sources.insert(contentsOf: newStates, at: min(index, sources.count))
+    }
+
+    /// Replaces a browser's cards (in place) with a single browser-level card.
+    private func setBrowserLevelStatus(_ status: Status, for browser: Browser) {
+        removeReaders(for: browser)
+        let index = insertionIndex(for: browser)
+        sources.removeAll { $0.source.browser == browser }
+        let source = BookmarkSource(browser: browser, displayName: browser.displayName)
+        sources.insert(SourceState(source: source, status: status), at: min(index, sources.count))
     }
 
     private func setStatus(_ status: Status, for sourceID: BookmarkSourceID) {
         guard let index = sources.firstIndex(where: { $0.id == sourceID }) else { return }
         sources[index].status = status
+    }
+
+    private func insertionIndex(for browser: Browser) -> Int {
+        sources.firstIndex { $0.source.browser == browser } ?? sources.count
+    }
+
+    private func removeReaders(for browser: Browser) {
+        for key in readers.keys where key.browser == browser {
+            readers[key] = nil
+        }
+    }
+
+    private static func isAuthorizationRequired(_ error: BookmarkError) -> Bool {
+        if case .authorizationRequired = error { return true }
+        return false
     }
 
     /// Maps an error to a simple, non-technical French message for the UI.
