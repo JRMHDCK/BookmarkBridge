@@ -17,6 +17,11 @@ nonisolated enum BookmarkError: Error, Sendable, Equatable {
     /// The sandbox denied access to the browser's bookmark file.
     case accessDenied(BrowserLocation)
 
+    /// The user must (re)grant access to the browser's bookmark file: no valid
+    /// security-scoped bookmark is available (missing, corrupted, revoked, or
+    /// unresolvable).
+    case authorizationRequired(Browser)
+
     /// The bookmark data could not be decoded into a tree.
     case decodingFailed(Browser, reason: String)
 

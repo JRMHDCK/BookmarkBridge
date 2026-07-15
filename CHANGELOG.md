@@ -48,6 +48,10 @@ toute implémentation de lecture ou de synchronisation des favoris.
   horodatage `capturedAt`), sans logique de parsing ni UI. Dépendances injectables
   (locator, accès, décodeur, lecture d'octets, horloge). Tests d'intégration sur fichier
   temporaire + propagation d'erreurs et fermeture systématique de l'accès (7).
+- **Accès réel Safari — entitlement & erreur** : fichier `BookmarkBridge.entitlements`
+  avec `com.apple.security.files.bookmarks.app-scope` (+ app-sandbox et user-selected
+  read-only conservés), câblé via `CODE_SIGN_ENTITLEMENTS` ; droits vérifiés dans la
+  signature. Ajout du cas `BookmarkError.authorizationRequired(Browser)`.
 
 ### Modifié
 - Passage du projet en **Swift 6** (`SWIFT_VERSION = 6.0`) avec concurrence stricte
