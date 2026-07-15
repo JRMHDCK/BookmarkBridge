@@ -14,9 +14,26 @@ struct BookmarkBridgeApp: App {
 
     var body: some Scene {
         WindowGroup {
-            DashboardView(
-                viewModel: DashboardViewModel(readers: dependencies.bookmarkReaders)
-            )
+            DashboardView(viewModel: makeDashboardViewModel())
         }
+    }
+
+    /// Builds the dashboard ViewModel, injecting the real Safari authorization
+    /// flow on macOS. The coordinator (which presents NSOpenPanel) and its
+    /// AppKit adapter live only here, in the app layer.
+    private func makeDashboardViewModel() -> DashboardViewModel {
+        #if os(macOS)
+        let coordinator = SafariAccessCoordinator(
+            authorizer: OpenPanelSafariAccessAuthorizer(),
+            creator: dependencies.bookmarkCreator,
+            store: dependencies.bookmarkStore
+        )
+        return DashboardViewModel(
+            readers: dependencies.bookmarkReaders,
+            authorizer: SafariAuthorizationRequester(coordinator: coordinator)
+        )
+        #else
+        return DashboardViewModel(readers: dependencies.bookmarkReaders)
+        #endif
     }
 }

@@ -97,6 +97,12 @@ toute implémentation de lecture ou de synchronisation des favoris.
   annulation → retour silencieux au prompt, erreur → `failed`). Nouveau protocole
   `BookmarkAuthorizationRequesting` (abstraction UI-agnostique, injectée). `DashboardView`
   adaptée a minima (rendu par navigateur + bouton « Autoriser »). Tests (9).
+- **Dashboard — câblage de l'autorisation Safari** : adaptateur `SafariAuthorizationRequester`
+  (`App/Access`, `#if os(macOS)`) enveloppant `SafariAccessCoordinator` (annulation → `false`,
+  succès → `true`, erreur réelle propagée). Assemblage dans `BookmarkBridgeApp` (couche App,
+  macOS) : coordinateur construit depuis `bookmarkStore` + `bookmarkCreator` +
+  `OpenPanelSafariAccessAuthorizer`, injecté dans le `DashboardViewModel`. Tests de
+  l'adaptateur (4).
 
 ### Modifié
 - Passage du projet en **Swift 6** (`SWIFT_VERSION = 6.0`) avec concurrence stricte
