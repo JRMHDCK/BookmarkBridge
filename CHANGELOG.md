@@ -90,6 +90,13 @@ toute implémentation de lecture ou de synchronisation des favoris.
   flux d'autorisation (couche App). `inApplicationSupport()` rendu non-throwing (dossier
   créé paresseusement). Harnais de diagnostic temporaire retiré (le test d'intégration de
   bout en bout est conservé comme régression).
+- **Dashboard — état & action d'autorisation (par navigateur)** : `DashboardViewModel`
+  refondu en état **par navigateur** (`[BrowserState]` : `loading` / `loaded` /
+  `authorizationRequired` / `failed`) — extensible à Chrome/Firefox/Edge. Détection de
+  `authorizationRequired` dans `load()`, action `authorize(_:)` (succès → rechargement,
+  annulation → retour silencieux au prompt, erreur → `failed`). Nouveau protocole
+  `BookmarkAuthorizationRequesting` (abstraction UI-agnostique, injectée). `DashboardView`
+  adaptée a minima (rendu par navigateur + bouton « Autoriser »). Tests (9).
 
 ### Modifié
 - Passage du projet en **Swift 6** (`SWIFT_VERSION = 6.0`) avec concurrence stricte

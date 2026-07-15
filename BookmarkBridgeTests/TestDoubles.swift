@@ -21,6 +21,48 @@ struct FailingBookmarkReader: BookmarkReading {
     }
 }
 
+/// A shared authorization flag, so a gated reader and a fake requester can
+/// coordinate in tests (authorize → the same reader then succeeds).
+final class AuthorizationBox: @unchecked Sendable {
+    var isAuthorized: Bool
+    init(isAuthorized: Bool = false) { self.isAuthorized = isAuthorized }
+}
+
+/// A `BookmarkReading` double that throws `authorizationRequired` until its box
+/// is authorized, then returns a fixed tree.
+struct GatedBookmarkReader: BookmarkReading {
+    let browser: Browser
+    let box: AuthorizationBox
+    let tree: BookmarkTree
+
+    func readBookmarkTree() async throws -> BookmarkTree {
+        guard box.isAuthorized else { throw BookmarkError.authorizationRequired(browser) }
+        return tree
+    }
+}
+
+/// A `BookmarkAuthorizationRequesting` double. On a granted outcome it flips the
+/// shared box; a `false` outcome models user cancellation; a thrown error models
+/// a genuine failure.
+@MainActor
+final class FakeAuthorizationRequester: BookmarkAuthorizationRequesting {
+    let box: AuthorizationBox
+    var outcome: Result<Bool, Error>
+    private(set) var requestCount = 0
+
+    init(box: AuthorizationBox, outcome: Result<Bool, Error>) {
+        self.box = box
+        self.outcome = outcome
+    }
+
+    func requestAuthorization(for browser: Browser) async throws -> Bool {
+        requestCount += 1
+        let granted = try outcome.get()
+        if granted { box.isAuthorized = true }
+        return granted
+    }
+}
+
 /// A configurable `SafariAccessAuthorizing` double — never opens a real
 /// NSOpenPanel. Returns a URL or throws (e.g. `SafariAccessError.cancelled`).
 @MainActor

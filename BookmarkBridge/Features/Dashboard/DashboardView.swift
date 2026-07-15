@@ -9,8 +9,9 @@ import SwiftUI
 
 /// Read-only overview of the bookmarks found in each browser.
 ///
-/// Presentation only: it renders `DashboardViewModel.state` and forwards the
-/// initial load. No business logic or I/O lives here.
+/// Presentation only: it renders per-browser state from `DashboardViewModel` and
+/// forwards the initial load and authorization intents. No business logic or I/O
+/// lives here. (Minimal rendering for now; the polished UI is a later step.)
 struct DashboardView: View {
     @State private var viewModel: DashboardViewModel
 
@@ -19,31 +20,33 @@ struct DashboardView: View {
     }
 
     var body: some View {
-        content
-            .padding()
-            .task { await viewModel.load() }
+        List(viewModel.browsers) { entry in
+            row(for: entry)
+        }
+        .task { await viewModel.load() }
     }
 
     @ViewBuilder
-    private var content: some View {
-        switch viewModel.state {
-        case .idle, .loading:
-            ProgressView("Lecture des favoris…")
-        case .loaded(let summaries):
-            List(summaries) { summary in
-                HStack {
-                    Text(summary.browser.displayName)
-                    Spacer()
-                    Text("\(summary.bookmarkCount) favoris")
-                        .foregroundStyle(.secondary)
+    private func row(for entry: DashboardViewModel.BrowserState) -> some View {
+        HStack {
+            Text(entry.browser.displayName)
+            Spacer()
+            switch entry.status {
+            case .loading:
+                ProgressView()
+            case .loaded(let summary):
+                Text("\(summary.bookmarkCount) favoris")
+                    .foregroundStyle(.secondary)
+            case .authorizationRequired:
+                Button("Autoriser l'accès") {
+                    Task { await viewModel.authorize(entry.browser) }
                 }
+            case .failed(let message):
+                Text(message)
+                    .foregroundStyle(.red)
+                    .lineLimit(1)
+                    .help(message)
             }
-        case .failed(let message):
-            ContentUnavailableView(
-                "Lecture impossible",
-                systemImage: "exclamationmark.triangle",
-                description: Text(message)
-            )
         }
     }
 }
