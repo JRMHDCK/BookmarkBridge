@@ -23,14 +23,16 @@ struct BookmarkBridgeApp: App {
     /// AppKit adapter live only here, in the app layer.
     private func makeDashboardViewModel() -> DashboardViewModel {
         #if os(macOS)
-        let coordinator = SafariAccessCoordinator(
-            authorizer: OpenPanelSafariAccessAuthorizer(),
+        let coordinator = BrowserAccessCoordinator(
+            browser: .safari,
+            expectedPathSuffix: BrowserAccessCoordinator.safariPathSuffix,
+            authorizer: OpenPanelFileAuthorizer(),
             creator: dependencies.bookmarkCreator,
             store: dependencies.bookmarkStore
         )
         return DashboardViewModel(
             readers: dependencies.bookmarkReaders,
-            authorizer: SafariAuthorizationRequester(coordinator: coordinator)
+            authorizer: BrowserAuthorizationRequester(browser: .safari, coordinator: coordinator)
         )
         #else
         return DashboardViewModel(readers: dependencies.bookmarkReaders)

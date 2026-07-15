@@ -8,8 +8,8 @@
 //
 //  Chain exercised (NSOpenPanel replaced by a fake authorizer, real Safari file
 //  replaced by a temp fixture):
-//    SafariAccessCoordinator → SystemSecurityScopedBookmarkCreator → BookmarkStore
-//    → [simulated restart] → AuthorizedSafariSourceLocator
+//    BrowserAccessCoordinator → SystemSecurityScopedBookmarkCreator → BookmarkStore
+//    → [simulated restart] → AuthorizedBookmarkSourceLocator
 //    → SandboxFileAccessProvider → SafariBookmarkReader → SafariBookmarkDecoder
 //    → BookmarkTree
 //
@@ -38,11 +38,12 @@ struct SafariRealChainIntegrationTests {
         let storeDirectory = workDir.appending(path: "AppSupport", directoryHint: .isDirectory)
 
         // --- 1. Authorization: fake panel + REAL creator + REAL store ---
-        let coordinator = SafariAccessCoordinator(
-            authorizer: FakeSafariAccessAuthorizer(.success(bookmarksFile)),
+        let coordinator = BrowserAccessCoordinator(
+            browser: .safari,
+            expectedPathSuffix: "Bookmarks.plist",
+            authorizer: FakeAccessAuthorizer(.success(bookmarksFile)),
             creator: SystemSecurityScopedBookmarkCreator(),
-            store: ApplicationSupportBookmarkStore(directory: storeDirectory),
-            expectedPathSuffix: "Bookmarks.plist"
+            store: ApplicationSupportBookmarkStore(directory: storeDirectory)
         )
         let authorizedURL = try await coordinator.authorize()
         #expect(authorizedURL == bookmarksFile)
@@ -54,7 +55,8 @@ struct SafariRealChainIntegrationTests {
 
         // --- 2. Simulated restart: a brand-new store instance + fresh chain ---
         let freshStore = ApplicationSupportBookmarkStore(directory: storeDirectory)
-        let locator = AuthorizedSafariSourceLocator(
+        let locator = AuthorizedBookmarkSourceLocator(
+            browser: .safari,
             store: freshStore,
             resolver: SystemSecurityScopedBookmarkResolver(),
             creator: SystemSecurityScopedBookmarkCreator()

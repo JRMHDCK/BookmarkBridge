@@ -75,10 +75,10 @@ final class FakeAuthorizationRequester: BookmarkAuthorizationRequesting {
     }
 }
 
-/// A configurable `SafariAccessAuthorizing` double — never opens a real
-/// NSOpenPanel. Returns a URL or throws (e.g. `SafariAccessError.cancelled`).
+/// A configurable `AccessAuthorizing` double — never opens a real NSOpenPanel.
+/// Returns a URL or throws (e.g. `AccessError.cancelled`).
 @MainActor
-final class FakeSafariAccessAuthorizer: SafariAccessAuthorizing {
+final class FakeAccessAuthorizer: AccessAuthorizing {
     var result: Result<URL, Error>
     private(set) var requestCount = 0
 

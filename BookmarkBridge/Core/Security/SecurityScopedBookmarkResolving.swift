@@ -21,7 +21,7 @@ nonisolated struct ResolvedBookmark: Sendable, Equatable {
 ///
 /// Single responsibility: turn bookmark `Data` into a `ResolvedBookmark`. It
 /// does not read files, persist anything, or decide what to do when a bookmark
-/// is stale — the caller (e.g. `AuthorizedSafariSourceLocator`) decides whether
+/// is stale — the caller (e.g. `AuthorizedBookmarkSourceLocator`) decides whether
 /// to refresh and re-save.
 nonisolated protocol SecurityScopedBookmarkResolving: Sendable {
     func resolve(_ data: Data) throws -> ResolvedBookmark

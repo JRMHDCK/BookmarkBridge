@@ -53,7 +53,8 @@ extension AppDependencies {
         let creator = SystemSecurityScopedBookmarkCreator()
 
         let safariReader = SafariBookmarkReader(
-            locator: AuthorizedSafariSourceLocator(
+            locator: AuthorizedBookmarkSourceLocator(
+                browser: .safari,
                 store: store,
                 resolver: SystemSecurityScopedBookmarkResolver(),
                 creator: creator

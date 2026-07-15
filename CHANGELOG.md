@@ -146,6 +146,14 @@ toute implémentation de lecture ou de synchronisation des favoris.
   autorisé, énumère les profils, lit `Local State` pour les noms, construit un reader/
   source par profil « Chrome — … » ; `authorizationRequired` propagé). Profils jamais
   mélangés. Tests sur dossiers temporaires + fixtures (4).
+- **Lecture Chrome (palier 6 — autorisation dossier)** : autorisation généralisée et
+  réutilisable par Safari et Chrome — `AccessAuthorizing` (protocole seam) + `AccessError`,
+  `BrowserAccessCoordinator` (paramétré par navigateur + suffixe de chemin, tolérant au
+  slash final, persistance par navigateur), `OpenPanelFileAuthorizer` (fichier, Safari) et
+  `OpenPanelDirectoryAuthorizer` (dossier, Chrome), `BrowserAuthorizationRequester`.
+  `AuthorizedBookmarkSourceLocator` (résolution du bookmark security-scoped, paramétré par
+  navigateur — Safari fichier, Chrome dossier). Renommages depuis les types Safari-only ;
+  comportement Safari inchangé. Tests (adaptés + Chrome + directory authorizer).
 
 ### Modifié
 - Passage du projet en **Swift 6** (`SWIFT_VERSION = 6.0`) avec concurrence stricte
