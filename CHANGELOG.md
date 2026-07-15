@@ -110,6 +110,13 @@ toute implémentation de lecture ou de synchronisation des favoris.
   navigateur concerné, sans prompt), `reloadAll()` (relance tous les navigateurs, ne
   redemande jamais d'autorisation), `isLoading` (pour désactiver l'actualisation), et
   mapping des erreurs en messages FR simples et non techniques. Tests (8).
+- **Dashboard UI (palier 3)** : réécriture de `DashboardView` — cartes `GroupBox` par
+  navigateur dans un `ScrollView`, 4 états (chargement / autorisation requise / chargé /
+  erreur), bouton « Autoriser l'accès… » (autorisation requise seulement), « Réessayer »
+  (erreur seulement), toolbar « Actualiser » (désactivée pendant un chargement), badge
+  « Lecture seule », statistiques Dossiers/Favoris/Nœuds, date via `Date.FormatStyle`,
+  icônes SF Symbols par navigateur, état vide, libellés d'accessibilité, previews des
+  4 états. Aucune logique de parcours d'arbre dans la vue.
 
 ### Modifié
 - Passage du projet en **Swift 6** (`SWIFT_VERSION = 6.0`) avec concurrence stricte
