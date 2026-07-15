@@ -192,7 +192,7 @@ Framework : **Swift Testing** (`import Testing`, macros `@Test` / `#expect` / `#
 ### Pyramide
 1. **Tests unitaires** (majorité) — logique métier pure : parsing, diff, planification de synchronisation, modèles. Rapides, déterministes, sans I/O réel.
 2. **Tests d'intégration** — services concrets contre des **fixtures** (fichiers d'exemple Safari/Chrome), en dossier temporaire, jamais contre les données réelles de l'utilisateur.
-3. **Tests d'UI** (`BookmarkBridgeUITests`) — parcours critiques uniquement.
+3. **Tests d'UI** (`BookmarkBridgeUITests`) — parcours critiques uniquement. Nécessitent une session graphique (ils lancent l'app) ; en environnement headless, ne cibler que le target unitaire : `xcodebuild test -only-testing:BookmarkBridgeTests`.
 
 ### Règles
 - La logique métier est testée via des **protocoles mockés** (grâce à l'injection de dépendances).
@@ -244,4 +244,5 @@ Framework : **Swift Testing** (`import Testing`, macros `@Test` / `#expect` / `#
 - **Protocoles de services** (`Core`) définis : `BookmarkReading`, `BookmarkSourceLocating` (Reading), `BookmarkDiffing` (Diffing), `BookmarkBackup` (Backup), `BookmarkDecoding` (Parsers), `FileAccessProviding` (Security).
 - **Ossature MVVM** en place : composition root `App/AppDependencies` (injection par constructeur), `DashboardViewModel` (`@MainActor @Observable`, ne dépend que de `BookmarkReading`), `DashboardView` câblée, modèle de présentation `BrowserBookmarkSummary`.
 - **Doubles in-memory** pour faire tourner l'app et les previews sans accès fichier : `InMemoryBookmarkReader` (arbre d'exemple), `InMemoryBookmarkDiffer` (plan vide, placeholder), `InMemoryBackupStore` (`actor`).
+- **Tests unitaires de base** (`BookmarkBridgeTests`, Swift Testing) : modèles de domaine, modèles de synchronisation, et `DashboardViewModel` (succès, liste vide, échec) via les doubles in-memory — 12 tests verts.
 - **Aucune implémentation réelle** (lecture Safari/Chrome, diff réel, backup disque, écriture) à ce jour. `Core/Services/Writing` reste volontairement vide (ADR-0002). Aucun accès réel aux favoris ne sera ajouté avant la fin de l'architecture, des modèles, des protocoles, des ViewModels et des tests unitaires de base.

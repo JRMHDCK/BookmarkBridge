@@ -26,6 +26,8 @@ toute implémentation de lecture ou de synchronisation des favoris.
 - **Doubles in-memory** des protocoles (`InMemoryBookmarkReader`,
   `InMemoryBookmarkDiffer`, `InMemoryBackupStore`) pour faire tourner l'app et les
   previews sans accès fichier.
+- **Tests unitaires de base** (Swift Testing) : modèles de domaine, modèles de
+  synchronisation et `DashboardViewModel` (succès / liste vide / échec) via les doubles.
 
 ### Modifié
 - Passage du projet en **Swift 6** (`SWIFT_VERSION = 6.0`) avec concurrence stricte

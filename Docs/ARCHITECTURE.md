@@ -140,7 +140,7 @@ testée en isolation via protocoles mockés ; services concrets testés contre d
 1. ~~Définir les **modèles de domaine** (`Core/Models`)~~ — fait.
 2. ~~Définir les **protocoles** de services (lecture, diff, backup, parsing, sécurité)~~ — fait.
 3. ~~Compléter l'**architecture MVVM** (composition root, ViewModels de base, injection)~~ — fait.
-4. Écrire les **tests unitaires de base** (modèles + ViewModels via doubles).
+4. ~~Écrire les **tests unitaires de base** (modèles + ViewModels via doubles)~~ — fait.
 5. **Puis seulement** : implémenter la lecture (Safari, Chrome), le diff, la
    prévisualisation, et enfin l'écriture (phase 2, derrière backup + dry-run).
 
