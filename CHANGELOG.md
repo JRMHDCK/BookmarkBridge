@@ -67,6 +67,12 @@ toute implémentation de lecture ou de synchronisation des favoris.
   bookmark valide → localisation ; périmé → recréation + sauvegarde automatique
   (best-effort) ; absent/corrompu/irrésoluble → `authorizationRequired(.safari)`.
   Aucun accès fichier, aucune UI, aucune dépendance au reader/décodeur. Tests (9).
+- **Accès réel Safari — coordinateur d'autorisation** : protocole `SafariAccessAuthorizing`
+  (seam UI, `@MainActor`) + `SafariAccessCoordinator` orchestrant autorisation →
+  validation stricte du fichier (`Library/Safari/Bookmarks.plist`) → création du bookmark
+  read-only → persistance → retour de l'URL. `SafariAccessError` (cancelled / wrongFile /
+  bookmarkCreationFailed / persistenceFailed). Aucun décodage/lecture/parsing. Tests via
+  faux authorizer, sans NSOpenPanel réel (6).
 
 ### Modifié
 - Passage du projet en **Swift 6** (`SWIFT_VERSION = 6.0`) avec concurrence stricte

@@ -21,6 +21,21 @@ struct FailingBookmarkReader: BookmarkReading {
     }
 }
 
+/// A configurable `SafariAccessAuthorizing` double — never opens a real
+/// NSOpenPanel. Returns a URL or throws (e.g. `SafariAccessError.cancelled`).
+@MainActor
+final class FakeSafariAccessAuthorizer: SafariAccessAuthorizing {
+    var result: Result<URL, Error>
+    private(set) var requestCount = 0
+
+    init(_ result: Result<URL, Error>) { self.result = result }
+
+    func requestAccess() async throws -> URL {
+        requestCount += 1
+        return try result.get()
+    }
+}
+
 /// An in-memory `BookmarkStore` double with configurable load/save failures,
 /// for testing components that persist bookmarks without touching disk.
 final class InMemoryBookmarkStore: BookmarkStore, @unchecked Sendable {
