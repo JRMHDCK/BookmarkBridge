@@ -52,6 +52,15 @@ struct CoreModelTests {
         #expect(Browser.allCases.count == 2)
     }
 
+    // MARK: - Errors
+
+    @Test("authorizationRequired is a distinct, equatable error case")
+    func authorizationRequiredError() {
+        #expect(BookmarkError.authorizationRequired(.safari) == .authorizationRequired(.safari))
+        #expect(BookmarkError.authorizationRequired(.safari) != .authorizationRequired(.chrome))
+        #expect(BookmarkError.authorizationRequired(.safari) != .sourceNotFound(.safari))
+    }
+
     // MARK: - Codable
 
     @Test("A tree survives a JSON encode/decode round-trip")
