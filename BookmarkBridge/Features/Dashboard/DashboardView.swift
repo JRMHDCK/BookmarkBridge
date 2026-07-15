@@ -50,6 +50,8 @@ struct DashboardView: View {
 
 #Preview {
     DashboardView(
-        viewModel: DashboardViewModel(readers: AppDependencies.bootstrap().bookmarkReaders)
+        viewModel: DashboardViewModel(readers: [
+            InMemoryBookmarkReader(browser: .safari, tree: .sample(for: .safari))
+        ])
     )
 }

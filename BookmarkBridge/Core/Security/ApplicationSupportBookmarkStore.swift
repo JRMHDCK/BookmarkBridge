@@ -33,14 +33,14 @@ nonisolated struct ApplicationSupportBookmarkStore: BookmarkStore {
         self.directory = directory
     }
 
-    /// Creates a store under the user's Application Support directory.
-    static func inApplicationSupport() throws -> ApplicationSupportBookmarkStore {
-        let base = try FileManager.default.url(
-            for: .applicationSupportDirectory,
-            in: .userDomainMask,
-            appropriateFor: nil,
-            create: true
-        )
+    /// Creates a store under the user's Application Support directory. The
+    /// directory itself is created lazily on first save (`ensureDirectory()`),
+    /// so this is non-throwing.
+    static func inApplicationSupport() -> ApplicationSupportBookmarkStore {
+        let base = FileManager.default
+            .urls(for: .applicationSupportDirectory, in: .userDomainMask)
+            .first
+            ?? FileManager.default.temporaryDirectory
         return ApplicationSupportBookmarkStore(
             directory: base.appending(path: "BookmarkBridge", directoryHint: .isDirectory)
         )

@@ -82,10 +82,14 @@ toute implémentation de lecture ou de synchronisation des favoris.
   la chaîne réelle complète (coordinator → creator/store réels → locator autorisé →
   accès sandbox lecture seule → reader → decoder → `BookmarkTree`) sur un fichier
   temporaire, avec redémarrage simulé et preuve read-only (taille + date inchangées).
-  Harnais de diagnostic `SafariAccessValidationView` (argument de lancement
-  `--validate-safari-access`, macOS) pour la validation manuelle sur le vrai
-  `~/Library/Safari/Bookmarks.plist`, et `SafariAccessValidationReport` (comptage
-  dossiers/favoris/nœuds, testé).
+  Validation manuelle réalisée avec succès sur le vrai `~/Library/Safari/Bookmarks.plist`
+  (31 dossiers, 849 favoris, bookmark persistant OK après redémarrage, aucun souci TCC).
+- **Accès réel Safari — câblage** : `AppDependencies.bootstrap()` branche désormais le
+  vrai `SafariBookmarkReader` (via `AuthorizedSafariSourceLocator` + `SandboxFileAccessProvider`
+  + `SafariBookmarkDecoder`), Safari uniquement ; store et creator exposés pour le futur
+  flux d'autorisation (couche App). `inApplicationSupport()` rendu non-throwing (dossier
+  créé paresseusement). Harnais de diagnostic temporaire retiré (le test d'intégration de
+  bout en bout est conservé comme régression).
 
 ### Modifié
 - Passage du projet en **Swift 6** (`SWIFT_VERSION = 6.0`) avec concurrence stricte

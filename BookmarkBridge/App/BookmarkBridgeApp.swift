@@ -14,28 +14,9 @@ struct BookmarkBridgeApp: App {
 
     var body: some Scene {
         WindowGroup {
-            rootView
+            DashboardView(
+                viewModel: DashboardViewModel(readers: dependencies.bookmarkReaders)
+            )
         }
-    }
-
-    @ViewBuilder
-    private var rootView: some View {
-        #if os(macOS)
-        // Temporary diagnostic entry for the manual real-access validation
-        // (see App/Diagnostics). Not the definitive wiring.
-        if CommandLine.arguments.contains("--validate-safari-access") {
-            SafariAccessValidationView()
-        } else {
-            dashboard
-        }
-        #else
-        dashboard
-        #endif
-    }
-
-    private var dashboard: some View {
-        DashboardView(
-            viewModel: DashboardViewModel(readers: dependencies.bookmarkReaders)
-        )
     }
 }
