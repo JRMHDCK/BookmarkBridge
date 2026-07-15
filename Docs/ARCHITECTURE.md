@@ -122,7 +122,9 @@ L'architecture matérialise ce principe (détaillé en section 3 de [`../CLAUDE.
 
 ## 7. Concurrence (Swift 6)
 
-- Types de domaine (`Core/Models`) : `Sendable`, immuables.
+- Isolation `MainActor` par défaut (`SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`).
+- Couche `Core` (modèles + protocoles) : **`nonisolated`**, `Sendable`, immuable —
+  indépendante du main actor et de l'UI (voir `adr/0004-isolation-concurrence.md`).
 - ViewModels (`Features`) : `@MainActor`.
 - I/O et parsing : hors du main actor (`actor` ou fonctions `async`).
 - Concurrence stricte activée (`SWIFT_STRICT_CONCURRENCY = complete`).
@@ -135,8 +137,18 @@ testée en isolation via protocoles mockés ; services concrets testés contre d
 
 ## 9. Prochaines étapes
 
-1. Définir les **modèles de domaine** (`Core/Models`) — immuables et `Sendable`.
-2. Définir les **protocoles** de services (lecture, diff, backup).
-3. Compléter l'**architecture MVVM** (composition root, ViewModels de base).
-4. **Puis seulement** : implémenter la lecture, le diff, la prévisualisation, et enfin
-   l'écriture (phase 2).
+1. ~~Définir les **modèles de domaine** (`Core/Models`)~~ — fait.
+2. ~~Définir les **protocoles** de services (lecture, diff, backup, parsing, sécurité)~~ — fait.
+3. Compléter l'**architecture MVVM** (composition root dans `App/`, ViewModels de base,
+   injection des dépendances).
+4. **Puis seulement** : implémenter la lecture (Safari, Chrome), le diff, la
+   prévisualisation, et enfin l'écriture (phase 2, derrière backup + dry-run).
+
+### Types définis (phase actuelle)
+
+- **Modèles** (`Core/Models`) : `Browser`, `BookmarkID`, `Bookmark`, `BookmarkFolder`,
+  `BookmarkNode`, `BookmarkTree`, `BrowserLocation`, `BookmarkError`, `SyncChange`,
+  `SyncPlan`, `SyncReport`, `BackupHandle`.
+- **Protocoles** : `BookmarkReading`, `BookmarkSourceLocating`, `BookmarkDiffing`,
+  `BookmarkBackup`, `BookmarkDecoding`, `FileAccessProviding`.
+- **Absent volontairement** : `BookmarkWriting` (phase 2 — ADR-0002).

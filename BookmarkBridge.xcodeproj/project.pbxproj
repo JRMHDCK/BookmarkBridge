@@ -33,12 +33,6 @@
 		02FE5CA0300797AC00A2738F /* Exceptions for "BookmarkBridge" folder in "BookmarkBridge" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				Core/Models/.gitkeep,
-				Core/Parsers/.gitkeep,
-				Core/Security/.gitkeep,
-				Core/Services/Backup/.gitkeep,
-				Core/Services/Diffing/.gitkeep,
-				Core/Services/Reading/.gitkeep,
 				Core/Services/Writing/.gitkeep,
 				Core/Utilities/.gitkeep,
 				Features/Logs/.gitkeep,

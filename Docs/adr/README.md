@@ -14,6 +14,7 @@ structurante est documentée dans un fichier numéroté et immuable.
 | 0001 | Consigner les décisions d'architecture  | Accepté  |
 | 0002 | Lecture seule avant toute écriture      | Accepté  |
 | 0003 | Architecture modulaire App/Core/Features/Shared | Accepté |
+| 0004 | Isolation par défaut MainActor, Core nonisolated | Accepté |
 
 ## Modèle
 

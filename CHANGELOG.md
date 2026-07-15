@@ -13,8 +13,14 @@ toute implémentation de lecture ou de synchronisation des favoris.
 ### Ajouté
 - Fichiers de gouvernance : `CLAUDE.md`, `README.md`, `CONTRIBUTING.md`, `LICENSE` (MIT), `CHANGELOG.md`.
 - `.gitignore` adapté à macOS / Xcode / Swift.
-- Documentation d'architecture dans `Docs/` (`ARCHITECTURE.md` et journal des décisions `adr/`).
+- Documentation d'architecture dans `Docs/` (`ARCHITECTURE.md` et journal des décisions `adr/`, ADR-0001 à 0004).
 - Arborescence modulaire **App / Core / Features / Shared** (dossiers de structure, sans code métier).
+- **Modèles de domaine** (`Core/Models`) immuables et `Sendable` : `Browser`, `BookmarkID`,
+  `Bookmark`, `BookmarkFolder`, `BookmarkNode`, `BookmarkTree`, `BrowserLocation`,
+  `BookmarkError`, `SyncChange`, `SyncPlan`, `SyncReport`, `BackupHandle`.
+- **Protocoles de services** (`Core`) : `BookmarkReading`, `BookmarkSourceLocating`,
+  `BookmarkDiffing`, `BookmarkBackup`, `BookmarkDecoding`, `FileAccessProviding` —
+  contrats read-only uniquement, sans implémentation.
 
 ### Modifié
 - Passage du projet en **Swift 6** (`SWIFT_VERSION = 6.0`) avec concurrence stricte

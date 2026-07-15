@@ -139,7 +139,7 @@ BookmarkBridge/
 ## 7. Conventions Swift 6
 
 - **Swift 6, concurrence stricte** (`SWIFT_STRICT_CONCURRENCY = complete`) — objectif dès l'implémentation.
-- **Sendable & isolation :** les types de domaine sont `Sendable`. Les ViewModels sont `@MainActor`. Les I/O s'exécutent hors du main actor (via `actor` ou fonctions `async`).
+- **Sendable & isolation :** le projet utilise l'isolation `MainActor` par défaut (`SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`, « approachable concurrency »). En conséquence, **toute la couche `Core` (modèles et protocoles) est déclarée `nonisolated`** : ce sont des données/contrats purs, indépendants de l'UI, utilisables hors du main actor. Les types de domaine sont `Sendable` et immuables ; les ViewModels restent `@MainActor` ; les I/O s'exécutent hors du main actor (via `actor` ou fonctions `async`). Voir [`Docs/adr/0004-isolation-concurrence.md`](Docs/adr/0004-isolation-concurrence.md).
 - **`async`/`await`** pour toute opération asynchrone ; **pas** de complétions par closures pour du nouveau code, pas de `DispatchQueue` manuel sauf nécessité justifiée.
 - **Immutabilité par défaut :** `let` plutôt que `var` ; `struct`/`enum` plutôt que `class` sauf besoin de référence/isolation (`actor`).
 - **Typage fort :** pas de « stringly-typed ». Utiliser `enum`, types dédiés, et identifiants typés.
@@ -240,4 +240,6 @@ Framework : **Swift Testing** (`import Testing`, macros `@Test` / `#expect` / `#
 - Fichiers de gouvernance : `CLAUDE.md`, `README.md`, `CONTRIBUTING.md`, `LICENSE` (MIT), `CHANGELOG.md`, `.gitignore`.
 - Documentation d'architecture : `Docs/ARCHITECTURE.md` et journal des décisions `Docs/adr/` (ADR-0001 à 0003).
 - Fichier utilisateur `xcschememanagement.plist` retiré du suivi Git.
-- **Aucune** logique métier implémentée à ce jour.
+- **Modèles de domaine** (`Core/Models`) définis : `Browser`, `BookmarkID`, `Bookmark`, `BookmarkFolder`, `BookmarkNode`, `BookmarkTree`, `BrowserLocation`, `BookmarkError`, `SyncChange`, `SyncPlan`, `SyncReport`, `BackupHandle` — tous immuables, `Sendable`, `nonisolated`.
+- **Protocoles de services** (`Core`) définis : `BookmarkReading`, `BookmarkSourceLocating` (Reading), `BookmarkDiffing` (Diffing), `BookmarkBackup` (Backup), `BookmarkDecoding` (Parsers), `FileAccessProviding` (Security).
+- **Aucune implémentation** (lecture Safari/Chrome, diff, backup, écriture) à ce jour. `Core/Services/Writing` reste volontairement vide (ADR-0002).
