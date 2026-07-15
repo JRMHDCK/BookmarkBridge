@@ -103,6 +103,9 @@ toute implémentation de lecture ou de synchronisation des favoris.
   macOS) : coordinateur construit depuis `bookmarkStore` + `bookmarkCreator` +
   `OpenPanelSafariAccessAuthorizer`, injecté dans le `DashboardViewModel`. Tests de
   l'adaptateur (4).
+- **Dashboard UI (palier 1)** : `BrowserBookmarkSummary` étendu avec `folderCount` et
+  `nodeCount` (dossiers + favoris), comptés dans le modèle de présentation (parcours
+  hors de la vue). Tests de comptage (3).
 
 ### Modifié
 - Passage du projet en **Swift 6** (`SWIFT_VERSION = 6.0`) avec concurrence stricte
