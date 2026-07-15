@@ -19,7 +19,7 @@ import Foundation
 /// Resolving a security-scoped bookmark into a real URL is *not* this type's
 /// concern: it simply reads whatever location the locator returns.
 nonisolated struct SafariBookmarkReader: BookmarkReading {
-    let browser: Browser = .safari
+    let source: BookmarkSource = .singleProfile(.safari)
 
     private let locator: BookmarkSourceLocating
     private let fileAccess: FileAccessProviding
@@ -43,7 +43,7 @@ nonisolated struct SafariBookmarkReader: BookmarkReading {
 
     func readBookmarkTree() async throws -> BookmarkTree {
         // 1. Locate.
-        let location = try locator.locate(browser)
+        let location = try locator.locate(source.browser)
 
         // 2 & 3. Read the bytes while holding read-only access; the scope is
         // released as soon as this returns (or throws).
@@ -55,6 +55,6 @@ nonisolated struct SafariBookmarkReader: BookmarkReading {
         let decoded = try decoder.decodeTree(from: data)
 
         // 5. Stamp the real capture time (the decoder leaves a sentinel).
-        return BookmarkTree(browser: browser, roots: decoded.roots, capturedAt: now())
+        return BookmarkTree(browser: source.browser, roots: decoded.roots, capturedAt: now())
     }
 }

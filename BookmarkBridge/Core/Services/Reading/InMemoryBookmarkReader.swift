@@ -11,12 +11,17 @@ import Foundation
 /// the read-only bootstrapping phase — before any real Safari/Chrome reader
 /// exists. It performs **no file access**.
 nonisolated struct InMemoryBookmarkReader: BookmarkReading {
-    let browser: Browser
+    let source: BookmarkSource
     private let tree: BookmarkTree
 
-    init(browser: Browser, tree: BookmarkTree) {
-        self.browser = browser
+    init(source: BookmarkSource, tree: BookmarkTree) {
+        self.source = source
         self.tree = tree
+    }
+
+    /// Convenience for a single-profile browser (e.g. Safari).
+    init(browser: Browser, tree: BookmarkTree) {
+        self.init(source: .singleProfile(browser), tree: tree)
     }
 
     func readBookmarkTree() async throws -> BookmarkTree {

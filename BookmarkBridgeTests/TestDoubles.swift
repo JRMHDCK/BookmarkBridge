@@ -8,11 +8,11 @@ import Foundation
 
 /// A `BookmarkReading` double that always fails, to exercise error paths.
 struct FailingBookmarkReader: BookmarkReading {
-    let browser: Browser
+    let source: BookmarkSource
     let error: BookmarkError
 
     init(browser: Browser, error: BookmarkError) {
-        self.browser = browser
+        self.source = .singleProfile(browser)
         self.error = error
     }
 
@@ -31,12 +31,18 @@ final class AuthorizationBox: @unchecked Sendable {
 /// A `BookmarkReading` double that throws `authorizationRequired` until its box
 /// is authorized, then returns a fixed tree.
 struct GatedBookmarkReader: BookmarkReading {
-    let browser: Browser
+    let source: BookmarkSource
     let box: AuthorizationBox
     let tree: BookmarkTree
 
+    init(browser: Browser, box: AuthorizationBox, tree: BookmarkTree) {
+        self.source = .singleProfile(browser)
+        self.box = box
+        self.tree = tree
+    }
+
     func readBookmarkTree() async throws -> BookmarkTree {
-        guard box.isAuthorized else { throw BookmarkError.authorizationRequired(browser) }
+        guard box.isAuthorized else { throw BookmarkError.authorizationRequired(source.browser) }
         return tree
     }
 }

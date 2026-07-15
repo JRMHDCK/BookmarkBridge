@@ -117,6 +117,12 @@ toute implémentation de lecture ou de synchronisation des favoris.
   « Lecture seule », statistiques Dossiers/Favoris/Nœuds, date via `Date.FormatStyle`,
   icônes SF Symbols par navigateur, état vide, libellés d'accessibilité, previews des
   4 états. Aucune logique de parcours d'arbre dans la vue.
+- **Lecture Chrome (palier 1 — généralisation « source »)** : modèle Core
+  `BookmarkSourceID` (browser + profil, identité stable) et `BookmarkSource`
+  (id + nom d'affichage). `BookmarkReading` généralisé de `browser` à `source`, et
+  Dashboard refondu **par source** (`SourceState`) au lieu de par navigateur — Safari
+  inchangé (source mono-profil). Prépare les profils Chrome multiples. Tests adaptés,
+  comportement identique.
 
 ### Modifié
 - Passage du projet en **Swift 6** (`SWIFT_VERSION = 6.0`) avec concurrence stricte

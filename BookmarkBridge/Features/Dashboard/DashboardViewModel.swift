@@ -8,15 +8,16 @@ import Observation
 
 /// Presentation state and orchestration for the dashboard.
 ///
-/// State is tracked **per browser**, so adding a browser (Chrome, Firefox, Edge…)
-/// is additive: each entry loads, fails, or requires authorization independently.
-/// The ViewModel depends only on `BookmarkReading` (to read) and, optionally, on
-/// `BookmarkAuthorizationRequesting` (to (re)authorize) — never on file formats,
-/// the sandbox, or AppKit. Reading is strictly read-only.
+/// State is tracked **per source** (a browser, optionally narrowed to a profile),
+/// so a browser with several profiles (Chrome) shows one card per profile, and
+/// adding a browser stays additive. The ViewModel depends only on
+/// `BookmarkReading` (to read) and, optionally, on `BookmarkAuthorizationRequesting`
+/// (to (re)authorize) — never on file formats, the sandbox, or AppKit. Reading is
+/// strictly read-only.
 @MainActor
 @Observable
 final class DashboardViewModel {
-    /// The status of a single browser on the dashboard.
+    /// The status of a single source on the dashboard.
     enum Status: Equatable {
         case loading
         case loaded(BrowserBookmarkSummary)
@@ -24,18 +25,18 @@ final class DashboardViewModel {
         case failed(String)
     }
 
-    /// A browser and its current status (ordered for stable display).
-    struct BrowserState: Identifiable, Equatable {
-        let browser: Browser
+    /// A source and its current status (ordered for stable display).
+    struct SourceState: Identifiable, Equatable {
+        let source: BookmarkSource
         var status: Status
-        var id: Browser { browser }
+        var id: BookmarkSourceID { source.id }
     }
 
-    private(set) var browsers: [BrowserState] = []
+    private(set) var sources: [SourceState] = []
 
-    /// True while any browser is loading — used to disable the global refresh.
+    /// True while any source is loading — used to disable the global refresh.
     var isLoading: Bool {
-        browsers.contains { $0.status == .loading }
+        sources.contains { $0.status == .loading }
     }
 
     private let readers: [BookmarkReading]
@@ -54,39 +55,39 @@ final class DashboardViewModel {
         await reloadAll()
     }
 
-    /// Reloads every configured browser. It never prompts for authorization on
-    /// its own — an unauthorized browser simply stays `.authorizationRequired`.
+    /// Reloads every configured source. It never prompts for authorization on
+    /// its own — an unauthorized source simply stays `.authorizationRequired`.
     func reloadAll() async {
-        browsers = readers.map { BrowserState(browser: $0.browser, status: .loading) }
+        sources = readers.map { SourceState(source: $0.source, status: .loading) }
         for reader in readers {
             await refresh(reader)
         }
     }
 
-    /// Reloads a single browser (used by "Réessayer"). It never prompts; if
+    /// Reloads a single source (used by "Réessayer"). It never prompts; if
     /// authorization is missing, the status naturally returns to
     /// `.authorizationRequired`.
-    func retry(_ browser: Browser) async {
-        guard let reader = reader(for: browser) else { return }
-        setStatus(.loading, for: browser)
+    func retry(_ sourceID: BookmarkSourceID) async {
+        guard let reader = reader(for: sourceID) else { return }
+        setStatus(.loading, for: sourceID)
         await refresh(reader)
     }
 
-    /// Requests authorization for `browser`, then reloads it on success. A user
+    /// Requests authorization for a source, then reloads it on success. A user
     /// cancellation returns silently to the authorization prompt; a genuine
     /// failure is surfaced as `.failed`.
-    func authorize(_ browser: Browser) async {
-        guard let authorizer, let reader = reader(for: browser) else { return }
-        setStatus(.loading, for: browser)
+    func authorize(_ sourceID: BookmarkSourceID) async {
+        guard let authorizer, let reader = reader(for: sourceID) else { return }
+        setStatus(.loading, for: sourceID)
         do {
-            let granted = try await authorizer.requestAuthorization(for: browser)
+            let granted = try await authorizer.requestAuthorization(for: sourceID.browser)
             if granted {
                 await refresh(reader)
             } else {
-                setStatus(.authorizationRequired, for: browser)
+                setStatus(.authorizationRequired, for: sourceID)
             }
         } catch {
-            setStatus(.failed(message(for: error)), for: browser)
+            setStatus(.failed(message(for: error)), for: sourceID)
         }
     }
 
@@ -95,28 +96,25 @@ final class DashboardViewModel {
     private func refresh(_ reader: BookmarkReading) async {
         do {
             let tree = try await reader.readBookmarkTree()
-            setStatus(.loaded(BrowserBookmarkSummary(tree: tree)), for: reader.browser)
+            setStatus(.loaded(BrowserBookmarkSummary(tree: tree)), for: reader.source.id)
         } catch let error as BookmarkError {
             if case .authorizationRequired = error {
-                setStatus(.authorizationRequired, for: reader.browser)
+                setStatus(.authorizationRequired, for: reader.source.id)
             } else {
-                setStatus(.failed(message(for: error)), for: reader.browser)
+                setStatus(.failed(message(for: error)), for: reader.source.id)
             }
         } catch {
-            setStatus(.failed(message(for: error)), for: reader.browser)
+            setStatus(.failed(message(for: error)), for: reader.source.id)
         }
     }
 
-    private func reader(for browser: Browser) -> BookmarkReading? {
-        readers.first { $0.browser == browser }
+    private func reader(for sourceID: BookmarkSourceID) -> BookmarkReading? {
+        readers.first { $0.source.id == sourceID }
     }
 
-    private func setStatus(_ status: Status, for browser: Browser) {
-        if let index = browsers.firstIndex(where: { $0.browser == browser }) {
-            browsers[index].status = status
-        } else {
-            browsers.append(BrowserState(browser: browser, status: status))
-        }
+    private func setStatus(_ status: Status, for sourceID: BookmarkSourceID) {
+        guard let index = sources.firstIndex(where: { $0.id == sourceID }) else { return }
+        sources[index].status = status
     }
 
     /// Maps an error to a simple, non-technical French message for the UI.

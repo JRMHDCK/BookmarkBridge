@@ -13,16 +13,18 @@ struct DashboardViewModelTests {
 
     private struct Boom: Error {}
 
+    private func id(_ browser: Browser) -> BookmarkSourceID { BookmarkSourceID(browser: browser) }
+
     private func status(_ viewModel: DashboardViewModel, _ browser: Browser) -> DashboardViewModel.Status? {
-        viewModel.browsers.first { $0.browser == browser }?.status
+        viewModel.sources.first { $0.source.browser == browser }?.status
     }
 
     // MARK: - Loading
 
-    @Test("Starts with no browser entries before loading")
+    @Test("Starts with no source entries before loading")
     func startsEmpty() {
         let viewModel = DashboardViewModel(readers: [])
-        #expect(viewModel.browsers.isEmpty)
+        #expect(viewModel.sources.isEmpty)
     }
 
     @Test("Loads one entry per reader with correct counts")
@@ -34,7 +36,7 @@ struct DashboardViewModelTests {
 
         await viewModel.load()
 
-        #expect(viewModel.browsers.map(\.browser) == [.safari, .chrome])
+        #expect(viewModel.sources.map(\.source.browser) == [.safari, .chrome])
         #expect(status(viewModel, .safari) == .loaded(BrowserBookmarkSummary(tree: .sample(for: .safari))))
         #expect(status(viewModel, .chrome) == .loaded(BrowserBookmarkSummary(tree: .sample(for: .chrome))))
     }
@@ -43,10 +45,10 @@ struct DashboardViewModelTests {
     func loadsNothingWhenNoReaders() async {
         let viewModel = DashboardViewModel(readers: [])
         await viewModel.load()
-        #expect(viewModel.browsers.isEmpty)
+        #expect(viewModel.sources.isEmpty)
     }
 
-    @Test("A non-authorization failure is surfaced as .failed for that browser")
+    @Test("A non-authorization failure is surfaced as .failed for that source")
     func surfacesFailure() async {
         let viewModel = DashboardViewModel(readers: [
             FailingBookmarkReader(browser: .safari, error: .sourceNotFound(.safari))
@@ -73,7 +75,7 @@ struct DashboardViewModelTests {
 
     // MARK: - Authorization
 
-    @Test("Authorizing on success reloads the browser to .loaded")
+    @Test("Authorizing on success reloads the source to .loaded")
     func authorizeReloadsOnSuccess() async {
         let box = AuthorizationBox()
         let viewModel = DashboardViewModel(
@@ -84,7 +86,7 @@ struct DashboardViewModelTests {
         await viewModel.load()
         #expect(status(viewModel, .safari) == .authorizationRequired)
 
-        await viewModel.authorize(.safari)
+        await viewModel.authorize(id(.safari))
 
         guard case .loaded(let summary)? = status(viewModel, .safari) else {
             Issue.record("expected .loaded, got \(String(describing: status(viewModel, .safari)))")
@@ -102,7 +104,7 @@ struct DashboardViewModelTests {
         )
 
         await viewModel.load()
-        await viewModel.authorize(.safari)
+        await viewModel.authorize(id(.safari))
 
         #expect(status(viewModel, .safari) == .authorizationRequired)
     }
@@ -116,7 +118,7 @@ struct DashboardViewModelTests {
         )
 
         await viewModel.load()
-        await viewModel.authorize(.safari)
+        await viewModel.authorize(id(.safari))
 
         guard case .failed = status(viewModel, .safari) else {
             Issue.record("expected .failed, got \(String(describing: status(viewModel, .safari)))")
@@ -132,15 +134,15 @@ struct DashboardViewModelTests {
         )
 
         await viewModel.load()
-        await viewModel.authorize(.safari)
+        await viewModel.authorize(id(.safari))
 
         #expect(status(viewModel, .safari) == .authorizationRequired)
     }
 
     // MARK: - retry(_:)
 
-    @Test("retry reloads only the targeted browser")
-    func retryReloadsOnlyThatBrowser() async {
+    @Test("retry reloads only the targeted source")
+    func retryReloadsOnlyThatSource() async {
         let safariBox = AuthorizationBox()
         let chromeBox = AuthorizationBox()
         let viewModel = DashboardViewModel(readers: [
@@ -154,7 +156,7 @@ struct DashboardViewModelTests {
 
         // Access becomes available out-of-band for Safari only.
         safariBox.isAuthorized = true
-        await viewModel.retry(.safari)
+        await viewModel.retry(id(.safari))
 
         guard case .loaded? = status(viewModel, .safari) else {
             Issue.record("expected Safari .loaded")
@@ -171,15 +173,15 @@ struct DashboardViewModelTests {
         )
 
         await viewModel.load()
-        await viewModel.retry(.safari)
+        await viewModel.retry(id(.safari))
 
         #expect(status(viewModel, .safari) == .authorizationRequired)
     }
 
     // MARK: - reloadAll()
 
-    @Test("reloadAll reloads every browser")
-    func reloadAllReloadsEveryBrowser() async {
+    @Test("reloadAll reloads every source")
+    func reloadAllReloadsEverySource() async {
         let viewModel = DashboardViewModel(readers: [
             InMemoryBookmarkReader(browser: .safari, tree: .sample(for: .safari)),
             InMemoryBookmarkReader(browser: .chrome, tree: .sample(for: .chrome)),
@@ -187,10 +189,10 @@ struct DashboardViewModelTests {
 
         await viewModel.reloadAll()
 
-        #expect(viewModel.browsers.count == 2)
-        for entry in viewModel.browsers {
+        #expect(viewModel.sources.count == 2)
+        for entry in viewModel.sources {
             guard case .loaded = entry.status else {
-                Issue.record("expected .loaded for \(entry.browser)")
+                Issue.record("expected .loaded for \(entry.source.displayName)")
                 return
             }
         }
@@ -248,7 +250,6 @@ struct DashboardViewModelTests {
 
     @Test("A non-domain error maps to the generic message")
     func genericErrorMessage() async {
-        struct Boom: Error {}
         let box = AuthorizationBox()
         let viewModel = DashboardViewModel(
             readers: [GatedBookmarkReader(browser: .safari, box: box, tree: .sample(for: .safari))],
@@ -256,7 +257,7 @@ struct DashboardViewModelTests {
         )
 
         await viewModel.load()
-        await viewModel.authorize(.safari)
+        await viewModel.authorize(id(.safari))
 
         #expect(status(viewModel, .safari) == .failed("Une erreur est survenue."))
     }

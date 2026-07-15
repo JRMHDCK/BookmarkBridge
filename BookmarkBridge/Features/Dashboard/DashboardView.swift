@@ -7,9 +7,9 @@
 
 import SwiftUI
 
-/// Read-only overview of the bookmarks found in each browser.
+/// Read-only overview of the bookmarks found in each source (browser/profile).
 ///
-/// Presentation only: it renders per-browser state from `DashboardViewModel` and
+/// Presentation only: it renders per-source state from `DashboardViewModel` and
 /// forwards load / reload / authorize / retry intents. It performs no I/O and
 /// never walks a `BookmarkTree` — it reads the already-computed summary fields.
 struct DashboardView: View {
@@ -22,16 +22,16 @@ struct DashboardView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                if viewModel.browsers.isEmpty {
+                if viewModel.sources.isEmpty {
                     emptyState
                         .frame(maxWidth: .infinity, minHeight: 240)
                 } else {
                     VStack(spacing: 16) {
-                        ForEach(viewModel.browsers) { entry in
-                            BrowserCard(
+                        ForEach(viewModel.sources) { entry in
+                            SourceCard(
                                 entry: entry,
-                                onAuthorize: { Task { await viewModel.authorize(entry.browser) } },
-                                onRetry: { Task { await viewModel.retry(entry.browser) } }
+                                onAuthorize: { Task { await viewModel.authorize(entry.source.id) } },
+                                onRetry: { Task { await viewModel.retry(entry.source.id) } }
                             )
                         }
                     }
@@ -64,9 +64,9 @@ struct DashboardView: View {
     }
 }
 
-/// A single browser's card, rendering one of the four states.
-private struct BrowserCard: View {
-    let entry: DashboardViewModel.BrowserState
+/// A single source's card, rendering one of the four states.
+private struct SourceCard: View {
+    let entry: DashboardViewModel.SourceState
     let onAuthorize: () -> Void
     let onRetry: () -> Void
 
@@ -89,7 +89,7 @@ private struct BrowserCard: View {
             Image(systemName: symbolName)
                 .foregroundStyle(.tint)
                 .accessibilityHidden(true)
-            Text(entry.browser.displayName)
+            Text(entry.source.displayName)
                 .font(.headline)
             Spacer()
             if case .loaded = entry.status {
@@ -169,7 +169,7 @@ private struct BrowserCard: View {
             )
             .foregroundStyle(.secondary)
             Button("Autoriser l'accès…", action: onAuthorize)
-                .accessibilityLabel("Autoriser l'accès aux favoris \(entry.browser.displayName)")
+                .accessibilityLabel("Autoriser l'accès aux favoris \(entry.source.displayName)")
         }
     }
 
@@ -178,14 +178,14 @@ private struct BrowserCard: View {
             Label(message, systemImage: "exclamationmark.triangle")
                 .foregroundStyle(.secondary)
             Button("Réessayer", action: onRetry)
-                .accessibilityLabel("Réessayer la lecture des favoris \(entry.browser.displayName)")
+                .accessibilityLabel("Réessayer la lecture des favoris \(entry.source.displayName)")
         }
     }
 
     // MARK: - Browser icon (extensible per browser)
 
     private var symbolName: String {
-        switch entry.browser {
+        switch entry.source.browser {
         case .safari: "safari"
         case .chrome: "globe"
         }
@@ -194,9 +194,15 @@ private struct BrowserCard: View {
 
 // MARK: - Previews
 
+private extension DashboardViewModel.SourceState {
+    static func preview(_ status: DashboardViewModel.Status) -> Self {
+        .init(source: .singleProfile(.safari), status: status)
+    }
+}
+
 #Preview("Chargé") {
-    BrowserCard(
-        entry: .init(browser: .safari, status: .loaded(BrowserBookmarkSummary(tree: .sample(for: .safari)))),
+    SourceCard(
+        entry: .preview(.loaded(BrowserBookmarkSummary(tree: .sample(for: .safari)))),
         onAuthorize: {},
         onRetry: {}
     )
@@ -205,33 +211,21 @@ private struct BrowserCard: View {
 }
 
 #Preview("Autorisation requise") {
-    BrowserCard(
-        entry: .init(browser: .safari, status: .authorizationRequired),
-        onAuthorize: {},
-        onRetry: {}
-    )
-    .padding()
-    .frame(width: 460)
+    SourceCard(entry: .preview(.authorizationRequired), onAuthorize: {}, onRetry: {})
+        .padding()
+        .frame(width: 460)
 }
 
 #Preview("Erreur") {
-    BrowserCard(
-        entry: .init(browser: .safari, status: .failed("Format du fichier illisible.")),
-        onAuthorize: {},
-        onRetry: {}
-    )
-    .padding()
-    .frame(width: 460)
+    SourceCard(entry: .preview(.failed("Format du fichier illisible.")), onAuthorize: {}, onRetry: {})
+        .padding()
+        .frame(width: 460)
 }
 
 #Preview("Chargement") {
-    BrowserCard(
-        entry: .init(browser: .safari, status: .loading),
-        onAuthorize: {},
-        onRetry: {}
-    )
-    .padding()
-    .frame(width: 460)
+    SourceCard(entry: .preview(.loading), onAuthorize: {}, onRetry: {})
+        .padding()
+        .frame(width: 460)
 }
 
 #Preview("Dashboard (in-memory)") {
