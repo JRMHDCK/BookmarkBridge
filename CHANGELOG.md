@@ -28,6 +28,8 @@ toute implémentation de lecture ou de synchronisation des favoris.
   previews sans accès fichier.
 - **Tests unitaires de base** (Swift Testing) : modèles de domaine, modèles de
   synchronisation et `DashboardViewModel` (succès / liste vide / échec) via les doubles.
+- **Lecture Safari — localisation** : `SafariBookmarkSourceLocator` (calcul pur du
+  chemin `~/Library/Safari/Bookmarks.plist`, home injectable), avec tests.
 
 ### Modifié
 - Passage du projet en **Swift 6** (`SWIFT_VERSION = 6.0`) avec concurrence stricte
