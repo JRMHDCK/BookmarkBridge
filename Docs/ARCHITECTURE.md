@@ -139,9 +139,9 @@ testée en isolation via protocoles mockés ; services concrets testés contre d
 
 1. ~~Définir les **modèles de domaine** (`Core/Models`)~~ — fait.
 2. ~~Définir les **protocoles** de services (lecture, diff, backup, parsing, sécurité)~~ — fait.
-3. Compléter l'**architecture MVVM** (composition root dans `App/`, ViewModels de base,
-   injection des dépendances).
-4. **Puis seulement** : implémenter la lecture (Safari, Chrome), le diff, la
+3. ~~Compléter l'**architecture MVVM** (composition root, ViewModels de base, injection)~~ — fait.
+4. Écrire les **tests unitaires de base** (modèles + ViewModels via doubles).
+5. **Puis seulement** : implémenter la lecture (Safari, Chrome), le diff, la
    prévisualisation, et enfin l'écriture (phase 2, derrière backup + dry-run).
 
 ### Types définis (phase actuelle)
@@ -152,3 +152,13 @@ testée en isolation via protocoles mockés ; services concrets testés contre d
 - **Protocoles** : `BookmarkReading`, `BookmarkSourceLocating`, `BookmarkDiffing`,
   `BookmarkBackup`, `BookmarkDecoding`, `FileAccessProviding`.
 - **Absent volontairement** : `BookmarkWriting` (phase 2 — ADR-0002).
+
+### Ossature MVVM (phase actuelle)
+
+- **Composition root** : `App/AppDependencies` (graphe assemblé une fois, injecté).
+- **ViewModel** : `Features/Dashboard/DashboardViewModel` (`@MainActor @Observable`),
+  dépend uniquement de `BookmarkReading` ; `BrowserBookmarkSummary` comme modèle de présentation.
+- **Vue** : `Features/Dashboard/DashboardView`, purement présentation.
+- **Doubles in-memory** (previews/tests/amorçage, sans I/O) : `InMemoryBookmarkReader`,
+  `InMemoryBookmarkDiffer`, `InMemoryBackupStore`. À remplacer par les implémentations
+  réelles une fois les tests en place.

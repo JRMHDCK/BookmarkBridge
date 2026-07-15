@@ -21,6 +21,11 @@ toute implémentation de lecture ou de synchronisation des favoris.
 - **Protocoles de services** (`Core`) : `BookmarkReading`, `BookmarkSourceLocating`,
   `BookmarkDiffing`, `BookmarkBackup`, `BookmarkDecoding`, `FileAccessProviding` —
   contrats read-only uniquement, sans implémentation.
+- **Ossature MVVM** : composition root `AppDependencies`, `DashboardViewModel`,
+  `DashboardView` câblée, `BrowserBookmarkSummary`.
+- **Doubles in-memory** des protocoles (`InMemoryBookmarkReader`,
+  `InMemoryBookmarkDiffer`, `InMemoryBackupStore`) pour faire tourner l'app et les
+  previews sans accès fichier.
 
 ### Modifié
 - Passage du projet en **Swift 6** (`SWIFT_VERSION = 6.0`) avec concurrence stricte
