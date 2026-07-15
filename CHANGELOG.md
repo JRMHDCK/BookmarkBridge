@@ -43,6 +43,11 @@ toute implémentation de lecture ou de synchronisation des favoris.
   `defer`), `SandboxFileAccessProvider` et l'abstraction injectable
   `SecurityScopedFileControlling` (+ implémentation système). Encapsule
   `start/stopAccessingSecurityScopedResource`, indépendant de Safari. Tests (7).
+- **Lecture Safari — orchestrateur** : `SafariBookmarkReader` (`BookmarkReading`), pur
+  orchestrateur (localisation → accès lecture seule → lecture des octets → décodage →
+  horodatage `capturedAt`), sans logique de parsing ni UI. Dépendances injectables
+  (locator, accès, décodeur, lecture d'octets, horloge). Tests d'intégration sur fichier
+  temporaire + propagation d'erreurs et fermeture systématique de l'accès (7).
 
 ### Modifié
 - Passage du projet en **Swift 6** (`SWIFT_VERSION = 6.0`) avec concurrence stricte

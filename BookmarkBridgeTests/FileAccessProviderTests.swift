@@ -7,26 +7,7 @@ import Foundation
 import Testing
 @testable import BookmarkBridge
 
-/// A spy controller: configurable outcomes and start/stop counters, so tests can
-/// assert resource balancing without touching the real filesystem or Safari.
-private final class SpySecurityScopedFileController: SecurityScopedFileControlling, @unchecked Sendable {
-    var exists = true
-    var readable = true
-    var startReturnValue = true
-
-    private(set) var startCount = 0
-    private(set) var stopCount = 0
-
-    func fileExists(at url: URL) -> Bool { exists }
-    func isReadable(at url: URL) -> Bool { readable }
-    func startAccessing(_ url: URL) -> Bool {
-        startCount += 1
-        return startReturnValue
-    }
-    func stopAccessing(_ url: URL) {
-        stopCount += 1
-    }
-}
+// SpySecurityScopedFileController is defined in TestDoubles.swift (shared).
 
 @Suite("SandboxFileAccessProvider")
 struct FileAccessProviderTests {
