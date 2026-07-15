@@ -128,6 +128,12 @@ toute implémentation de lecture ou de synchronisation des favoris.
   vide, titre vide, URL inhabituelle, Unicode, dates Chrome `date_added`, `synced` vide
   ou avec item) et `ChromeLocalStateFixture` (`profile.info_cache` dossier→nom, noms
   neutres). Tests du format brut (14).
+- **Lecture Chrome (palier 3 — décodeur)** : `ChromeBookmarkDecoder` (`BookmarkDecoding`),
+  décodage pur JSON → `BookmarkTree` (racines `bookmark_bar`/`other`/`synced` dans l'ordre ;
+  `synced` inclus seulement si non vide ; dates Chrome microsecondes-depuis-1601 converties ;
+  URL Unicode percent-encodées ; rejet des entrées irrécupérables ; `capturedAt` sentinelle).
+  Utilitaire partagé `BookmarkURLNormalizer` (extrait du décodeur Safari, qui le réutilise).
+  Tests (14).
 
 ### Modifié
 - Passage du projet en **Swift 6** (`SWIFT_VERSION = 6.0`) avec concurrence stricte
