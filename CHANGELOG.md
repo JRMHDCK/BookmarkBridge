@@ -134,6 +134,11 @@ toute implémentation de lecture ou de synchronisation des favoris.
   URL Unicode percent-encodées ; rejet des entrées irrécupérables ; `capturedAt` sentinelle).
   Utilitaire partagé `BookmarkURLNormalizer` (extrait du décodeur Safari, qui le réutilise).
   Tests (14).
+- **Lecture Chrome (palier 4 — localisation & Local State)** : `ChromeLocalState` (parser
+  pur `Local State` → mapping dossier→nom, best-effort) et `ChromeProfileLocating` /
+  `DefaultChromeProfileLocator` (dossier Chrome par défaut, URL de `Local State`,
+  énumération **dynamique** des profils contenant un fichier `Bookmarks`, dossiers
+  système exclus, tri déterministe). Dossier injecté ; tests en dossiers temporaires (8).
 
 ### Modifié
 - Passage du projet en **Swift 6** (`SWIFT_VERSION = 6.0`) avec concurrence stricte
