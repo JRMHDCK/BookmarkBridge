@@ -52,6 +52,11 @@ toute implémentation de lecture ou de synchronisation des favoris.
   avec `com.apple.security.files.bookmarks.app-scope` (+ app-sandbox et user-selected
   read-only conservés), câblé via `CODE_SIGN_ENTITLEMENTS` ; droits vérifiés dans la
   signature. Ajout du cas `BookmarkError.authorizationRequired(Browser)`.
+- **Accès réel Safari — persistance** : protocole `BookmarkStore` (stockage de `Data`
+  uniquement) et `ApplicationSupportBookmarkStore` (fichier privé versionné sous
+  `Application Support/BookmarkBridge/`, écriture atomique, permissions 0700/0600,
+  création du dossier à la demande, gestion des données absentes/corrompues, purge).
+  Répertoire injectable ; tests exclusivement en dossier temporaire.
 
 ### Modifié
 - Passage du projet en **Swift 6** (`SWIFT_VERSION = 6.0`) avec concurrence stricte
