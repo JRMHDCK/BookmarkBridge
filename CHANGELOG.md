@@ -30,6 +30,10 @@ toute implémentation de lecture ou de synchronisation des favoris.
   synchronisation et `DashboardViewModel` (succès / liste vide / échec) via les doubles.
 - **Lecture Safari — localisation** : `SafariBookmarkSourceLocator` (calcul pur du
   chemin `~/Library/Safari/Bookmarks.plist`, home injectable), avec tests.
+- **Lecture Safari — fixtures** : `SafariBookmarksFixture`, générateur programmatique
+  et anonymisé d'un `Bookmarks.plist` (binaire, déterministe) couvrant barre des
+  favoris, dossiers imbriqués, dossier vide, liste de lecture, titre vide, URL
+  inhabituelle et caractères Unicode ; tests du format brut (10).
 
 ### Modifié
 - Passage du projet en **Swift 6** (`SWIFT_VERSION = 6.0`) avec concurrence stricte
