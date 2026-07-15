@@ -136,4 +136,128 @@ struct DashboardViewModelTests {
 
         #expect(status(viewModel, .safari) == .authorizationRequired)
     }
+
+    // MARK: - retry(_:)
+
+    @Test("retry reloads only the targeted browser")
+    func retryReloadsOnlyThatBrowser() async {
+        let safariBox = AuthorizationBox()
+        let chromeBox = AuthorizationBox()
+        let viewModel = DashboardViewModel(readers: [
+            GatedBookmarkReader(browser: .safari, box: safariBox, tree: .sample(for: .safari)),
+            GatedBookmarkReader(browser: .chrome, box: chromeBox, tree: .sample(for: .chrome)),
+        ])
+
+        await viewModel.load()
+        #expect(status(viewModel, .safari) == .authorizationRequired)
+        #expect(status(viewModel, .chrome) == .authorizationRequired)
+
+        // Access becomes available out-of-band for Safari only.
+        safariBox.isAuthorized = true
+        await viewModel.retry(.safari)
+
+        guard case .loaded? = status(viewModel, .safari) else {
+            Issue.record("expected Safari .loaded")
+            return
+        }
+        #expect(status(viewModel, .chrome) == .authorizationRequired)   // untouched
+    }
+
+    @Test("retry never prompts; stays authorizationRequired when still unauthorized")
+    func retryStaysAuthorizationRequired() async {
+        let box = AuthorizationBox()
+        let viewModel = DashboardViewModel(
+            readers: [GatedBookmarkReader(browser: .safari, box: box, tree: .sample(for: .safari))]
+        )
+
+        await viewModel.load()
+        await viewModel.retry(.safari)
+
+        #expect(status(viewModel, .safari) == .authorizationRequired)
+    }
+
+    // MARK: - reloadAll()
+
+    @Test("reloadAll reloads every browser")
+    func reloadAllReloadsEveryBrowser() async {
+        let viewModel = DashboardViewModel(readers: [
+            InMemoryBookmarkReader(browser: .safari, tree: .sample(for: .safari)),
+            InMemoryBookmarkReader(browser: .chrome, tree: .sample(for: .chrome)),
+        ])
+
+        await viewModel.reloadAll()
+
+        #expect(viewModel.browsers.count == 2)
+        for entry in viewModel.browsers {
+            guard case .loaded = entry.status else {
+                Issue.record("expected .loaded for \(entry.browser)")
+                return
+            }
+        }
+    }
+
+    @Test("reloadAll never requests authorization")
+    func reloadAllNeverPrompts() async {
+        let box = AuthorizationBox()
+        let requester = FakeAuthorizationRequester(box: box, outcome: .success(true))
+        let viewModel = DashboardViewModel(
+            readers: [GatedBookmarkReader(browser: .safari, box: box, tree: .sample(for: .safari))],
+            authorizer: requester
+        )
+
+        await viewModel.reloadAll()
+
+        #expect(status(viewModel, .safari) == .authorizationRequired)
+        #expect(requester.requestCount == 0)
+    }
+
+    @Test("isLoading is false once loading has finished")
+    func isLoadingFalseAfterLoad() async {
+        let viewModel = DashboardViewModel(readers: [
+            InMemoryBookmarkReader(browser: .safari, tree: .sample(for: .safari))
+        ])
+
+        await viewModel.load()
+
+        #expect(viewModel.isLoading == false)
+    }
+
+    // MARK: - Error messages (simple, non-technical French)
+
+    @Test("A decoding failure maps to a simple French message")
+    func decodingFailureMessage() async {
+        let viewModel = DashboardViewModel(readers: [
+            FailingBookmarkReader(browser: .safari, error: .decodingFailed(.safari, reason: "boom"))
+        ])
+
+        await viewModel.load()
+
+        #expect(status(viewModel, .safari) == .failed("Format du fichier illisible."))
+    }
+
+    @Test("A source-not-found failure maps to a simple French message")
+    func sourceNotFoundMessage() async {
+        let viewModel = DashboardViewModel(readers: [
+            FailingBookmarkReader(browser: .safari, error: .sourceNotFound(.safari))
+        ])
+
+        await viewModel.load()
+
+        #expect(status(viewModel, .safari) == .failed("Fichier des favoris introuvable."))
+    }
+
+    @Test("A non-domain error maps to the generic message")
+    func genericErrorMessage() async {
+        struct Boom: Error {}
+        let box = AuthorizationBox()
+        let viewModel = DashboardViewModel(
+            readers: [GatedBookmarkReader(browser: .safari, box: box, tree: .sample(for: .safari))],
+            authorizer: FakeAuthorizationRequester(box: box, outcome: .failure(Boom()))
+        )
+
+        await viewModel.load()
+        await viewModel.authorize(.safari)
+
+        #expect(status(viewModel, .safari) == .failed("Une erreur est survenue."))
+    }
 }

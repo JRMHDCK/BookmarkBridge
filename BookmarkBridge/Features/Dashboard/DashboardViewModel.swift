@@ -33,6 +33,11 @@ final class DashboardViewModel {
 
     private(set) var browsers: [BrowserState] = []
 
+    /// True while any browser is loading — used to disable the global refresh.
+    var isLoading: Bool {
+        browsers.contains { $0.status == .loading }
+    }
+
     private let readers: [BookmarkReading]
     private let authorizer: (any BookmarkAuthorizationRequesting)?
 
@@ -44,12 +49,27 @@ final class DashboardViewModel {
         self.authorizer = authorizer
     }
 
-    /// Reads every configured browser, updating each entry independently.
+    /// Initial load (invoked on appear).
     func load() async {
+        await reloadAll()
+    }
+
+    /// Reloads every configured browser. It never prompts for authorization on
+    /// its own — an unauthorized browser simply stays `.authorizationRequired`.
+    func reloadAll() async {
         browsers = readers.map { BrowserState(browser: $0.browser, status: .loading) }
         for reader in readers {
             await refresh(reader)
         }
+    }
+
+    /// Reloads a single browser (used by "Réessayer"). It never prompts; if
+    /// authorization is missing, the status naturally returns to
+    /// `.authorizationRequired`.
+    func retry(_ browser: Browser) async {
+        guard let reader = reader(for: browser) else { return }
+        setStatus(.loading, for: browser)
+        await refresh(reader)
     }
 
     /// Requests authorization for `browser`, then reloads it on success. A user
@@ -66,7 +86,7 @@ final class DashboardViewModel {
                 setStatus(.authorizationRequired, for: browser)
             }
         } catch {
-            setStatus(.failed(String(describing: error)), for: browser)
+            setStatus(.failed(message(for: error)), for: browser)
         }
     }
 
@@ -80,10 +100,10 @@ final class DashboardViewModel {
             if case .authorizationRequired = error {
                 setStatus(.authorizationRequired, for: reader.browser)
             } else {
-                setStatus(.failed(String(describing: error)), for: reader.browser)
+                setStatus(.failed(message(for: error)), for: reader.browser)
             }
         } catch {
-            setStatus(.failed(String(describing: error)), for: reader.browser)
+            setStatus(.failed(message(for: error)), for: reader.browser)
         }
     }
 
@@ -96,6 +116,25 @@ final class DashboardViewModel {
             browsers[index].status = status
         } else {
             browsers.append(BrowserState(browser: browser, status: status))
+        }
+    }
+
+    /// Maps an error to a simple, non-technical French message for the UI.
+    private func message(for error: Error) -> String {
+        guard let bookmarkError = error as? BookmarkError else {
+            return "Une erreur est survenue."
+        }
+        switch bookmarkError {
+        case .sourceNotFound:
+            return "Fichier des favoris introuvable."
+        case .accessDenied:
+            return "Accès refusé au fichier."
+        case .decodingFailed:
+            return "Format du fichier illisible."
+        case .unsupportedBrowser:
+            return "Navigateur non pris en charge."
+        case .unknownNode, .authorizationRequired:
+            return "Une erreur est survenue."
         }
     }
 }

@@ -106,6 +106,10 @@ toute implémentation de lecture ou de synchronisation des favoris.
 - **Dashboard UI (palier 1)** : `BrowserBookmarkSummary` étendu avec `folderCount` et
   `nodeCount` (dossiers + favoris), comptés dans le modèle de présentation (parcours
   hors de la vue). Tests de comptage (3).
+- **Dashboard UI (palier 2)** : `DashboardViewModel` — `retry(_:)` (relance le seul
+  navigateur concerné, sans prompt), `reloadAll()` (relance tous les navigateurs, ne
+  redemande jamais d'autorisation), `isLoading` (pour désactiver l'actualisation), et
+  mapping des erreurs en messages FR simples et non techniques. Tests (8).
 
 ### Modifié
 - Passage du projet en **Swift 6** (`SWIFT_VERSION = 6.0`) avec concurrence stricte
