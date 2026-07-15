@@ -62,6 +62,11 @@ toute implémentation de lecture ou de synchronisation des favoris.
   `ResolvedBookmark` exposant `isStale`) et implémentations système
   (`.withSecurityScope` read-only). Doubles de test réutilisables ; tests du type,
   des doubles (frais/périmé/erreur) et du chemin d'erreur du resolver réel.
+- **Accès réel Safari — locator autorisé** : `AuthorizedSafariSourceLocator`
+  (`BookmarkSourceLocating`) orchestrant `BookmarkStore` + resolver + creator :
+  bookmark valide → localisation ; périmé → recréation + sauvegarde automatique
+  (best-effort) ; absent/corrompu/irrésoluble → `authorizationRequired(.safari)`.
+  Aucun accès fichier, aucune UI, aucune dépendance au reader/décodeur. Tests (9).
 
 ### Modifié
 - Passage du projet en **Swift 6** (`SWIFT_VERSION = 6.0`) avec concurrence stricte

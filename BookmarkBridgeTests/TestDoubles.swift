@@ -21,6 +21,35 @@ struct FailingBookmarkReader: BookmarkReading {
     }
 }
 
+/// An in-memory `BookmarkStore` double with configurable load/save failures,
+/// for testing components that persist bookmarks without touching disk.
+final class InMemoryBookmarkStore: BookmarkStore, @unchecked Sendable {
+    private var storage: [Browser: Data] = [:]
+    var loadError: Error?
+    var saveError: Error?
+    private(set) var saveCount = 0
+
+    init() {}
+
+    /// Preloads a stored bookmark (test setup).
+    func preset(_ data: Data, for browser: Browser) { storage[browser] = data }
+
+    func loadBookmark(for browser: Browser) throws -> Data? {
+        if let loadError { throw loadError }
+        return storage[browser]
+    }
+
+    func saveBookmark(_ bookmark: Data, for browser: Browser) throws {
+        if let saveError { throw saveError }
+        storage[browser] = bookmark
+        saveCount += 1
+    }
+
+    func clearBookmark(for browser: Browser) throws {
+        storage[browser] = nil
+    }
+}
+
 /// A configurable `SecurityScopedBookmarkCreating` double that records the URLs
 /// it was asked to bookmark.
 final class StubBookmarkCreator: SecurityScopedBookmarkCreating, @unchecked Sendable {
