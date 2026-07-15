@@ -73,6 +73,11 @@ toute implémentation de lecture ou de synchronisation des favoris.
   read-only → persistance → retour de l'URL. `SafariAccessError` (cancelled / wrongFile /
   bookmarkCreationFailed / persistenceFailed). Aucun décodage/lecture/parsing. Tests via
   faux authorizer, sans NSOpenPanel réel (6).
+- **Accès réel Safari — adaptateur NSOpenPanel** : `OpenPanelSafariAccessAuthorizer`
+  (`SafariAccessAuthorizing`, AppKit), panneau restreint à un seul fichier (dossiers et
+  sélection multiple interdits), validation stricte du nom `Bookmarks.plist`
+  (`wrongFile` sinon), annulation → `cancelled`. Ne crée/persiste/lit/décode rien.
+  Présentation du panneau injectable ; logique de mapping testée sans NSOpenPanel réel (4).
 
 ### Modifié
 - Passage du projet en **Swift 6** (`SWIFT_VERSION = 6.0`) avec concurrence stricte
