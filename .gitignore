@@ -1,0 +1,64 @@
+# ─────────────────────────────────────────────────────────────
+# BookmarkBridge — .gitignore (macOS / Xcode / Swift)
+# ─────────────────────────────────────────────────────────────
+
+## macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.Spotlight-V100
+.Trashes
+
+## Xcode — build & derived data
+build/
+DerivedData/
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+## Xcode — user-specific state (must NOT be versioned)
+xcuserdata/
+*.xcuserstate
+*.xcuserdatad
+*.xcscmblueprint
+*.xccheckout
+
+## Xcode — shared schemes are kept; user schemes are ignored above.
+## To share a scheme, mark it "Shared" in Xcode (writes to xcshareddata/).
+
+## Swift Package Manager
+.build/
+.swiftpm/xcode/package.xcworkspace/xcuserdata/
+Package.resolved
+
+## CocoaPods (not used today; ignored preventively)
+Pods/
+
+## Carthage (not used today; ignored preventively)
+Carthage/Build/
+
+## Fastlane (if adopted later)
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output
+
+## Testing / coverage
+*.xcresult/
+coverage/
+
+## Secrets & local config (never commit)
+*.env
+.env.local
+secrets.plist
+*.p12
+*.mobileprovision
+
+## Editor / tooling
+.idea/
+*.swp
+*~
