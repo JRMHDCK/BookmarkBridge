@@ -123,6 +123,11 @@ toute implémentation de lecture ou de synchronisation des favoris.
   Dashboard refondu **par source** (`SourceState`) au lieu de par navigateur — Safari
   inchangé (source mono-profil). Prépare les profils Chrome multiples. Tests adaptés,
   comportement identique.
+- **Lecture Chrome (palier 2 — fixtures)** : `ChromeBookmarksFixture` (JSON `Bookmarks`
+  anonymisé, déterministe : `bookmark_bar`/`other`/`synced`, dossiers imbriqués, dossier
+  vide, titre vide, URL inhabituelle, Unicode, dates Chrome `date_added`, `synced` vide
+  ou avec item) et `ChromeLocalStateFixture` (`profile.info_cache` dossier→nom, noms
+  neutres). Tests du format brut (14).
 
 ### Modifié
 - Passage du projet en **Swift 6** (`SWIFT_VERSION = 6.0`) avec concurrence stricte
