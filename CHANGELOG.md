@@ -34,6 +34,10 @@ toute implémentation de lecture ou de synchronisation des favoris.
   et anonymisé d'un `Bookmarks.plist` (binaire, déterministe) couvrant barre des
   favoris, dossiers imbriqués, dossier vide, liste de lecture, titre vide, URL
   inhabituelle et caractères Unicode ; tests du format brut (10).
+- **Lecture Safari — parseur** : `SafariBookmarkDecoder` (`BookmarkDecoding`), décodage
+  pur `Data` → `BookmarkTree` immuable, sans accès fichier. Percent-encode
+  automatiquement les URL Unicode et ne rejette que les entrées irrécupérables ;
+  `capturedAt` laissé en sentinelle (`.distantPast`), horodaté par le reader. Tests (14).
 
 ### Modifié
 - Passage du projet en **Swift 6** (`SWIFT_VERSION = 6.0`) avec concurrence stricte
