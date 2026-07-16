@@ -53,6 +53,10 @@ extension AppDependencies {
         let creator = SystemSecurityScopedBookmarkCreator()
         let resolver = SystemSecurityScopedBookmarkResolver()
 
+        let backupsRoot = (FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+            ?? FileManager.default.temporaryDirectory)
+            .appendingPathComponent("BookmarkBridge/Backups", isDirectory: true)
+
         let safariReader = SafariBookmarkReader(
             locator: AuthorizedBookmarkSourceLocator(
                 browser: .safari,
@@ -80,7 +84,7 @@ extension AppDependencies {
         return AppDependencies(
             providers: [safariProvider, chromeProvider],
             differ: AdditiveBookmarkDiffer(),
-            backup: InMemoryBackupStore(),
+            backup: FileBookmarkBackup(rootDirectory: backupsRoot),
             bookmarkStore: store,
             bookmarkCreator: creator
         )
