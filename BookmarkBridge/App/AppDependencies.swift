@@ -79,7 +79,7 @@ extension AppDependencies {
 
         return AppDependencies(
             providers: [safariProvider, chromeProvider],
-            differ: InMemoryBookmarkDiffer(),
+            differ: AdditiveBookmarkDiffer(),
             backup: InMemoryBackupStore(),
             bookmarkStore: store,
             bookmarkCreator: creator

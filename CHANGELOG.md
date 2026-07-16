@@ -10,6 +10,16 @@ et le projet suit le [Semantic Versioning](https://semver.org/lang/fr/).
 Phase d'amorçage : mise en place de la gouvernance et de l'architecture, **avant**
 toute implémentation de lecture ou de synchronisation des favoris.
 
+### Ajouté (en cours — synchronisation)
+- **Synchronisation — moteur de diff (P1)** : `AdditiveBookmarkDiffer` (`BookmarkDiffing`),
+  différentiel **réel, pur et non destructif** remplaçant le placeholder. `plan(from:to:)`
+  ne produit que des `.add` : les favoris de `source` dont l'URL (via `BookmarkMatchKey`,
+  clé canonique — casse scheme/host, slash final ignoré, query/fragment conservés) est
+  **absente** de `target` ; jamais de suppression, additions dédupliquées. Union obtenue en
+  planifiant les deux sens. Lecture seule, aucune écriture. Câblé dans `AppDependencies`.
+  Tests (14) : présence, ajouts, dédup, correspondance par URL normalisée, requêtes distinctes,
+  nœud conservé, navigateurs du plan, union bidirectionnelle ; + clé de correspondance.
+
 ### Ajouté
 - Fichiers de gouvernance : `CLAUDE.md`, `README.md`, `CONTRIBUTING.md`, `LICENSE` (MIT), `CHANGELOG.md`.
 - `.gitignore` adapté à macOS / Xcode / Swift.
