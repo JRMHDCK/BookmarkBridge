@@ -36,7 +36,7 @@ struct SyncModelTests {
         let node = BookmarkNode.bookmark(
             Bookmark(id: BookmarkID("b"), title: "Docs", url: URL(string: "https://d.example")!)
         )
-        #expect(SyncChange.add(node: node, parent: nil).summary.contains("Docs"))
+        #expect(SyncChange.add(node: node, parent: nil, sourcePath: []).summary.contains("Docs"))
         #expect(SyncChange.remove(id: BookmarkID("b")).summary.contains("b"))
         #expect(SyncChange.rename(id: BookmarkID("b"), newTitle: "X").summary.contains("X"))
     }

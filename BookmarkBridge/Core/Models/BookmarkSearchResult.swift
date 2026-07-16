@@ -5,20 +5,6 @@
 
 import Foundation
 
-/// One ancestor folder on the way to a search hit, kept lightweight (id + title)
-/// so a result never carries a whole sub-tree by value. The UI resolves these
-/// ids against the in-memory tree to build a navigation path, and maps the raw
-/// titles to friendly names for display.
-nonisolated struct BookmarkPathComponent: Hashable, Sendable {
-    let id: BookmarkID
-    let title: String
-
-    init(id: BookmarkID, title: String) {
-        self.id = id
-        self.title = title
-    }
-}
-
 /// How well a result matches the query, from strongest to weakest. Lower raw
 /// values rank first: an exact title beats a title prefix, which beats any other
 /// match (title substring, host, URL, or folder name).

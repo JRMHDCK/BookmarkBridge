@@ -12,7 +12,12 @@ import Foundation
 /// in phase 2 and never before the read-only pipeline is proven.
 nonisolated enum SyncChange: Hashable, Sendable {
     /// Add `node` under the folder identified by `parent` (nil = a root).
-    case add(node: BookmarkNode, parent: BookmarkID?)
+    ///
+    /// `sourcePath` records the node's **origin folder path** (root → parent) in
+    /// the source tree, captured now so the folder structure can be recreated at
+    /// write time without changing this model later. `parent` stays the concrete
+    /// target destination (resolved when the tree is rebuilt).
+    case add(node: BookmarkNode, parent: BookmarkID?, sourcePath: [BookmarkPathComponent])
 
     /// Remove the node identified by `id`.
     case remove(id: BookmarkID)
@@ -29,7 +34,7 @@ nonisolated enum SyncChange: Hashable, Sendable {
     /// A short, human-readable description for previews and logs.
     var summary: String {
         switch self {
-        case .add(let node, _): "Ajouter « \(node.title) »"
+        case .add(let node, _, _): "Ajouter « \(node.title) »"
         case .remove(let id): "Supprimer \(id)"
         case .move(let id, _): "Déplacer \(id)"
         case .rename(let id, let newTitle): "Renommer \(id) → « \(newTitle) »"

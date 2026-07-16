@@ -23,7 +23,7 @@ struct AdditiveBookmarkDifferTests {
 
     private func addedTitles(_ plan: SyncPlan) -> [String] {
         plan.changes.compactMap { change in
-            if case .add(let node, _) = change { node.title } else { nil }
+            if case .add(let node, _, _) = change { node.title } else { nil }
         }
     }
 
@@ -94,13 +94,37 @@ struct AdditiveBookmarkDifferTests {
         let target = tree(.chrome, [])
 
         let plan = differ.plan(from: source, to: target)
-        guard case .add(let node, let parent) = try? #require(plan.changes.first) else {
+        guard case .add(let node, let parent, let sourcePath) = try? #require(plan.changes.first) else {
             Issue.record("expected an .add change")
             return
         }
         #expect(node.title == "Swift")
         #expect(node.id == BookmarkID("s"))
-        #expect(parent == nil)   // v1: added at the target root
+        #expect(parent == nil)   // v1: concrete destination resolved at write time
+        // The bookmark sat directly under the single "Root" folder.
+        #expect(sourcePath.map(\.title) == ["Root"])
+        #expect(sourcePath.map(\.id) == [BookmarkID("safari.root")])
+    }
+
+    @Test("The origin folder path is captured for nested bookmarks")
+    func capturesNestedSourcePath() {
+        // Safari: Bar › Dev › Swift  (Swift missing from an empty Chrome).
+        let dev = BookmarkFolder(
+            id: BookmarkID("dev"),
+            title: "Dev",
+            children: [.bookmark(Bookmark(id: BookmarkID("sw"), title: "Swift", url: URL(string: "https://swift.org")!))]
+        )
+        let bar = BookmarkFolder(id: BookmarkID("bar"), title: "Bar", children: [.folder(dev)])
+        let source = BookmarkTree(browser: .safari, roots: [bar], capturedAt: .distantPast)
+        let target = BookmarkTree(browser: .chrome, roots: [], capturedAt: .distantPast)
+
+        let plan = differ.plan(from: source, to: target)
+        guard case .add(_, _, let sourcePath) = try? #require(plan.changes.first) else {
+            Issue.record("expected an .add change")
+            return
+        }
+        #expect(sourcePath.map(\.title) == ["Bar", "Dev"])
+        #expect(sourcePath.map(\.id) == [BookmarkID("bar"), BookmarkID("dev")])
     }
 
     @Test("The plan records the source and target browsers")
