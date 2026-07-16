@@ -75,6 +75,21 @@ struct ChromeBookmarkApplierTests {
         #expect(try Data(contentsOf: bakURL) == original)
     }
 
+    @Test("Refuses to write a synced account bookmarks file (V1 read-only)")
+    func refusesAccountBookmarks() async throws {
+        let profileDir = tempDir()
+        let accountURL = profileDir.appendingPathComponent("AccountBookmarks", isDirectory: false)
+        try ChromeBookmarksFixture.data().write(to: accountURL)
+        let location = BrowserLocation(browser: .chrome, fileURL: accountURL)
+        let applier = ChromeBookmarkApplier(detector: StubDetector(running: []), backup: FileBookmarkBackup(rootDirectory: tempDir()))
+        let before = try Data(contentsOf: accountURL)
+
+        await #expect(throws: ChromeWriteError.accountBookmarksAreReadOnly) {
+            try await applier.apply([newBookmark()], to: location, now: now)
+        }
+        #expect(try Data(contentsOf: accountURL) == before)   // untouched
+    }
+
     @Test("The write is reversible via the returned backup handle")
     func writeIsReversible() async throws {
         let f = try makeFixture()

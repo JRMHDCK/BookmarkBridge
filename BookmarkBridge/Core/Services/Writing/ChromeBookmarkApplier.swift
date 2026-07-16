@@ -9,6 +9,10 @@ import Foundation
 nonisolated enum ChromeWriteError: Error, Equatable {
     /// Chrome is running; writing would race it and is refused.
     case browserIsRunning
+    /// The target is an account (synced) bookmarks file. V1 writes only local
+    /// `Bookmarks` files; account bookmarks are read-only until a reliable
+    /// sync-aware write mechanism exists.
+    case accountBookmarksAreReadOnly
 }
 
 /// Applies additive changes to a Chrome `Bookmarks` file **safely**.
@@ -43,6 +47,12 @@ nonisolated struct ChromeBookmarkApplier {
     func apply(_ additions: [Bookmark], to location: BrowserLocation, now: Date) async throws -> BackupHandle {
         guard !detector.isRunning(location.browser) else {
             throw ChromeWriteError.browserIsRunning
+        }
+        // V1 policy: only local `Bookmarks` files are writable; a synced
+        // profile's `AccountBookmarks` is read-only (writing it would fight
+        // Chrome's sync). Refuse anything that is not the local Bookmarks file.
+        guard location.fileURL.lastPathComponent == "Bookmarks" else {
+            throw ChromeWriteError.accountBookmarksAreReadOnly
         }
 
         let handle = try await backup.backup(location)
