@@ -202,6 +202,13 @@ toute implémentation de lecture ou de synchronisation des favoris.
   exact → début de titre → autres, multi-sources. **Aucune lecture fichier**, lecture seule, aucune
   UI. Tests unitaires (10) : casse/accents, champs matchés, dossiers, classement, multi-sources,
   chemin, unicité.
+- **Recherche globale — ViewModel (palier 2)** : `SearchViewModel` (`@MainActor @Observable`,
+  `Features/Search`) — orchestration d'état **uniquement** : requête, résultats, sources en
+  mémoire (`updateSources`), état dérivé (`hasQuery`, `showsNoResults`, regroupement par source).
+  **Aucune logique métier** : tout le filtrage/classement/pertinence reste dans le moteur `Core` ;
+  le ViewModel ne fait que déléguer à `BookmarkSearching`. Aucune UI. Tests via moteur mocké (7) :
+  délégation requête+sources, republication verbatim (pas de reclassement), relance sur maj des
+  sources, état dérivé, regroupement ordonné.
 
 ### Ajouté (en cours — design system)
 - **Design system — fondations du thème (palier 1)** : jetons centralisés dans
