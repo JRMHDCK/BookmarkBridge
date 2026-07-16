@@ -23,4 +23,13 @@ nonisolated enum Browser: String, Sendable, Codable, CaseIterable, Identifiable 
         case .chrome: "Google Chrome"
         }
     }
+
+    /// The macOS bundle identifier, used to detect whether the browser is
+    /// running before attempting a write (writing must never race the browser).
+    var bundleIdentifier: String {
+        switch self {
+        case .safari: "com.apple.Safari"
+        case .chrome: "com.google.Chrome"
+        }
+    }
 }
