@@ -176,6 +176,12 @@ toute implémentation de lecture ou de synchronisation des favoris.
   seule), état « dossier vide », libellés d'accessibilité, previews. Aucune logique
   d'arbre dans la vue.
 
+### Ajouté (en cours — fil d'Ariane)
+- **Explorateur — fil d'Ariane (palier 1)** : type de pile `ExplorerStep`
+  (`.source` / `.folder`) et modèle de présentation `Breadcrumb` / `BreadcrumbItem`
+  avec mappeur testable (`[ExplorerStep]` → maillons ; chemin de troncature par maillon ;
+  noms conviviaux des racines Safari). Aucune UI, aucun changement de navigation. Tests (5).
+
 ### Corrigé
 - **Explorateur — noms des racines Safari** : affichage traduit des racines techniques
   (`BookmarksBar` → « Barre des favoris », `BookmarksMenu` → « Autres favoris »,
