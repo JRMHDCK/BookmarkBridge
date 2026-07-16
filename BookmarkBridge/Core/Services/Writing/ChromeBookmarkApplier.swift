@@ -9,9 +9,9 @@ import Foundation
 nonisolated enum ChromeWriteError: Error, Equatable {
     /// Chrome is running; writing would race it and is refused.
     case browserIsRunning
-    /// The target is an account (synced) bookmarks file. V1 writes only local
-    /// `Bookmarks` files; account bookmarks are read-only until a reliable
-    /// sync-aware write mechanism exists.
+    /// The target is the account-bookmarks file (`AccountBookmarks`). V1 writes
+    /// only the `Bookmarks` file (`kLocalOrSyncableBookmarksFileName`); writing
+    /// the account file is deferred until a reliable path is established.
     case accountBookmarksAreReadOnly
 }
 
@@ -48,9 +48,9 @@ nonisolated struct ChromeBookmarkApplier {
         guard !detector.isRunning(location.browser) else {
             throw ChromeWriteError.browserIsRunning
         }
-        // V1 policy: only local `Bookmarks` files are writable; a synced
-        // profile's `AccountBookmarks` is read-only (writing it would fight
-        // Chrome's sync). Refuse anything that is not the local Bookmarks file.
+        // V1 policy (file-based, no sync-status inference): write only the
+        // `Bookmarks` file (`kLocalOrSyncableBookmarksFileName`). The account
+        // file (`AccountBookmarks`) is read-only for now.
         guard location.fileURL.lastPathComponent == "Bookmarks" else {
             throw ChromeWriteError.accountBookmarksAreReadOnly
         }

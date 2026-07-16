@@ -35,9 +35,12 @@ nonisolated protocol ChromeProfileLocating: Sendable {
 nonisolated struct DefaultChromeProfileLocator: ChromeProfileLocating {
     /// Directories that are never user profiles.
     private static let excludedDirectories: Set<String> = ["System Profile", "Guest Profile"]
+    /// Per Chromium `bookmark_constants`: `kLocalOrSyncableBookmarksFileName`
+    /// ("local or syncable" bookmarks).
     private static let bookmarksFileName = "Bookmarks"
-    /// Signed-in ("account") profiles keep their synced bookmarks here instead of
-    /// (or in addition to) the local `Bookmarks` file.
+    /// Per Chromium `bookmark_constants`: `kAccountBookmarksFileName` (account
+    /// bookmarks). We make **no** assumption about sync status from the file's
+    /// presence — discovery is purely by file existence.
     private static let accountBookmarksFileName = "AccountBookmarks"
     private static let localStateFileName = "Local State"
 
@@ -82,10 +85,11 @@ nonisolated struct DefaultChromeProfileLocator: ChromeProfileLocating {
                 return nil
             }
 
-            // A profile is a bookmark source if it has a local `Bookmarks` file
-            // or, for signed-in profiles, an `AccountBookmarks` file (same JSON
-            // format). Prefer the local file when both exist (no change to
-            // already-shown profiles); fall back to the account file otherwise.
+            // A profile is a bookmark source if it has a `Bookmarks` file and/or
+            // an `AccountBookmarks` file (same JSON format). Choice is by file
+            // existence only — no inference from sync/sign-in status: use
+            // `Bookmarks` if present, else `AccountBookmarks`. (When both exist,
+            // `Bookmarks` wins for now; an explicit strategy is a later decision.)
             let localURL = url.appending(path: Self.bookmarksFileName, directoryHint: .notDirectory)
             let accountURL = url.appending(path: Self.accountBookmarksFileName, directoryHint: .notDirectory)
 
