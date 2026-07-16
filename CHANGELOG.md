@@ -193,6 +193,16 @@ toute implémentation de lecture ou de synchronisation des favoris.
   `safeAreaInset`. Previews (court / long replié). Dashboard/Core/lecteurs inchangés,
   lecture seule. Tests du repli (4).
 
+### Ajouté (en cours — recherche globale)
+- **Recherche globale — modèle & moteur (palier 1)** : couche `Core` pure et testable.
+  Modèle `BookmarkSearchResult` (source, nœud, chemin d'ancêtres léger `BookmarkPathComponent`,
+  pertinence `BookmarkSearchRelevance`), protocole `BookmarkSearching` + entrée `SearchableSource`
+  (source + arbre déjà en mémoire), et `BookmarkSearchEngine` : parcours en profondeur unique,
+  correspondance titre/hôte/URL/nom de dossier, insensible à la casse et aux accents, classement
+  exact → début de titre → autres, multi-sources. **Aucune lecture fichier**, lecture seule, aucune
+  UI. Tests unitaires (10) : casse/accents, champs matchés, dossiers, classement, multi-sources,
+  chemin, unicité.
+
 ### Ajouté (en cours — design system)
 - **Design system — fondations du thème (palier 1)** : jetons centralisés dans
   `Shared/DesignSystem/Theme.swift` — palette de marque (bleu identité + vert statut,
