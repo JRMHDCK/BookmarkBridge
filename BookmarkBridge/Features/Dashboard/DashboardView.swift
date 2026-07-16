@@ -14,13 +14,14 @@ import SwiftUI
 /// never walks a `BookmarkTree` — it reads the already-computed summary fields.
 struct DashboardView: View {
     @State private var viewModel: DashboardViewModel
+    @State private var path: [ExplorerStep] = []
 
     init(viewModel: DashboardViewModel) {
         _viewModel = State(initialValue: viewModel)
     }
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             ScrollView {
                 if viewModel.sources.isEmpty {
                     emptyState
@@ -39,11 +40,8 @@ struct DashboardView: View {
                     .padding()
                 }
             }
-            .navigationDestination(for: ExplorerRoute.self) { route in
-                SourceExplorerView(source: route.source, tree: route.tree)
-            }
-            .navigationDestination(for: BookmarkFolder.self) { folder in
-                FolderContentsView(folder: folder)
+            .navigationDestination(for: ExplorerStep.self) { step in
+                explorerDestination(for: step)
             }
             .navigationTitle("BookmarkBridge")
             .toolbar {
@@ -154,7 +152,7 @@ private struct SourceCard: View {
                     "Dernière lecture le \(summary.capturedAt.formatted(date: .long, time: .standard))"
                 )
             if let tree {
-                NavigationLink(value: ExplorerRoute(source: entry.source, tree: tree)) {
+                NavigationLink(value: ExplorerStep.source(entry.source, tree)) {
                     Label("Explorer les favoris", systemImage: "chevron.forward")
                         .font(.callout)
                 }

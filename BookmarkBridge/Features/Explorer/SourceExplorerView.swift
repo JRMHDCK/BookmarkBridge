@@ -5,11 +5,16 @@
 
 import SwiftUI
 
-/// A drill-down navigation value opening a source's bookmark tree. Carries the
-/// tree by value so the pushed explorer is stable across dashboard reloads.
-nonisolated struct ExplorerRoute: Hashable, Sendable {
-    let source: BookmarkSource
-    let tree: BookmarkTree
+/// Builds the destination view for one explorer navigation step. Shared by the
+/// dashboard's NavigationStack and the previews so the mapping lives in one place.
+@ViewBuilder
+func explorerDestination(for step: ExplorerStep) -> some View {
+    switch step {
+    case .source(let source, let tree):
+        SourceExplorerView(source: source, tree: tree)
+    case .folder(let folder):
+        FolderContentsView(folder: folder)
+    }
 }
 
 /// The top level of a source's read-only bookmark tree: its root folders.
@@ -43,7 +48,7 @@ struct FolderListView: View {
         List(presentation.items) { item in
             switch item {
             case .folder(_, let title, let itemCount, let destination):
-                NavigationLink(value: destination) {
+                NavigationLink(value: ExplorerStep.folder(destination)) {
                     folderRow(title: title, itemCount: itemCount)
                 }
             case .bookmark(_, let title, let host, let url):
@@ -96,7 +101,7 @@ struct FolderListView: View {
 #Preview("Source") {
     NavigationStack {
         SourceExplorerView(source: .singleProfile(.safari), tree: .sample(for: .safari))
-            .navigationDestination(for: BookmarkFolder.self) { FolderContentsView(folder: $0) }
+            .navigationDestination(for: ExplorerStep.self) { explorerDestination(for: $0) }
     }
     .frame(width: 460, height: 420)
 }

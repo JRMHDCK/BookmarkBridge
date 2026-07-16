@@ -181,6 +181,11 @@ toute implémentation de lecture ou de synchronisation des favoris.
   (`.source` / `.folder`) et modèle de présentation `Breadcrumb` / `BreadcrumbItem`
   avec mappeur testable (`[ExplorerStep]` → maillons ; chemin de troncature par maillon ;
   noms conviviaux des racines Safari). Aucune UI, aucun changement de navigation. Tests (5).
+- **Explorateur — fil d'Ariane (palier 2)** : navigation de l'explorateur refactorée en
+  `NavigationStack(path: [ExplorerStep])` (destinataire unique `explorerDestination(for:)`),
+  remplaçant `ExplorerRoute`/`navigationDestination(for: BookmarkFolder)`. **Comportement
+  identique** (push / retour / drill-down), aucun fil d'Ariane visible, Dashboard/Core/
+  lecteurs inchangés. Tests d'égalité/hachage sur `ExplorerStep` (4).
 
 ### Corrigé
 - **Explorateur — noms des racines Safari** : affichage traduit des racines techniques
