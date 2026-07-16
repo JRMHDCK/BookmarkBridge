@@ -19,6 +19,19 @@ toute implémentation de lecture ou de synchronisation des favoris.
   planifiant les deux sens. Lecture seule, aucune écriture. Câblé dans `AppDependencies`.
   Tests (14) : présence, ajouts, dédup, correspondance par URL normalisée, requêtes distinctes,
   nœud conservé, navigateurs du plan, union bidirectionnelle ; + clé de correspondance.
+- **Synchronisation — aperçu (P2)** : `BookmarkSyncPlanner` (dry-run bidirectionnel) + modèle
+  `SyncPreview` ; `SyncChange.add` enrichi d'un `sourcePath` (chemin d'origine) ; UI de
+  prévisualisation `SyncPreviewView`/`SyncPreviewViewModel` (groupée par source, **sans bouton
+  d'application**), câblée au Dashboard (bouton « Synchroniser… », paire Safari ↔ 1er Chrome).
+- **Synchronisation — sauvegarde (P3)** : `FileBookmarkBackup` (copie horodatée privée + sidecar,
+  restauration, listing) remplaçant le placeholder ; câblé dans `AppDependencies`.
+- **Synchronisation — écriture Chrome (P4, fixtures uniquement)** : `ChromeChecksum` (MD5 exact de
+  `bookmark_codec` — titre **UTF-16**, id/type/URL UTF-8 ; **validé en lecture seule contre de vrais
+  fichiers Chrome**, dossiers + liens, test golden) ; `ChromeBookmarkWriter` (ajout additif +
+  checksum) ; détection « navigateur ouvert » (`RunningBrowserDetecting` + `Browser.bundleIdentifier`) ;
+  `ChromeBookmarkApplier` (refus si Chrome ouvert → **sauvegarde obligatoire** → écriture atomique +
+  `.bak`, réversible). Tests exclusivement sur fixtures/fichiers temporaires. Outil de validation
+  `Tools/validate-chrome-checksum.swift`.
 
 ### Ajouté
 - Fichiers de gouvernance : `CLAUDE.md`, `README.md`, `CONTRIBUTING.md`, `LICENSE` (MIT), `CHANGELOG.md`.
