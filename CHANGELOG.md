@@ -193,6 +193,38 @@ toute implémentation de lecture ou de synchronisation des favoris.
   `safeAreaInset`. Previews (court / long replié). Dashboard/Core/lecteurs inchangés,
   lecture seule. Tests du repli (4).
 
+### Ajouté (en cours — recherche globale)
+- **Recherche globale — modèle & moteur (palier 1)** : couche `Core` pure et testable.
+  Modèle `BookmarkSearchResult` (source, nœud, chemin d'ancêtres léger `BookmarkPathComponent`,
+  pertinence `BookmarkSearchRelevance`), protocole `BookmarkSearching` + entrée `SearchableSource`
+  (source + arbre déjà en mémoire), et `BookmarkSearchEngine` : parcours en profondeur unique,
+  correspondance titre/hôte/URL/nom de dossier, insensible à la casse et aux accents, classement
+  exact → début de titre → autres, multi-sources. **Aucune lecture fichier**, lecture seule, aucune
+  UI. Tests unitaires (10) : casse/accents, champs matchés, dossiers, classement, multi-sources,
+  chemin, unicité.
+- **Recherche globale — ViewModel (palier 2)** : `SearchViewModel` (`@MainActor @Observable`,
+  `Features/Search`) — orchestration d'état **uniquement** : requête, résultats, sources en
+  mémoire (`updateSources`), état dérivé (`hasQuery`, `showsNoResults`, regroupement par source).
+  **Aucune logique métier** : tout le filtrage/classement/pertinence reste dans le moteur `Core` ;
+  le ViewModel ne fait que déléguer à `BookmarkSearching`. Aucune UI. Tests via moteur mocké (7) :
+  délégation requête+sources, republication verbatim (pas de reclassement), relance sur maj des
+  sources, état dérivé, regroupement ordonné.
+- **Recherche globale — UI `.searchable` (palier 3)** : champ de recherche **natif** (`.searchable`)
+  sur le Dashboard ; requête active → `SearchResultsView` (liste `.inset` groupée par source, lignes
+  titre + hôte/URL + chemin complet + icône de type) remplace les cartes ; requête vide → Dashboard
+  inchangé (aucune régression) ; « aucun résultat » via `ContentUnavailableView.search`. Alimentée par
+  `DashboardViewModel.searchableSources` (paires source+arbre en mémoire). Mapping des noms conviviaux
+  extrait dans `Shared/FolderTitleFormatter` (réutilisé par l'explorateur, sans dépendance croisée).
+  Design system v1.2.0 conservé, navigation inchangée, lecture seule ; navigation vers le résultat
+  au palier 4. Previews (résultats / aucun résultat). Tests (4) : formateur partagé, `searchableSources`.
+- **Recherche globale — navigation vers le résultat (palier 4)** : cliquer un résultat ouvre
+  l'explorateur au bon emplacement, via la **pile `ExplorerStep` existante** (aucune duplication de
+  navigation). Résolveur pur `ExplorerStep.path(to:in:)` (source + dossiers ancêtres résolus depuis
+  l'arbre ; un favori s'ouvre sur son dossier parent, un dossier sur lui-même) ; `SearchResultsView`
+  émet la sélection via closure et le Dashboard fixe le `path`. La requête reste active (retour =
+  résultats). Fil d'Ariane et lecture seule inchangés. Tests (4) : chemin favori imbriqué / dossier /
+  racine / composant inconnu. Résolveur écrit sans closures (évite un trap d'isolation `MainActor`).
+
 ### Ajouté (en cours — design system)
 - **Design system — fondations du thème (palier 1)** : jetons centralisés dans
   `Shared/DesignSystem/Theme.swift` — palette de marque (bleu identité + vert statut,

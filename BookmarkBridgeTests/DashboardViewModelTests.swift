@@ -75,6 +75,35 @@ struct DashboardViewModelTests {
         #expect(viewModel.sources.isEmpty)
     }
 
+    // MARK: - Searchable sources
+
+    @Test("Loaded sources are exposed as searchable (source + tree) pairs")
+    func exposesSearchableSources() async {
+        let viewModel = DashboardViewModel(providers: [
+            StubSourceProvider(browser: .safari, readers: [
+                InMemoryBookmarkReader(browser: .safari, tree: .sample(for: .safari))
+            ])
+        ])
+
+        await viewModel.load()
+
+        let searchable = viewModel.searchableSources
+        #expect(searchable.count == 1)
+        #expect(searchable.first?.source.id == id(.safari))
+        #expect(searchable.first?.tree == .sample(for: .safari))
+    }
+
+    @Test("Sources requiring authorization are omitted from searchable sources")
+    func omitsUnloadedSourcesFromSearch() async {
+        let viewModel = DashboardViewModel(providers: [
+            StubSourceProvider(browser: .chrome, error: .authorizationRequired(.chrome))
+        ])
+
+        await viewModel.load()
+
+        #expect(viewModel.searchableSources.isEmpty)
+    }
+
     // MARK: - Authorization required (browser level)
 
     @Test("A provider requiring authorization shows a browser-level card")

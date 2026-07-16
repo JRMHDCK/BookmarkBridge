@@ -14,50 +14,79 @@ import SwiftUI
 /// never walks a `BookmarkTree` — it reads the already-computed summary fields.
 struct DashboardView: View {
     @State private var viewModel: DashboardViewModel
+    @State private var searchModel: SearchViewModel
     @State private var path: [ExplorerStep] = []
 
-    init(viewModel: DashboardViewModel) {
+    init(viewModel: DashboardViewModel, searchEngine: any BookmarkSearching = BookmarkSearchEngine()) {
         _viewModel = State(initialValue: viewModel)
+        _searchModel = State(initialValue: SearchViewModel(engine: searchEngine))
     }
 
     var body: some View {
         NavigationStack(path: $path) {
-            ScrollView {
-                if viewModel.sources.isEmpty {
-                    emptyState
-                        .frame(maxWidth: .infinity, minHeight: 240)
-                } else {
-                    VStack(spacing: Theme.Spacing.l) {
-                        ForEach(viewModel.sources) { entry in
-                            SourceCard(
-                                entry: entry,
-                                tree: viewModel.tree(for: entry.id),
-                                onAuthorize: { Task { await viewModel.authorize(entry.source.id) } },
-                                onRetry: { Task { await viewModel.retry(entry.source.id) } }
-                            )
+            content
+                .navigationDestination(for: ExplorerStep.self) { step in
+                    explorerDestination(for: step, path: $path)
+                }
+                .navigationTitle("BookmarkBridge")
+                .toolbar {
+                    ToolbarItem {
+                        Button {
+                            Task { await viewModel.reloadAll() }
+                        } label: {
+                            Label("Actualiser", systemImage: "arrow.clockwise")
                         }
+                        .disabled(viewModel.isLoading)
+                        .accessibilityLabel("Actualiser tous les navigateurs")
                     }
-                    .padding()
                 }
-            }
-            .navigationDestination(for: ExplorerStep.self) { step in
-                explorerDestination(for: step, path: $path)
-            }
-            .navigationTitle("BookmarkBridge")
-            .toolbar {
-                ToolbarItem {
-                    Button {
-                        Task { await viewModel.reloadAll() }
-                    } label: {
-                        Label("Actualiser", systemImage: "arrow.clockwise")
-                    }
-                    .disabled(viewModel.isLoading)
-                    .accessibilityLabel("Actualiser tous les navigateurs")
+                .searchable(text: $searchModel.query, prompt: "Rechercher un favori")
+                .onChange(of: viewModel.searchableSources, initial: true) { _, sources in
+                    searchModel.updateSources(sources)
                 }
-            }
         }
         .frame(minWidth: 420, minHeight: 300)
         .task { await viewModel.load() }
+    }
+
+    /// Search results replace the dashboard while a query is active; an empty
+    /// query shows the unchanged dashboard (no regression).
+    @ViewBuilder
+    private var content: some View {
+        if searchModel.hasQuery {
+            SearchResultsView(model: searchModel, onSelect: openResult)
+        } else {
+            dashboard
+        }
+    }
+
+    /// Reveals a search hit by driving the existing explorer navigation: resolve
+    /// the hit to an `[ExplorerStep]` chain and set the shared path. The query
+    /// stays active, so the back button returns to the results. Read-only.
+    private func openResult(_ result: BookmarkSearchResult) {
+        guard let tree = viewModel.tree(for: result.source.id) else { return }
+        path = ExplorerStep.path(to: result, in: tree)
+    }
+
+    private var dashboard: some View {
+        ScrollView {
+            if viewModel.sources.isEmpty {
+                emptyState
+                    .frame(maxWidth: .infinity, minHeight: 240)
+            } else {
+                VStack(spacing: Theme.Spacing.l) {
+                    ForEach(viewModel.sources) { entry in
+                        SourceCard(
+                            entry: entry,
+                            tree: viewModel.tree(for: entry.id),
+                            onAuthorize: { Task { await viewModel.authorize(entry.source.id) } },
+                            onRetry: { Task { await viewModel.retry(entry.source.id) } }
+                        )
+                    }
+                }
+                .padding()
+            }
+        }
     }
 
     private var emptyState: some View {
