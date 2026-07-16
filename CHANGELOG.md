@@ -176,6 +176,23 @@ toute implémentation de lecture ou de synchronisation des favoris.
   seule), état « dossier vide », libellés d'accessibilité, previews. Aucune logique
   d'arbre dans la vue.
 
+### Ajouté (en cours — fil d'Ariane)
+- **Explorateur — fil d'Ariane (palier 1)** : type de pile `ExplorerStep`
+  (`.source` / `.folder`) et modèle de présentation `Breadcrumb` / `BreadcrumbItem`
+  avec mappeur testable (`[ExplorerStep]` → maillons ; chemin de troncature par maillon ;
+  noms conviviaux des racines Safari). Aucune UI, aucun changement de navigation. Tests (5).
+- **Explorateur — fil d'Ariane (palier 2)** : navigation de l'explorateur refactorée en
+  `NavigationStack(path: [ExplorerStep])` (destinataire unique `explorerDestination(for:)`),
+  remplaçant `ExplorerRoute`/`navigationDestination(for: BookmarkFolder)`. **Comportement
+  identique** (push / retour / drill-down), aucun fil d'Ariane visible, Dashboard/Core/
+  lecteurs inchangés. Tests d'égalité/hachage sur `ExplorerStep` (4).
+- **Explorateur — fil d'Ariane (palier 3)** : `BreadcrumbView` interactif en tête de
+  l'explorateur (bande au-dessus de la liste), maillons cliquables (troncature du chemin),
+  maillon courant non cliquable, repli des niveaux intermédiaires dans un menu « … »
+  (`Breadcrumb.layout`, testable). Branché via `explorerDestination(for:path:)` +
+  `safeAreaInset`. Previews (court / long replié). Dashboard/Core/lecteurs inchangés,
+  lecture seule. Tests du repli (4).
+
 ### Corrigé
 - **Explorateur — noms des racines Safari** : affichage traduit des racines techniques
   (`BookmarksBar` → « Barre des favoris », `BookmarksMenu` → « Autres favoris »,
