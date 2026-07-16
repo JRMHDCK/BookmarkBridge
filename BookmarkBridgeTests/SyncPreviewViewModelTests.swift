@@ -64,7 +64,7 @@ struct SyncPreviewViewModelTests {
 
     private struct StubApplier: ChromeBookmarkApplying {
         let result: Result<BackupHandle, any Error>
-        func apply(_ additions: [Bookmark], to location: BrowserLocation, now: Date) async throws -> BackupHandle {
+        func apply(_ additions: [Bookmark], to location: BrowserLocation, in scopeDirectory: BrowserLocation, now: Date) async throws -> BackupHandle {
             try result.get()
         }
     }
@@ -83,12 +83,13 @@ struct SyncPreviewViewModelTests {
     }
 
     private let chromeLocation = BrowserLocation(browser: .chrome, fileURL: URL(fileURLWithPath: "/tmp/Chrome/Profile 1/Bookmarks"))
+    private let chromeScope = BrowserLocation(browser: .chrome, fileURL: URL(fileURLWithPath: "/tmp/Chrome/Profile 1"))
 
     @Test("Applies the Safari → Chrome additions via the applier")
     func appliesToChrome() async {
         let t = trees()
         let model = SyncPreviewViewModel(applier: StubApplier(result: .success(handle())))
-        model.computePreview((safari, t.safari), (chrome, t.chrome), chromeWritableLocation: chromeLocation)
+        model.computePreview((safari, t.safari), (chrome, t.chrome), chromeWritableLocation: chromeLocation, chromeScopeDirectory: chromeScope)
 
         #expect(model.canApplyToChrome)
         #expect(model.chromeAdditionsCount == 2)   // Apple + Swift
@@ -100,7 +101,7 @@ struct SyncPreviewViewModelTests {
     func failsWhenChromeRunning() async {
         let t = trees()
         let model = SyncPreviewViewModel(applier: StubApplier(result: .failure(ChromeWriteError.browserIsRunning)))
-        model.computePreview((safari, t.safari), (chrome, t.chrome), chromeWritableLocation: chromeLocation)
+        model.computePreview((safari, t.safari), (chrome, t.chrome), chromeWritableLocation: chromeLocation, chromeScopeDirectory: chromeScope)
 
         await model.apply()
         #expect(model.applyState == .failed("Ferme Google Chrome avant d'appliquer."))
@@ -123,7 +124,7 @@ struct SyncPreviewViewModelTests {
         let backupStore = StubBackup()
         let applied = handle()
         let model = SyncPreviewViewModel(applier: StubApplier(result: .success(applied)), backup: backupStore)
-        model.computePreview((safari, t.safari), (chrome, t.chrome), chromeWritableLocation: chromeLocation)
+        model.computePreview((safari, t.safari), (chrome, t.chrome), chromeWritableLocation: chromeLocation, chromeScopeDirectory: chromeScope)
 
         await model.apply()
         await model.restore()
@@ -144,8 +145,8 @@ struct SyncPreviewViewModelTests {
 
         let model = SyncPreviewViewModel()
         model.configure(safari: (safari, t.safari), chromeCandidates: [
-            .init(source: chrome, tree: t.chrome, writable: nil),   // has only Hacker News
-            .init(source: chromeB, tree: bTree, writable: nil),     // already has Apple + Swift
+            .init(source: chrome, tree: t.chrome, writable: nil, scope: nil),   // has only Hacker News
+            .init(source: chromeB, tree: bTree, writable: nil, scope: nil),     // already has Apple + Swift
         ])
 
         #expect(model.chromeCandidates.count == 2)
@@ -162,7 +163,7 @@ struct SyncPreviewViewModelTests {
         let account = BookmarkSource(browser: .chrome, profile: "Profile 2", displayName: "Chrome — Test")
         let model = SyncPreviewViewModel(applier: StubApplier(result: .success(handle())))
         model.configure(safari: (safari, t.safari), chromeCandidates: [
-            .init(source: account, tree: t.chrome, writable: nil),   // no writable location
+            .init(source: account, tree: t.chrome, writable: nil, scope: nil),   // no writable location
         ])
         #expect(model.selectedChromeIsReadOnly)
         #expect(model.canApplyToChrome == false)

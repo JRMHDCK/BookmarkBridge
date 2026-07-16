@@ -85,6 +85,12 @@ final class DashboardViewModel {
         readers[sourceID]?.writableLocation
     }
 
+    /// The security-scoped directory to open while writing a source's file
+    /// (the Chrome data directory). `nil` for read-only sources.
+    func writableScopeDirectory(for sourceID: BookmarkSourceID) -> BrowserLocation? {
+        readers[sourceID]?.writableScopeDirectory
+    }
+
     /// The loaded sources paired with their decoded trees, for global search.
     /// A read-only view of in-memory state — no file access; sources still
     /// loading or in error are omitted.

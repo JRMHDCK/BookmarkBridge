@@ -22,9 +22,14 @@ nonisolated protocol BookmarkReading: Sendable {
     /// supports writing it (a Chrome local `Bookmarks` file). `nil` when the
     /// source is read-only in V1 (Safari, account bookmarks, ambiguous profiles).
     var writableLocation: BrowserLocation? { get }
+
+    /// The security-scoped directory to open while writing `writableLocation`
+    /// (e.g. the Chrome data directory). `nil` when the source is not writable.
+    var writableScopeDirectory: BrowserLocation? { get }
 }
 
 extension BookmarkReading {
-    /// Read-only by default; only writable sources override this.
+    /// Read-only by default; only writable sources override these.
     nonisolated var writableLocation: BrowserLocation? { nil }
+    nonisolated var writableScopeDirectory: BrowserLocation? { nil }
 }

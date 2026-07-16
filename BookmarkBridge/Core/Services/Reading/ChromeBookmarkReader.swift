@@ -51,6 +51,12 @@ nonisolated struct ChromeBookmarkReader: BookmarkReading {
             : nil
     }
 
+    /// The Chrome data directory to open while writing (the granted
+    /// security-scoped resource). Present only when the profile is writable.
+    var writableScopeDirectory: BrowserLocation? {
+        writableLocation == nil ? nil : directoryLocation
+    }
+
     func readBookmarkTree() async throws -> BookmarkTree {
         // Open read-only access to the Chrome directory, then read only this
         // profile's Bookmarks file within it.

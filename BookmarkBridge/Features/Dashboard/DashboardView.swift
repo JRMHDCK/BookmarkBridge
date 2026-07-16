@@ -97,7 +97,8 @@ struct DashboardView: View {
                 SyncPreviewViewModel.ChromeCandidate(
                     source: candidate.source,
                     tree: candidate.tree,
-                    writable: viewModel.writableLocation(for: candidate.source.id)
+                    writable: viewModel.writableLocation(for: candidate.source.id),
+                    scope: viewModel.writableScopeDirectory(for: candidate.source.id)
                 )
             }
         guard !chromeCandidates.isEmpty else { return }

@@ -46,10 +46,11 @@ struct ChromeBookmarkApplierTests {
     func refusesWhenChromeRunning() async throws {
         let f = try makeFixture()
         let applier = ChromeBookmarkApplier(detector: StubDetector(running: [.chrome]), backup: f.backup)
+        let scope = BrowserLocation(browser: .chrome, fileURL: f.profileDir)
         let before = try Data(contentsOf: f.location.fileURL)
 
         await #expect(throws: ChromeWriteError.browserIsRunning) {
-            try await applier.apply([newBookmark()], to: f.location, now: now)
+            try await applier.apply([newBookmark()], to: f.location, in: scope, now: now)
         }
         #expect(try Data(contentsOf: f.location.fileURL) == before)   // unchanged
     }
@@ -58,9 +59,10 @@ struct ChromeBookmarkApplierTests {
     func writesAndBacksUp() async throws {
         let f = try makeFixture()
         let applier = ChromeBookmarkApplier(detector: StubDetector(running: []), backup: f.backup)
+        let scope = BrowserLocation(browser: .chrome, fileURL: f.profileDir)
         let original = try Data(contentsOf: f.location.fileURL)
 
-        let handle = try await applier.apply([newBookmark()], to: f.location, now: now)
+        let handle = try await applier.apply([newBookmark()], to: f.location, in: scope, now: now)
 
         // The addition landed.
         let tree = try ChromeBookmarkDecoder().decodeTree(from: Data(contentsOf: f.location.fileURL))
@@ -82,10 +84,11 @@ struct ChromeBookmarkApplierTests {
         try ChromeBookmarksFixture.data().write(to: accountURL)
         let location = BrowserLocation(browser: .chrome, fileURL: accountURL)
         let applier = ChromeBookmarkApplier(detector: StubDetector(running: []), backup: FileBookmarkBackup(rootDirectory: tempDir()))
+        let scope = BrowserLocation(browser: .chrome, fileURL: profileDir)
         let before = try Data(contentsOf: accountURL)
 
         await #expect(throws: ChromeWriteError.accountBookmarksAreReadOnly) {
-            try await applier.apply([newBookmark()], to: location, now: now)
+            try await applier.apply([newBookmark()], to: location, in: scope, now: now)
         }
         #expect(try Data(contentsOf: accountURL) == before)   // untouched
     }
@@ -94,9 +97,10 @@ struct ChromeBookmarkApplierTests {
     func writeIsReversible() async throws {
         let f = try makeFixture()
         let applier = ChromeBookmarkApplier(detector: StubDetector(running: []), backup: f.backup)
+        let scope = BrowserLocation(browser: .chrome, fileURL: f.profileDir)
         let original = try Data(contentsOf: f.location.fileURL)
 
-        let handle = try await applier.apply([newBookmark()], to: f.location, now: now)
+        let handle = try await applier.apply([newBookmark()], to: f.location, in: scope, now: now)
         #expect(try Data(contentsOf: f.location.fileURL) != original)   // changed
 
         try await f.backup.restore(handle)

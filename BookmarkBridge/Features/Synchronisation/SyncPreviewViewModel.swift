@@ -51,6 +51,8 @@ final class SyncPreviewViewModel {
 
     /// Set when a preview is computed with a writable Chrome target.
     private var chromeLocation: BrowserLocation?
+    /// The security-scoped Chrome directory to open while writing.
+    private var chromeScopeDirectory: BrowserLocation?
     private var chromeAdditions: [Bookmark] = []
     private var lastBackupHandle: BackupHandle?
 
@@ -87,6 +89,8 @@ final class SyncPreviewViewModel {
         let source: BookmarkSource
         let tree: BookmarkTree
         let writable: BrowserLocation?
+        /// The security-scoped Chrome directory to open while writing `writable`.
+        let scope: BrowserLocation?
         var id: BookmarkSourceID { source.id }
     }
 
@@ -113,7 +117,12 @@ final class SyncPreviewViewModel {
     private func recomputeForSelection() {
         guard let safariPair,
               let candidate = chromeCandidates.first(where: { $0.id == selectedChromeID }) else { return }
-        computePreview(safariPair, (candidate.source, candidate.tree), chromeWritableLocation: candidate.writable)
+        computePreview(
+            safariPair,
+            (candidate.source, candidate.tree),
+            chromeWritableLocation: candidate.writable,
+            chromeScopeDirectory: candidate.scope
+        )
     }
 
     /// Computes the read-only preview between two loaded sources. Pass the Chrome
@@ -122,7 +131,8 @@ final class SyncPreviewViewModel {
     func computePreview(
         _ a: (source: BookmarkSource, tree: BookmarkTree),
         _ b: (source: BookmarkSource, tree: BookmarkTree),
-        chromeWritableLocation: BrowserLocation? = nil
+        chromeWritableLocation: BrowserLocation? = nil,
+        chromeScopeDirectory: BrowserLocation? = nil
     ) {
         let preview = planner.preview(between: a.tree, and: b.tree)
         totalChanges = preview.totalChanges
@@ -147,6 +157,7 @@ final class SyncPreviewViewModel {
 
         // Prepare the Safari → Chrome apply (only the bookmarks to add to Chrome).
         chromeLocation = chromeWritableLocation
+        self.chromeScopeDirectory = chromeScopeDirectory
         chromeTargetName = names[.chrome]
         chromeAdditions = (preview.plan(addingTo: .chrome)?.changes ?? []).compactMap { change in
             if case .add(let node, _, _) = change, case .bookmark(let bookmark) = node { bookmark } else { nil }
@@ -157,10 +168,13 @@ final class SyncPreviewViewModel {
     /// (`ChromeBookmarkApplier`: Chrome-closed check, mandatory backup, atomic
     /// write, reversible). Does nothing if applying is not possible.
     func apply(now: Date = Date()) async {
-        guard let applier, let location = chromeLocation, !chromeAdditions.isEmpty else { return }
+        guard let applier,
+              let location = chromeLocation,
+              let scope = chromeScopeDirectory,
+              !chromeAdditions.isEmpty else { return }
         applyState = .applying
         do {
-            lastBackupHandle = try await applier.apply(chromeAdditions, to: location, now: now)
+            lastBackupHandle = try await applier.apply(chromeAdditions, to: location, in: scope, now: now)
             applyState = .applied(count: chromeAdditions.count)
         } catch ChromeWriteError.browserIsRunning {
             applyState = .failed("Ferme Google Chrome avant d'appliquer.")
