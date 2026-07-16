@@ -201,6 +201,12 @@ toute implémentation de lecture ou de synchronisation des favoris.
   pour titres et chiffres. Modifieurs réutilisables `.cardStyle()` (surface pleine + ombre
   douce + hairline) et vue `ReadOnlyBadge`. Previews. Aucun écran existant restylé à ce
   stade (fondations uniquement). Tests des jetons et de l'existence des couleurs (3).
+- **Design system — cartes de source restylées (palier 2)** : le Dashboard adopte les
+  jetons du thème. `GroupBox` remplacé par `.cardStyle()` (surface pleine + ombre + hairline) ;
+  pastille d'icône navigateur bleue ; badge partagé `ReadOnlyBadge` ; tuiles de statistiques
+  (chiffres arrondis en bleu de marque) ; typographie `Theme.Typography` ; teinte d'erreur
+  sémantique et bouton d'autorisation en `.borderedProminent`. Renforce l'identité bleu/vert.
+  Lecture seule, ViewModel/Core/lecteurs inchangés.
 
 ### Corrigé
 - **Explorateur — noms des racines Safari** : affichage traduit des racines techniques
