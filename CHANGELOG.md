@@ -168,6 +168,13 @@ toute implémentation de lecture ou de synchronisation des favoris.
 - **Explorateur (palier 2 — cache d'arbre)** : `DashboardViewModel` conserve l'arbre
   décodé par source (`trees[sourceID]`) + accesseur `tree(for:)` ; rafraîchi à chaque
   (re)chargement, vidé en cas d'échec / ré-autorisation. Cartes inchangées. Tests (5).
+- **Explorateur (palier 3 — vue)** : `SourceExplorerView` (racines d'une source),
+  `FolderContentsView` (contenu d'un dossier) et `FolderListView` (dossiers navigables /
+  favoris feuilles avec hôte-URL) ; navigation **drill-down** `NavigationStack` depuis les
+  cartes chargées du Dashboard (lien « Explorer les favoris » → `ExplorerRoute` portant
+  l'arbre par valeur → dossiers via `navigationDestination`). Affichage seul (lecture
+  seule), état « dossier vide », libellés d'accessibilité, previews. Aucune logique
+  d'arbre dans la vue.
 
 ### Modifié
 - Passage du projet en **Swift 6** (`SWIFT_VERSION = 6.0`) avec concurrence stricte

@@ -30,6 +30,7 @@ struct DashboardView: View {
                         ForEach(viewModel.sources) { entry in
                             SourceCard(
                                 entry: entry,
+                                tree: viewModel.tree(for: entry.id),
                                 onAuthorize: { Task { await viewModel.authorize(entry.source.id) } },
                                 onRetry: { Task { await viewModel.retry(entry.source.id) } }
                             )
@@ -37,6 +38,12 @@ struct DashboardView: View {
                     }
                     .padding()
                 }
+            }
+            .navigationDestination(for: ExplorerRoute.self) { route in
+                SourceExplorerView(source: route.source, tree: route.tree)
+            }
+            .navigationDestination(for: BookmarkFolder.self) { folder in
+                FolderContentsView(folder: folder)
             }
             .navigationTitle("BookmarkBridge")
             .toolbar {
@@ -67,6 +74,8 @@ struct DashboardView: View {
 /// A single source's card, rendering one of the four states.
 private struct SourceCard: View {
     let entry: DashboardViewModel.SourceState
+    /// The decoded tree for this source, when loaded — enables the explorer link.
+    let tree: BookmarkTree?
     let onAuthorize: () -> Void
     let onRetry: () -> Void
 
@@ -144,6 +153,13 @@ private struct SourceCard: View {
                 .accessibilityLabel(
                     "Dernière lecture le \(summary.capturedAt.formatted(date: .long, time: .standard))"
                 )
+            if let tree {
+                NavigationLink(value: ExplorerRoute(source: entry.source, tree: tree)) {
+                    Label("Explorer les favoris", systemImage: "chevron.forward")
+                        .font(.callout)
+                }
+                .accessibilityLabel("Explorer les favoris de \(entry.source.displayName)")
+            }
         }
     }
 
@@ -201,29 +217,32 @@ private extension DashboardViewModel.SourceState {
 }
 
 #Preview("Chargé") {
-    SourceCard(
-        entry: .preview(.loaded(BrowserBookmarkSummary(tree: .sample(for: .safari)))),
-        onAuthorize: {},
-        onRetry: {}
-    )
-    .padding()
-    .frame(width: 460)
+    NavigationStack {
+        SourceCard(
+            entry: .preview(.loaded(BrowserBookmarkSummary(tree: .sample(for: .safari)))),
+            tree: .sample(for: .safari),
+            onAuthorize: {},
+            onRetry: {}
+        )
+        .padding()
+        .frame(width: 460)
+    }
 }
 
 #Preview("Autorisation requise") {
-    SourceCard(entry: .preview(.authorizationRequired), onAuthorize: {}, onRetry: {})
+    SourceCard(entry: .preview(.authorizationRequired), tree: nil, onAuthorize: {}, onRetry: {})
         .padding()
         .frame(width: 460)
 }
 
 #Preview("Erreur") {
-    SourceCard(entry: .preview(.failed("Format du fichier illisible.")), onAuthorize: {}, onRetry: {})
+    SourceCard(entry: .preview(.failed("Format du fichier illisible.")), tree: nil, onAuthorize: {}, onRetry: {})
         .padding()
         .frame(width: 460)
 }
 
 #Preview("Chargement") {
-    SourceCard(entry: .preview(.loading), onAuthorize: {}, onRetry: {})
+    SourceCard(entry: .preview(.loading), tree: nil, onAuthorize: {}, onRetry: {})
         .padding()
         .frame(width: 460)
 }
