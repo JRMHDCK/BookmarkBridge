@@ -79,6 +79,16 @@ final class DashboardViewModel {
         trees[sourceID]
     }
 
+    /// The loaded sources paired with their decoded trees, for global search.
+    /// A read-only view of in-memory state — no file access; sources still
+    /// loading or in error are omitted.
+    var searchableSources: [SearchableSource] {
+        sources.compactMap { state in
+            guard let tree = trees[state.id] else { return nil }
+            return SearchableSource(source: state.source, tree: tree)
+        }
+    }
+
     /// Reloads a single card ("Réessayer"). A discovered source re-reads itself;
     /// a browser-level card re-runs discovery. Never prompts.
     func retry(_ sourceID: BookmarkSourceID) async {

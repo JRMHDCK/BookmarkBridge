@@ -71,14 +71,9 @@ nonisolated struct FolderPresentation: Equatable, Sendable {
         }
     }
 
-    /// Maps Safari's technical root folder names to human-readable French names.
-    /// Any other title is returned unchanged.
+    /// Maps a folder's technical title to its human-readable name (shared with
+    /// global search via `FolderTitleFormatter`). Any other title is unchanged.
     static func displayTitle(_ rawTitle: String) -> String {
-        switch rawTitle {
-        case "BookmarksBar": "Barre des favoris"
-        case "BookmarksMenu": "Autres favoris"
-        case "com.apple.ReadingList": "Liste de lecture"
-        default: rawTitle
-        }
+        FolderTitleFormatter.friendly(rawTitle)
     }
 }

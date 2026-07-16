@@ -209,6 +209,14 @@ toute implémentation de lecture ou de synchronisation des favoris.
   le ViewModel ne fait que déléguer à `BookmarkSearching`. Aucune UI. Tests via moteur mocké (7) :
   délégation requête+sources, republication verbatim (pas de reclassement), relance sur maj des
   sources, état dérivé, regroupement ordonné.
+- **Recherche globale — UI `.searchable` (palier 3)** : champ de recherche **natif** (`.searchable`)
+  sur le Dashboard ; requête active → `SearchResultsView` (liste `.inset` groupée par source, lignes
+  titre + hôte/URL + chemin complet + icône de type) remplace les cartes ; requête vide → Dashboard
+  inchangé (aucune régression) ; « aucun résultat » via `ContentUnavailableView.search`. Alimentée par
+  `DashboardViewModel.searchableSources` (paires source+arbre en mémoire). Mapping des noms conviviaux
+  extrait dans `Shared/FolderTitleFormatter` (réutilisé par l'explorateur, sans dépendance croisée).
+  Design system v1.2.0 conservé, navigation inchangée, lecture seule ; navigation vers le résultat
+  au palier 4. Previews (résultats / aucun résultat). Tests (4) : formateur partagé, `searchableSources`.
 
 ### Ajouté (en cours — design system)
 - **Design system — fondations du thème (palier 1)** : jetons centralisés dans
