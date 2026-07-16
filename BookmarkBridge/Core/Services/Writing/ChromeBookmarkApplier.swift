@@ -29,7 +29,14 @@ nonisolated enum ChromeWriteError: Error, Equatable {
 /// on temporary files in tests — never a real Chrome profile. Writing a real
 /// file additionally requires the read-write file entitlement, enabled only for
 /// the actual apply action.
-nonisolated struct ChromeBookmarkApplier {
+/// Abstraction over the Chrome write sequence, so the sync UI is testable with a
+/// double.
+nonisolated protocol ChromeBookmarkApplying: Sendable {
+    @discardableResult
+    func apply(_ additions: [Bookmark], to location: BrowserLocation, now: Date) async throws -> BackupHandle
+}
+
+nonisolated struct ChromeBookmarkApplier: ChromeBookmarkApplying {
     private let detector: any RunningBrowserDetecting
     private let backup: any BookmarkBackup
     private let writer: ChromeBookmarkWriter

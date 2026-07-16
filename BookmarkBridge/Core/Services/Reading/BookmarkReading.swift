@@ -17,4 +17,14 @@ nonisolated protocol BookmarkReading: Sendable {
     /// Reads and decodes the current bookmarks.
     /// Read-only: implementations must never mutate the source.
     func readBookmarkTree() async throws -> BookmarkTree
+
+    /// The file this reader's bookmarks could be written back to, when V1
+    /// supports writing it (a Chrome local `Bookmarks` file). `nil` when the
+    /// source is read-only in V1 (Safari, account bookmarks, ambiguous profiles).
+    var writableLocation: BrowserLocation? { get }
+}
+
+extension BookmarkReading {
+    /// Read-only by default; only writable sources override this.
+    nonisolated var writableLocation: BrowserLocation? { nil }
 }

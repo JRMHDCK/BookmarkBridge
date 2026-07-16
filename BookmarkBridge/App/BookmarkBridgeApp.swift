@@ -14,7 +14,14 @@ struct BookmarkBridgeApp: App {
 
     var body: some Scene {
         WindowGroup {
-            DashboardView(viewModel: makeDashboardViewModel())
+            DashboardView(
+                viewModel: makeDashboardViewModel(),
+                chromeApplier: ChromeBookmarkApplier(
+                    detector: SystemRunningBrowserDetector(),
+                    backup: dependencies.backup
+                ),
+                backup: dependencies.backup
+            )
         }
     }
 

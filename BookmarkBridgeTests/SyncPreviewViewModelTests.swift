@@ -60,6 +60,77 @@ struct SyncPreviewViewModelTests {
         #expect(swift?.subtitle == "swift.org")
     }
 
+    // MARK: - Apply (Safari → Chrome)
+
+    private struct StubApplier: ChromeBookmarkApplying {
+        let result: Result<BackupHandle, any Error>
+        func apply(_ additions: [Bookmark], to location: BrowserLocation, now: Date) async throws -> BackupHandle {
+            try result.get()
+        }
+    }
+
+    private final class StubBackup: BookmarkBackup, @unchecked Sendable {
+        private(set) var restored: [BackupHandle] = []
+        func backup(_ location: BrowserLocation) async throws -> BackupHandle {
+            BackupHandle(id: UUID(), browser: location.browser, createdAt: .distantPast, fileURL: location.fileURL)
+        }
+        func restore(_ handle: BackupHandle) async throws { restored.append(handle) }
+        func backups(for browser: Browser) async throws -> [BackupHandle] { [] }
+    }
+
+    private func handle() -> BackupHandle {
+        BackupHandle(id: UUID(), browser: .chrome, createdAt: .distantPast, fileURL: URL(fileURLWithPath: "/tmp/backup"))
+    }
+
+    private let chromeLocation = BrowserLocation(browser: .chrome, fileURL: URL(fileURLWithPath: "/tmp/Chrome/Profile 1/Bookmarks"))
+
+    @Test("Applies the Safari → Chrome additions via the applier")
+    func appliesToChrome() async {
+        let t = trees()
+        let model = SyncPreviewViewModel(applier: StubApplier(result: .success(handle())))
+        model.computePreview((safari, t.safari), (chrome, t.chrome), chromeWritableLocation: chromeLocation)
+
+        #expect(model.canApplyToChrome)
+        #expect(model.chromeAdditionsCount == 2)   // Apple + Swift
+        await model.apply()
+        #expect(model.applyState == .applied(count: 2))
+    }
+
+    @Test("Reports a clear message when Chrome is running")
+    func failsWhenChromeRunning() async {
+        let t = trees()
+        let model = SyncPreviewViewModel(applier: StubApplier(result: .failure(ChromeWriteError.browserIsRunning)))
+        model.computePreview((safari, t.safari), (chrome, t.chrome), chromeWritableLocation: chromeLocation)
+
+        await model.apply()
+        #expect(model.applyState == .failed("Ferme Google Chrome avant d'appliquer."))
+    }
+
+    @Test("Cannot apply without a writable Chrome target")
+    func noApplyWithoutWritableTarget() async {
+        let t = trees()
+        let model = SyncPreviewViewModel(applier: StubApplier(result: .success(handle())))
+        model.computePreview((safari, t.safari), (chrome, t.chrome))   // no writable location
+
+        #expect(model.canApplyToChrome == false)
+        await model.apply()
+        #expect(model.applyState == .idle)   // no-op
+    }
+
+    @Test("Restore undoes an apply via the backup")
+    func restoreUndoes() async {
+        let t = trees()
+        let backupStore = StubBackup()
+        let applied = handle()
+        let model = SyncPreviewViewModel(applier: StubApplier(result: .success(applied)), backup: backupStore)
+        model.computePreview((safari, t.safari), (chrome, t.chrome), chromeWritableLocation: chromeLocation)
+
+        await model.apply()
+        await model.restore()
+        #expect(backupStore.restored == [applied])
+        #expect(model.applyState == .idle)
+    }
+
     @Test("Identical sources preview as empty (no directions)")
     func emptyWhenIdentical() {
         let dev = BookmarkFolder(id: BookmarkID("x"), title: "X", children: [bookmark("a", "Apple", "https://apple.com")])

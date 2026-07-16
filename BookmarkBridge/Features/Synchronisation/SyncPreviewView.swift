@@ -11,6 +11,7 @@ import SwiftUI
 
 struct SyncPreviewView: View {
     let model: SyncPreviewViewModel
+    @State private var confirmingApply = false
 
     var body: some View {
         Group {
@@ -37,10 +38,19 @@ struct SyncPreviewView: View {
             }
         }
         .navigationTitle("Aperçu de la synchronisation")
-        .safeAreaInset(edge: .bottom) { dryRunBanner }
+        .safeAreaInset(edge: .bottom) { bottomBar }
     }
 
-    /// Makes the read-only nature explicit; there is no apply button yet.
+    @ViewBuilder
+    private var bottomBar: some View {
+        if model.canApplyToChrome {
+            applyBar
+        } else {
+            dryRunBanner
+        }
+    }
+
+    /// Read-only case: no writable Chrome target (or nothing to add).
     private var dryRunBanner: some View {
         Label("Aperçu (dry-run) — aucune modification n'est appliquée.", systemImage: "eye")
             .font(.callout)
@@ -49,6 +59,57 @@ struct SyncPreviewView: View {
             .padding(.horizontal, Theme.Spacing.l)
             .padding(.vertical, Theme.Spacing.s)
             .background(.bar)
+    }
+
+    /// Safari → Chrome apply action, reflecting the apply state.
+    @ViewBuilder
+    private var applyBar: some View {
+        let name = model.chromeTargetName ?? "Chrome"
+        Group {
+            switch model.applyState {
+            case .idle:
+                HStack(spacing: Theme.Spacing.m) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Ajouter \(model.chromeAdditionsCount) favori(s) à \(name)")
+                            .font(.callout).fontWeight(.medium)
+                        Text("Google Chrome doit être fermé. Sauvegarde automatique.")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                    Spacer(minLength: 0)
+                    Button("Appliquer") { confirmingApply = true }
+                        .buttonStyle(.borderedProminent)
+                }
+            case .applying:
+                HStack(spacing: Theme.Spacing.s) {
+                    ProgressView().controlSize(.small)
+                    Text("Application en cours…").foregroundStyle(.secondary)
+                }
+            case .applied(let count):
+                HStack(spacing: Theme.Spacing.m) {
+                    Label("\(count) favori(s) ajouté(s) à \(name).", systemImage: "checkmark.circle.fill")
+                        .foregroundStyle(Theme.Palette.green)
+                    Spacer(minLength: 0)
+                    Button("Restaurer") { Task { await model.restore() } }
+                }
+            case .failed(let message):
+                HStack(spacing: Theme.Spacing.m) {
+                    Label(message, systemImage: "exclamationmark.triangle.fill")
+                        .foregroundStyle(Theme.Palette.error)
+                    Spacer(minLength: 0)
+                    Button("Restaurer") { Task { await model.restore() } }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, Theme.Spacing.l)
+        .padding(.vertical, Theme.Spacing.s)
+        .background(.bar)
+        .confirmationDialog("Appliquer à \(name) ?", isPresented: $confirmingApply, titleVisibility: .visible) {
+            Button("Appliquer") { Task { await model.apply() } }
+            Button("Annuler", role: .cancel) {}
+        } message: {
+            Text("Google Chrome doit être fermé. Une sauvegarde automatique est créée ; la restauration reste possible.")
+        }
     }
 }
 

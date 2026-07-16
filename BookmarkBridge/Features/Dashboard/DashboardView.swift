@@ -15,13 +15,19 @@ import SwiftUI
 struct DashboardView: View {
     @State private var viewModel: DashboardViewModel
     @State private var searchModel: SearchViewModel
-    @State private var syncModel = SyncPreviewViewModel()
+    @State private var syncModel: SyncPreviewViewModel
     @State private var showingSyncPreview = false
     @State private var path: [ExplorerStep] = []
 
-    init(viewModel: DashboardViewModel, searchEngine: any BookmarkSearching = BookmarkSearchEngine()) {
+    init(
+        viewModel: DashboardViewModel,
+        searchEngine: any BookmarkSearching = BookmarkSearchEngine(),
+        chromeApplier: (any ChromeBookmarkApplying)? = nil,
+        backup: (any BookmarkBackup)? = nil
+    ) {
         _viewModel = State(initialValue: viewModel)
         _searchModel = State(initialValue: SearchViewModel(engine: searchEngine))
+        _syncModel = State(initialValue: SyncPreviewViewModel(applier: chromeApplier, backup: backup))
     }
 
     var body: some View {
@@ -77,7 +83,9 @@ struct DashboardView: View {
 
     private func presentSyncPreview() {
         guard let (a, b) = syncPair else { return }
-        syncModel.computePreview((a.source, a.tree), (b.source, b.tree))
+        // b is the Chrome source; only a writable (.bookmarks) profile can be applied.
+        let chromeWritable = viewModel.writableLocation(for: b.source.id)
+        syncModel.computePreview((a.source, a.tree), (b.source, b.tree), chromeWritableLocation: chromeWritable)
         showingSyncPreview = true
     }
 

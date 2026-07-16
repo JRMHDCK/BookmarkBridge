@@ -79,6 +79,12 @@ final class DashboardViewModel {
         trees[sourceID]
     }
 
+    /// The writable target for a source, when V1 supports writing it (a Chrome
+    /// local `Bookmarks` file). `nil` for read-only sources.
+    func writableLocation(for sourceID: BookmarkSourceID) -> BrowserLocation? {
+        readers[sourceID]?.writableLocation
+    }
+
     /// The loaded sources paired with their decoded trees, for global search.
     /// A read-only view of in-memory state — no file access; sources still
     /// loading or in error are omitted.

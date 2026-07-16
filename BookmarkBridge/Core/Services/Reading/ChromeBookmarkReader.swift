@@ -43,6 +43,14 @@ nonisolated struct ChromeBookmarkReader: BookmarkReading {
         self.now = now
     }
 
+    /// Writable in V1 only when this profile uses the local `Bookmarks` file
+    /// (`kLocalOrSyncableBookmarksFileName`); account files are read-only.
+    var writableLocation: BrowserLocation? {
+        bookmarksURL.lastPathComponent == "Bookmarks"
+            ? BrowserLocation(browser: source.browser, fileURL: bookmarksURL)
+            : nil
+    }
+
     func readBookmarkTree() async throws -> BookmarkTree {
         // Open read-only access to the Chrome directory, then read only this
         // profile's Bookmarks file within it.

@@ -40,6 +40,17 @@ toute implémentation de lecture ou de synchronisation des favoris.
   (ex. « Test »). Si les deux fichiers coexistent, la V1 **ne choisit pas** : le profil est **signalé**
   « deux stockages détectés » (`BookmarkError.multipleBookmarkStores`, `AmbiguousChromeProfileReader`)
   en attendant une stratégie fondée sur le comportement réel. Tests (locator 3 états, provider ambigu).
+- **Synchronisation — bouton « Appliquer » (Safari → Chrome, V1)** : l'aperçu propose désormais
+  d'**appliquer** les favoris manquants côté Chrome, en réutilisant **exactement** la chaîne
+  d'écriture validée (`ChromeBookmarkApplier` : refus si Chrome ouvert, **sauvegarde automatique**,
+  écriture **atomique** + `.bak`, **restauration** possible). Écriture activée **uniquement** pour
+  les profils inscriptibles (`.bookmarks` local) — exposés via `BookmarkReading.writableLocation` /
+  `DashboardViewModel.writableLocation(for:)` ; les profils `account`/`ambiguous` restent en lecture
+  seule. Confirmation nommant le profil cible. `ChromeBookmarkApplying` (protocole) pour la testabilité ;
+  état d'application (idle/applying/applied/failed) + restauration dans `SyncPreviewViewModel`. Tests (4,
+  applicateur mocké : succès, refus si Chrome ouvert, pas de cible inscriptible, restauration).
+  *(Nécessite l'entitlement fichier en lecture-écriture, activé dans Xcode. Écriture Safari et
+  synchronisation bidirectionnelle : après la V1.)*
 
 ### Ajouté
 - Fichiers de gouvernance : `CLAUDE.md`, `README.md`, `CONTRIBUTING.md`, `LICENSE` (MIT), `CHANGELOG.md`.
