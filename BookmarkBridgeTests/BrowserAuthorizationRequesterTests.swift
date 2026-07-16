@@ -1,5 +1,5 @@
 //
-//  SafariAuthorizationRequesterTests.swift
+//  BrowserAuthorizationRequesterTests.swift
 //  BookmarkBridgeTests
 //
 
@@ -8,9 +8,9 @@ import Foundation
 import Testing
 @testable import BookmarkBridge
 
-@Suite("SafariAuthorizationRequester")
+@Suite("BrowserAuthorizationRequester")
 @MainActor
-struct SafariAuthorizationRequesterTests {
+struct BrowserAuthorizationRequesterTests {
 
     private let safariURL = URL(fileURLWithPath: "/Users/tester/Library/Safari/Bookmarks.plist")
 
@@ -18,13 +18,15 @@ struct SafariAuthorizationRequesterTests {
         panelOutcome: Result<URL, Error>,
         creator: SecurityScopedBookmarkCreating = StubBookmarkCreator(.success(Data([0x01]))),
         store: BookmarkStore = InMemoryBookmarkStore()
-    ) -> SafariAuthorizationRequester {
-        let coordinator = SafariAccessCoordinator(
-            authorizer: FakeSafariAccessAuthorizer(panelOutcome),
+    ) -> BrowserAuthorizationRequester {
+        let coordinator = BrowserAccessCoordinator(
+            browser: .safari,
+            expectedPathSuffix: BrowserAccessCoordinator.safariPathSuffix,
+            authorizer: FakeAccessAuthorizer(panelOutcome),
             creator: creator,
             store: store
         )
-        return SafariAuthorizationRequester(coordinator: coordinator)
+        return BrowserAuthorizationRequester(browser: .safari, coordinator: coordinator)
     }
 
     @Test("Returns true and persists when authorization succeeds")
@@ -40,7 +42,7 @@ struct SafariAuthorizationRequesterTests {
 
     @Test("Returns false (no error) when the user cancels")
     func cancelled() async throws {
-        let requester = makeRequester(panelOutcome: .failure(SafariAccessError.cancelled))
+        let requester = makeRequester(panelOutcome: .failure(AccessError.cancelled))
 
         let granted = try await requester.requestAuthorization(for: .safari)
 
@@ -52,13 +54,13 @@ struct SafariAuthorizationRequesterTests {
         let wrongURL = URL(fileURLWithPath: "/Users/tester/Downloads/Bookmarks.plist")
         let requester = makeRequester(panelOutcome: .success(wrongURL))
 
-        await #expect(throws: SafariAccessError.wrongFile(selected: wrongURL)) {
+        await #expect(throws: AccessError.wrongFile(selected: wrongURL)) {
             try await requester.requestAuthorization(for: .safari)
         }
     }
 
-    @Test("Rejects non-Safari browsers without invoking the coordinator")
-    func rejectsNonSafari() async {
+    @Test("Rejects a browser other than its own without invoking the coordinator")
+    func rejectsOtherBrowser() async {
         let requester = makeRequester(panelOutcome: .success(safariURL))
 
         await #expect(throws: BookmarkError.unsupportedBrowser(.chrome)) {

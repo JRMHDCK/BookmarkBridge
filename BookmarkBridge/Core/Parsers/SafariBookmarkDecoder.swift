@@ -97,20 +97,9 @@ nonisolated struct SafariBookmarkDecoder: BookmarkDecoding {
 
     // MARK: - URL normalization
 
-    /// Converts a raw Safari `URLString` into a valid URL, percent-encoding
-    /// non-conforming characters when needed. Returns `nil` only when the string
-    /// cannot be expressed as a URL at all.
+    /// Converts a raw Safari `URLString` into a valid URL. Delegates to the
+    /// shared `BookmarkURLNormalizer` (percent-encodes Unicode when needed).
     static func makeURL(from raw: String) -> URL? {
-        // 1. Already a valid, fully-ASCII URL.
-        if let url = URL(string: raw), url.absoluteString.allSatisfy(\.isASCII) {
-            return url
-        }
-        // 2. Percent-encode the offending characters, then retry.
-        if let encoded = raw.addingPercentEncoding(withAllowedCharacters: .urlFragmentAllowed),
-           let url = URL(string: encoded) {
-            return url
-        }
-        // 3. Last resort: whatever URL(string:) can make of the raw value.
-        return URL(string: raw)
+        BookmarkURLNormalizer.url(from: raw)
     }
 }

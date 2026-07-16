@@ -117,6 +117,70 @@ toute implémentation de lecture ou de synchronisation des favoris.
   « Lecture seule », statistiques Dossiers/Favoris/Nœuds, date via `Date.FormatStyle`,
   icônes SF Symbols par navigateur, état vide, libellés d'accessibilité, previews des
   4 états. Aucune logique de parcours d'arbre dans la vue.
+- **Lecture Chrome (palier 1 — généralisation « source »)** : modèle Core
+  `BookmarkSourceID` (browser + profil, identité stable) et `BookmarkSource`
+  (id + nom d'affichage). `BookmarkReading` généralisé de `browser` à `source`, et
+  Dashboard refondu **par source** (`SourceState`) au lieu de par navigateur — Safari
+  inchangé (source mono-profil). Prépare les profils Chrome multiples. Tests adaptés,
+  comportement identique.
+- **Lecture Chrome (palier 2 — fixtures)** : `ChromeBookmarksFixture` (JSON `Bookmarks`
+  anonymisé, déterministe : `bookmark_bar`/`other`/`synced`, dossiers imbriqués, dossier
+  vide, titre vide, URL inhabituelle, Unicode, dates Chrome `date_added`, `synced` vide
+  ou avec item) et `ChromeLocalStateFixture` (`profile.info_cache` dossier→nom, noms
+  neutres). Tests du format brut (14).
+- **Lecture Chrome (palier 3 — décodeur)** : `ChromeBookmarkDecoder` (`BookmarkDecoding`),
+  décodage pur JSON → `BookmarkTree` (racines `bookmark_bar`/`other`/`synced` dans l'ordre ;
+  `synced` inclus seulement si non vide ; dates Chrome microsecondes-depuis-1601 converties ;
+  URL Unicode percent-encodées ; rejet des entrées irrécupérables ; `capturedAt` sentinelle).
+  Utilitaire partagé `BookmarkURLNormalizer` (extrait du décodeur Safari, qui le réutilise).
+  Tests (14).
+- **Lecture Chrome (palier 4 — localisation & Local State)** : `ChromeLocalState` (parser
+  pur `Local State` → mapping dossier→nom, best-effort) et `ChromeProfileLocating` /
+  `DefaultChromeProfileLocator` (dossier Chrome par défaut, URL de `Local State`,
+  énumération **dynamique** des profils contenant un fichier `Bookmarks`, dossiers
+  système exclus, tri déterministe). Dossier injecté ; tests en dossiers temporaires (8).
+- **Lecture Chrome (palier 5 — reader & provider)** : `ChromeBookmarkReader` (pur
+  orchestrateur par profil : accès lecture seule au dossier Chrome → lecture du seul
+  fichier `Bookmarks` du profil → décodage → `BookmarkTree` + `capturedAt`) et
+  `ChromeSourceProvider` (abstraction `BrowserSourceProviding` : résout le dossier
+  autorisé, énumère les profils, lit `Local State` pour les noms, construit un reader/
+  source par profil « Chrome — … » ; `authorizationRequired` propagé). Profils jamais
+  mélangés. Tests sur dossiers temporaires + fixtures (4).
+- **Lecture Chrome (palier 6 — autorisation dossier)** : autorisation généralisée et
+  réutilisable par Safari et Chrome — `AccessAuthorizing` (protocole seam) + `AccessError`,
+  `BrowserAccessCoordinator` (paramétré par navigateur + suffixe de chemin, tolérant au
+  slash final, persistance par navigateur), `OpenPanelFileAuthorizer` (fichier, Safari) et
+  `OpenPanelDirectoryAuthorizer` (dossier, Chrome), `BrowserAuthorizationRequester`.
+  `AuthorizedBookmarkSourceLocator` (résolution du bookmark security-scoped, paramétré par
+  navigateur — Safari fichier, Chrome dossier). Renommages depuis les types Safari-only ;
+  comportement Safari inchangé. Tests (adaptés + Chrome + directory authorizer).
+- **Lecture Chrome (palier 7 — intégration Dashboard)** : `DashboardViewModel` refondu
+  autour des **providers** (`BrowserSourceProviding`) avec **découverte dynamique** — carte
+  de niveau navigateur avant autorisation, puis une carte par source/profil après. Ajout de
+  `SafariSourceProvider` et `CompositeAuthorizationRequester` (route Safari/Chrome vers le bon
+  coordinateur). `AppDependencies` fournit les providers Safari + Chrome réels ;
+  `BookmarkBridgeApp` câble les deux coordinateurs (fichier Safari / dossier Chrome). Dashboard
+  affiche désormais une carte par source (Safari + un profil Chrome par carte). Safari inchangé.
+- **Explorateur (palier 1 — présentation)** : modèles de présentation `FolderPresentation`
+  et `FolderItemPresentation` (dossier navigable / favori feuille avec hôte) + mappeur
+  testable `BookmarkFolder`/racines de `BookmarkTree` → présentation (une seule profondeur,
+  aucun parcours dans la vue). Tests (5). Aucune UI, aucun changement des lecteurs.
+- **Explorateur (palier 2 — cache d'arbre)** : `DashboardViewModel` conserve l'arbre
+  décodé par source (`trees[sourceID]`) + accesseur `tree(for:)` ; rafraîchi à chaque
+  (re)chargement, vidé en cas d'échec / ré-autorisation. Cartes inchangées. Tests (5).
+- **Explorateur (palier 3 — vue)** : `SourceExplorerView` (racines d'une source),
+  `FolderContentsView` (contenu d'un dossier) et `FolderListView` (dossiers navigables /
+  favoris feuilles avec hôte-URL) ; navigation **drill-down** `NavigationStack` depuis les
+  cartes chargées du Dashboard (lien « Explorer les favoris » → `ExplorerRoute` portant
+  l'arbre par valeur → dossiers via `navigationDestination`). Affichage seul (lecture
+  seule), état « dossier vide », libellés d'accessibilité, previews. Aucune logique
+  d'arbre dans la vue.
+
+### Corrigé
+- **Explorateur — noms des racines Safari** : affichage traduit des racines techniques
+  (`BookmarksBar` → « Barre des favoris », `BookmarksMenu` → « Autres favoris »,
+  `com.apple.ReadingList` → « Liste de lecture ») dans la couche de présentation
+  (`FolderPresentation`), sans modifier le décodeur ni le Core. Tests (3).
 
 ### Modifié
 - Passage du projet en **Swift 6** (`SWIFT_VERSION = 6.0`) avec concurrence stricte

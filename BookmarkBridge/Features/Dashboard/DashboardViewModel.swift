@@ -8,15 +8,18 @@ import Observation
 
 /// Presentation state and orchestration for the dashboard.
 ///
-/// State is tracked **per browser**, so adding a browser (Chrome, Firefox, Edge…)
-/// is additive: each entry loads, fails, or requires authorization independently.
-/// The ViewModel depends only on `BookmarkReading` (to read) and, optionally, on
-/// `BookmarkAuthorizationRequesting` (to (re)authorize) — never on file formats,
-/// the sandbox, or AppKit. Reading is strictly read-only.
+/// State is tracked **per source**. Sources are discovered dynamically through
+/// `BrowserSourceProviding`: a single-profile browser (Safari) yields one source;
+/// a multi-profile browser (Chrome) yields one per profile once authorized.
+/// Before a browser is authorized, a single **browser-level** card stands in for
+/// its (not-yet-known) sources.
+///
+/// The ViewModel depends only on the provider/reader/authorizer abstractions —
+/// never on file formats, the sandbox, or AppKit. Reading is strictly read-only.
 @MainActor
 @Observable
 final class DashboardViewModel {
-    /// The status of a single browser on the dashboard.
+    /// The status of a single source on the dashboard.
     enum Status: Equatable {
         case loading
         case loaded(BrowserBookmarkSummary)
@@ -24,28 +27,33 @@ final class DashboardViewModel {
         case failed(String)
     }
 
-    /// A browser and its current status (ordered for stable display).
-    struct BrowserState: Identifiable, Equatable {
-        let browser: Browser
+    /// A source and its current status (ordered for stable display).
+    struct SourceState: Identifiable, Equatable {
+        let source: BookmarkSource
         var status: Status
-        var id: Browser { browser }
+        var id: BookmarkSourceID { source.id }
     }
 
-    private(set) var browsers: [BrowserState] = []
+    private(set) var sources: [SourceState] = []
 
-    /// True while any browser is loading — used to disable the global refresh.
+    /// True while any source is loading — used to disable the global refresh.
     var isLoading: Bool {
-        browsers.contains { $0.status == .loading }
+        sources.contains { $0.status == .loading }
     }
 
-    private let readers: [BookmarkReading]
+    private let providers: [any BrowserSourceProviding]
     private let authorizer: (any BookmarkAuthorizationRequesting)?
+    private var readers: [BookmarkSourceID: any BookmarkReading] = [:]
+
+    /// The decoded tree kept for each loaded source, so the explorer can browse
+    /// it without re-reading. Refreshed on every (re)load.
+    private var trees: [BookmarkSourceID: BookmarkTree] = [:]
 
     init(
-        readers: [BookmarkReading],
+        providers: [any BrowserSourceProviding],
         authorizer: (any BookmarkAuthorizationRequesting)? = nil
     ) {
-        self.readers = readers
+        self.providers = providers
         self.authorizer = authorizer
     }
 
@@ -54,69 +62,130 @@ final class DashboardViewModel {
         await reloadAll()
     }
 
-    /// Reloads every configured browser. It never prompts for authorization on
-    /// its own — an unauthorized browser simply stays `.authorizationRequired`.
+    /// Rediscovers and reloads every browser. Never prompts for authorization on
+    /// its own — an unauthorized browser simply shows an `authorizationRequired`
+    /// card.
     func reloadAll() async {
-        browsers = readers.map { BrowserState(browser: $0.browser, status: .loading) }
-        for reader in readers {
-            await refresh(reader)
+        sources = []
+        readers = [:]
+        trees = [:]
+        for provider in providers {
+            await discover(provider)
         }
     }
 
-    /// Reloads a single browser (used by "Réessayer"). It never prompts; if
-    /// authorization is missing, the status naturally returns to
-    /// `.authorizationRequired`.
-    func retry(_ browser: Browser) async {
-        guard let reader = reader(for: browser) else { return }
-        setStatus(.loading, for: browser)
-        await refresh(reader)
+    /// The decoded tree for a loaded source, if available (for the explorer).
+    func tree(for sourceID: BookmarkSourceID) -> BookmarkTree? {
+        trees[sourceID]
     }
 
-    /// Requests authorization for `browser`, then reloads it on success. A user
-    /// cancellation returns silently to the authorization prompt; a genuine
-    /// failure is surfaced as `.failed`.
-    func authorize(_ browser: Browser) async {
-        guard let authorizer, let reader = reader(for: browser) else { return }
-        setStatus(.loading, for: browser)
+    /// Reloads a single card ("Réessayer"). A discovered source re-reads itself;
+    /// a browser-level card re-runs discovery. Never prompts.
+    func retry(_ sourceID: BookmarkSourceID) async {
+        if let reader = readers[sourceID] {
+            setStatus(.loading, for: sourceID)
+            await refresh(reader)
+        } else if let provider = provider(for: sourceID.browser) {
+            await discover(provider)
+        }
+    }
+
+    /// Requests authorization for a source's browser, then rediscovers it on
+    /// success. Cancellation returns silently to the authorization prompt; a
+    /// genuine failure is surfaced as `.failed`.
+    func authorize(_ sourceID: BookmarkSourceID) async {
+        guard let authorizer, let provider = provider(for: sourceID.browser) else { return }
+        setStatus(.loading, for: sourceID)
         do {
-            let granted = try await authorizer.requestAuthorization(for: browser)
+            let granted = try await authorizer.requestAuthorization(for: sourceID.browser)
             if granted {
-                await refresh(reader)
+                await discover(provider)
             } else {
-                setStatus(.authorizationRequired, for: browser)
+                setBrowserLevelStatus(.authorizationRequired, for: sourceID.browser)
             }
         } catch {
-            setStatus(.failed(message(for: error)), for: browser)
+            setBrowserLevelStatus(.failed(message(for: error)), for: sourceID.browser)
         }
     }
 
-    // MARK: - Private
+    // MARK: - Discovery & reading
 
-    private func refresh(_ reader: BookmarkReading) async {
+    private func discover(_ provider: any BrowserSourceProviding) async {
+        do {
+            let discovered = try await provider.makeReaders()
+            replaceSources(for: provider.browser, with: discovered)
+            for reader in discovered {
+                await refresh(reader)
+            }
+        } catch let error as BookmarkError where Self.isAuthorizationRequired(error) {
+            setBrowserLevelStatus(.authorizationRequired, for: provider.browser)
+        } catch {
+            setBrowserLevelStatus(.failed(message(for: error)), for: provider.browser)
+        }
+    }
+
+    private func refresh(_ reader: any BookmarkReading) async {
         do {
             let tree = try await reader.readBookmarkTree()
-            setStatus(.loaded(BrowserBookmarkSummary(tree: tree)), for: reader.browser)
-        } catch let error as BookmarkError {
-            if case .authorizationRequired = error {
-                setStatus(.authorizationRequired, for: reader.browser)
-            } else {
-                setStatus(.failed(message(for: error)), for: reader.browser)
-            }
+            trees[reader.source.id] = tree
+            setStatus(.loaded(BrowserBookmarkSummary(tree: tree)), for: reader.source.id)
+        } catch let error as BookmarkError where Self.isAuthorizationRequired(error) {
+            trees[reader.source.id] = nil
+            setStatus(.authorizationRequired, for: reader.source.id)
         } catch {
-            setStatus(.failed(message(for: error)), for: reader.browser)
+            trees[reader.source.id] = nil
+            setStatus(.failed(message(for: error)), for: reader.source.id)
         }
     }
 
-    private func reader(for browser: Browser) -> BookmarkReading? {
-        readers.first { $0.browser == browser }
+    // MARK: - Sources bookkeeping
+
+    private func provider(for browser: Browser) -> (any BrowserSourceProviding)? {
+        providers.first { $0.browser == browser }
     }
 
-    private func setStatus(_ status: Status, for browser: Browser) {
-        if let index = browsers.firstIndex(where: { $0.browser == browser }) {
-            browsers[index].status = status
-        } else {
-            browsers.append(BrowserState(browser: browser, status: status))
+    /// Replaces a browser's cards (in place) with the discovered per-source cards.
+    private func replaceSources(for browser: Browser, with discovered: [any BookmarkReading]) {
+        removeStoredData(for: browser)
+        let index = insertionIndex(for: browser)
+        sources.removeAll { $0.source.browser == browser }
+        let newStates = discovered.map { reader -> SourceState in
+            readers[reader.source.id] = reader
+            return SourceState(source: reader.source, status: .loading)
         }
+        sources.insert(contentsOf: newStates, at: min(index, sources.count))
+    }
+
+    /// Replaces a browser's cards (in place) with a single browser-level card.
+    private func setBrowserLevelStatus(_ status: Status, for browser: Browser) {
+        removeStoredData(for: browser)
+        let index = insertionIndex(for: browser)
+        sources.removeAll { $0.source.browser == browser }
+        let source = BookmarkSource(browser: browser, displayName: browser.displayName)
+        sources.insert(SourceState(source: source, status: status), at: min(index, sources.count))
+    }
+
+    private func setStatus(_ status: Status, for sourceID: BookmarkSourceID) {
+        guard let index = sources.firstIndex(where: { $0.id == sourceID }) else { return }
+        sources[index].status = status
+    }
+
+    private func insertionIndex(for browser: Browser) -> Int {
+        sources.firstIndex { $0.source.browser == browser } ?? sources.count
+    }
+
+    private func removeStoredData(for browser: Browser) {
+        for key in readers.keys where key.browser == browser {
+            readers[key] = nil
+        }
+        for key in trees.keys where key.browser == browser {
+            trees[key] = nil
+        }
+    }
+
+    private static func isAuthorizationRequired(_ error: BookmarkError) -> Bool {
+        if case .authorizationRequired = error { return true }
+        return false
     }
 
     /// Maps an error to a simple, non-technical French message for the UI.

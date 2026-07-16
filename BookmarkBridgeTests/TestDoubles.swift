@@ -8,17 +8,54 @@ import Foundation
 
 /// A `BookmarkReading` double that always fails, to exercise error paths.
 struct FailingBookmarkReader: BookmarkReading {
-    let browser: Browser
+    let source: BookmarkSource
     let error: BookmarkError
 
     init(browser: Browser, error: BookmarkError) {
-        self.browser = browser
+        self.source = .singleProfile(browser)
         self.error = error
     }
 
     func readBookmarkTree() async throws -> BookmarkTree {
         throw error
     }
+}
+
+/// A `BrowserSourceProviding` double returning fixed readers, or throwing.
+struct StubSourceProvider: BrowserSourceProviding {
+    let browser: Browser
+    let readers: [any BookmarkReading]
+    let error: BookmarkError?
+
+    init(browser: Browser, readers: [any BookmarkReading] = [], error: BookmarkError? = nil) {
+        self.browser = browser
+        self.readers = readers
+        self.error = error
+    }
+
+    func makeReaders() async throws -> [BookmarkReading] {
+        if let error { throw error }
+        return readers
+    }
+}
+
+/// A `BrowserSourceProviding` double that throws `authorizationRequired` until
+/// its box is authorized, then returns fixed readers.
+struct GatedSourceProvider: BrowserSourceProviding {
+    let browser: Browser
+    let box: AuthorizationBox
+    let readers: [any BookmarkReading]
+
+    func makeReaders() async throws -> [BookmarkReading] {
+        guard box.isAuthorized else { throw BookmarkError.authorizationRequired(browser) }
+        return readers
+    }
+}
+
+/// A `BookmarkSourceLocating` double returning a preconfigured location or error.
+struct StubBookmarkSourceLocator: BookmarkSourceLocating {
+    let result: Result<BrowserLocation, BookmarkError>
+    func locate(_ browser: Browser) throws -> BrowserLocation { try result.get() }
 }
 
 /// A shared authorization flag, so a gated reader and a fake requester can
@@ -31,12 +68,18 @@ final class AuthorizationBox: @unchecked Sendable {
 /// A `BookmarkReading` double that throws `authorizationRequired` until its box
 /// is authorized, then returns a fixed tree.
 struct GatedBookmarkReader: BookmarkReading {
-    let browser: Browser
+    let source: BookmarkSource
     let box: AuthorizationBox
     let tree: BookmarkTree
 
+    init(browser: Browser, box: AuthorizationBox, tree: BookmarkTree) {
+        self.source = .singleProfile(browser)
+        self.box = box
+        self.tree = tree
+    }
+
     func readBookmarkTree() async throws -> BookmarkTree {
-        guard box.isAuthorized else { throw BookmarkError.authorizationRequired(browser) }
+        guard box.isAuthorized else { throw BookmarkError.authorizationRequired(source.browser) }
         return tree
     }
 }
@@ -63,10 +106,10 @@ final class FakeAuthorizationRequester: BookmarkAuthorizationRequesting {
     }
 }
 
-/// A configurable `SafariAccessAuthorizing` double — never opens a real
-/// NSOpenPanel. Returns a URL or throws (e.g. `SafariAccessError.cancelled`).
+/// A configurable `AccessAuthorizing` double — never opens a real NSOpenPanel.
+/// Returns a URL or throws (e.g. `AccessError.cancelled`).
 @MainActor
-final class FakeSafariAccessAuthorizer: SafariAccessAuthorizing {
+final class FakeAccessAuthorizer: AccessAuthorizing {
     var result: Result<URL, Error>
     private(set) var requestCount = 0
 

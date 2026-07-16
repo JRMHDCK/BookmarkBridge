@@ -1,5 +1,5 @@
 //
-//  OpenPanelSafariAccessAuthorizer.swift
+//  OpenPanelFileAuthorizer.swift
 //  BookmarkBridge
 //
 
@@ -7,27 +7,27 @@
 import AppKit
 import UniformTypeIdentifiers
 
-/// Concrete `SafariAccessAuthorizing` backed by `NSOpenPanel`.
+/// An `AccessAuthorizing` backed by `NSOpenPanel` for selecting a **single
+/// file** (used by Safari — `Bookmarks.plist`).
 ///
-/// A thin AppKit adapter, and nothing more: it presents a panel restricted to a
-/// single file (no directories, no multiple selection), returns the selected
-/// URL, and rejects anything that is not named `Bookmarks.plist`. It creates no
-/// bookmark, persists nothing, reads no file, and decodes no favourite.
+/// A thin AppKit adapter: presents a panel restricted to one file (no
+/// directories, no multiple selection), returns the selected URL, and rejects
+/// anything not named `Bookmarks.plist`. It creates no bookmark, persists
+/// nothing, reads no file, and decodes no favourite.
 ///
-/// The panel presentation is injected (`runPanel`) so the cancellation and
-/// wrong-file mapping can be unit-tested; the real `NSOpenPanel` presentation
-/// (`presentDefaultPanel`) requires a GUI session and is not unit-tested.
+/// The panel presentation is injected (`runPanel`) so cancellation/wrong-file
+/// mapping is unit-testable; the real `NSOpenPanel` presentation requires a GUI
+/// session and is not unit-tested.
 @MainActor
-struct OpenPanelSafariAccessAuthorizer: SafariAccessAuthorizing {
-    /// The exact file name the user must select.
+struct OpenPanelFileAuthorizer: AccessAuthorizing {
     static let expectedFileName = "Bookmarks.plist"
 
     private let expectedFileName: String
     private let runPanel: @MainActor () -> URL?
 
     init(
-        expectedFileName: String = OpenPanelSafariAccessAuthorizer.expectedFileName,
-        runPanel: @escaping @MainActor () -> URL? = { OpenPanelSafariAccessAuthorizer.presentDefaultPanel() }
+        expectedFileName: String = OpenPanelFileAuthorizer.expectedFileName,
+        runPanel: @escaping @MainActor () -> URL? = { OpenPanelFileAuthorizer.presentDefaultPanel() }
     ) {
         self.expectedFileName = expectedFileName
         self.runPanel = runPanel
@@ -35,18 +35,16 @@ struct OpenPanelSafariAccessAuthorizer: SafariAccessAuthorizing {
 
     func requestAccess() async throws -> URL {
         guard let url = runPanel() else {
-            throw SafariAccessError.cancelled
+            throw AccessError.cancelled
         }
         guard url.lastPathComponent == expectedFileName else {
-            throw SafariAccessError.wrongFile(selected: url)
+            throw AccessError.wrongFile(selected: url)
         }
         return url
     }
 
     // MARK: - Real AppKit panel (not unit-tested; needs a GUI session)
 
-    /// Presents a single-file, read-oriented open panel and returns the chosen
-    /// URL, or `nil` if the user cancels.
     static func presentDefaultPanel() -> URL? {
         let panel = NSOpenPanel()
         panel.canChooseFiles = true

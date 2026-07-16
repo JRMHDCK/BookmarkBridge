@@ -11,8 +11,8 @@ import Foundation
 /// Implementations live per browser (e.g. Safari, Chrome) and are injected at
 /// the composition root; the domain never depends on a concrete reader.
 nonisolated protocol BookmarkReading: Sendable {
-    /// The browser this reader understands.
-    var browser: Browser { get }
+    /// The source (browser + optional profile) this reader understands.
+    var source: BookmarkSource { get }
 
     /// Reads and decodes the current bookmarks.
     /// Read-only: implementations must never mutate the source.

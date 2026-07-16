@@ -18,22 +18,32 @@ struct BookmarkBridgeApp: App {
         }
     }
 
-    /// Builds the dashboard ViewModel, injecting the real Safari authorization
-    /// flow on macOS. The coordinator (which presents NSOpenPanel) and its
-    /// AppKit adapter live only here, in the app layer.
+    /// Builds the dashboard ViewModel, injecting the real per-browser
+    /// authorization flows on macOS. The coordinators (which present NSOpenPanel)
+    /// and their AppKit adapters live only here, in the app layer.
     private func makeDashboardViewModel() -> DashboardViewModel {
         #if os(macOS)
-        let coordinator = SafariAccessCoordinator(
-            authorizer: OpenPanelSafariAccessAuthorizer(),
+        let safariCoordinator = BrowserAccessCoordinator(
+            browser: .safari,
+            expectedPathSuffix: BrowserAccessCoordinator.safariPathSuffix,
+            authorizer: OpenPanelFileAuthorizer(),
             creator: dependencies.bookmarkCreator,
             store: dependencies.bookmarkStore
         )
-        return DashboardViewModel(
-            readers: dependencies.bookmarkReaders,
-            authorizer: SafariAuthorizationRequester(coordinator: coordinator)
+        let chromeCoordinator = BrowserAccessCoordinator(
+            browser: .chrome,
+            expectedPathSuffix: BrowserAccessCoordinator.chromeDirectorySuffix,
+            authorizer: OpenPanelDirectoryAuthorizer(),
+            creator: dependencies.bookmarkCreator,
+            store: dependencies.bookmarkStore
         )
+        let requester = CompositeAuthorizationRequester([
+            .safari: BrowserAuthorizationRequester(browser: .safari, coordinator: safariCoordinator),
+            .chrome: BrowserAuthorizationRequester(browser: .chrome, coordinator: chromeCoordinator),
+        ])
+        return DashboardViewModel(providers: dependencies.providers, authorizer: requester)
         #else
-        return DashboardViewModel(readers: dependencies.bookmarkReaders)
+        return DashboardViewModel(providers: dependencies.providers)
         #endif
     }
 }
