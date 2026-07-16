@@ -73,6 +73,13 @@ final class SyncPreviewViewModel {
     /// Number of bookmarks that would be added to Chrome.
     var chromeAdditionsCount: Int { chromeAdditions.count }
 
+    /// True when the selected Chrome profile can be previewed but not written in
+    /// V1 (account or ambiguous storage) — used to explain why Apply is disabled.
+    var selectedChromeIsReadOnly: Bool {
+        guard let candidate = chromeCandidates.first(where: { $0.id == selectedChromeID }) else { return false }
+        return candidate.writable == nil
+    }
+
     // MARK: - Chrome target selection
 
     /// A candidate Chrome profile the user can sync toward.

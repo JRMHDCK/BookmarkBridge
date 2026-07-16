@@ -156,6 +156,18 @@ struct SyncPreviewViewModelTests {
         #expect(model.chromeAdditionsCount == 0)         // Chrome — Test already has them
     }
 
+    @Test("A read-only Chrome target is flagged and cannot be applied")
+    func readOnlyTargetFlagged() {
+        let t = trees()
+        let account = BookmarkSource(browser: .chrome, profile: "Profile 2", displayName: "Chrome — Test")
+        let model = SyncPreviewViewModel(applier: StubApplier(result: .success(handle())))
+        model.configure(safari: (safari, t.safari), chromeCandidates: [
+            .init(source: account, tree: t.chrome, writable: nil),   // no writable location
+        ])
+        #expect(model.selectedChromeIsReadOnly)
+        #expect(model.canApplyToChrome == false)
+    }
+
     @Test("Identical sources preview as empty (no directions)")
     func emptyWhenIdentical() {
         let dev = BookmarkFolder(id: BookmarkID("x"), title: "X", children: [bookmark("a", "Apple", "https://apple.com")])

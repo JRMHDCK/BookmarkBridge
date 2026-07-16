@@ -55,6 +55,10 @@ toute implémentation de lecture ou de synchronisation des favoris.
   a un bouton **Annuler** (+ Échap, via `cancellationAction`) et, quand plusieurs profils Chrome
   existent, un **sélecteur** de profil cible dans la fenêtre (l'aperçu et l'application se
   recalculent pour le profil choisi ; auparavant le premier profil était imposé).
+- **Synchronisation — profils non inscriptibles clarifiés (stabilisation)** : sélectionner un
+  profil en lecture seule (compte/deux stockages) n'escamote plus le bouton « Appliquer » ; il
+  reste **visible mais désactivé**, avec un **message** expliquant l'indisponibilité, et le
+  sélecteur suffixe ces profils « (lecture seule) ».
 
 ### Ajouté
 - Fichiers de gouvernance : `CLAUDE.md`, `README.md`, `CONTRIBUTING.md`, `LICENSE` (MIT), `CHANGELOG.md`.

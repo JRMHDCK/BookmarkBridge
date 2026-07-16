@@ -51,7 +51,10 @@ struct SyncPreviewView: View {
                 Spacer(minLength: 0)
                 Picker("Profil Chrome cible", selection: $model.selectedChromeID) {
                     ForEach(model.chromeCandidates) { candidate in
-                        Text(candidate.source.displayName).tag(Optional(candidate.id))
+                        Text(candidate.writable == nil
+                             ? "\(candidate.source.displayName) (lecture seule)"
+                             : candidate.source.displayName)
+                            .tag(Optional(candidate.id))
                     }
                 }
                 .labelsHidden()
@@ -68,9 +71,32 @@ struct SyncPreviewView: View {
     private var bottomBar: some View {
         if model.canApplyToChrome {
             applyBar
+        } else if model.selectedChromeIsReadOnly {
+            readOnlyBar
         } else {
             dryRunBanner
         }
+    }
+
+    /// Explains why Apply is unavailable for a read-only profile (rather than
+    /// silently hiding the button).
+    private var readOnlyBar: some View {
+        HStack(spacing: Theme.Spacing.m) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("« \(model.chromeTargetName ?? "Ce profil") » est en lecture seule")
+                    .font(.callout).fontWeight(.medium)
+                Text("Favoris de compte ou profil à deux stockages — écriture non prise en charge en V1.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            Spacer(minLength: 0)
+            Button("Appliquer") {}
+                .buttonStyle(.borderedProminent)
+                .disabled(true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, Theme.Spacing.l)
+        .padding(.vertical, Theme.Spacing.s)
+        .background(.bar)
     }
 
     /// Read-only case: no writable Chrome target (or nothing to add).
