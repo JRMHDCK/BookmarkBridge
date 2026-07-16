@@ -32,6 +32,11 @@ toute implémentation de lecture ou de synchronisation des favoris.
   `ChromeBookmarkApplier` (refus si Chrome ouvert → **sauvegarde obligatoire** → écriture atomique +
   `.bak`, réversible). Tests exclusivement sur fixtures/fichiers temporaires. Outil de validation
   `Tools/validate-chrome-checksum.swift`.
+- **Synchronisation — découverte des profils Chrome connectés** : `DefaultChromeProfileLocator`
+  reconnaît désormais aussi le fichier **`AccountBookmarks`** (favoris de compte synchronisés,
+  même format JSON que `Bookmarks`). Un profil est découvert s'il a `Bookmarks` **ou**
+  `AccountBookmarks` (le local est préféré si les deux existent). Corrige l'absence des profils
+  connectés (ex. « Test »/Profile 2) dans le tableau de bord. Test (découverte account-only + préférence locale).
 
 ### Ajouté
 - Fichiers de gouvernance : `CLAUDE.md`, `README.md`, `CONTRIBUTING.md`, `LICENSE` (MIT), `CHANGELOG.md`.

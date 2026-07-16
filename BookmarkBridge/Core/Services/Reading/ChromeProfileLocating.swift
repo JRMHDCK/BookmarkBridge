@@ -36,6 +36,9 @@ nonisolated struct DefaultChromeProfileLocator: ChromeProfileLocating {
     /// Directories that are never user profiles.
     private static let excludedDirectories: Set<String> = ["System Profile", "Guest Profile"]
     private static let bookmarksFileName = "Bookmarks"
+    /// Signed-in ("account") profiles keep their synced bookmarks here instead of
+    /// (or in addition to) the local `Bookmarks` file.
+    private static let accountBookmarksFileName = "AccountBookmarks"
     private static let localStateFileName = "Local State"
 
     private let homeDirectory: URL
@@ -79,8 +82,19 @@ nonisolated struct DefaultChromeProfileLocator: ChromeProfileLocating {
                 return nil
             }
 
-            let bookmarksURL = url.appending(path: Self.bookmarksFileName, directoryHint: .notDirectory)
-            guard fileManager.fileExists(atPath: bookmarksURL.path(percentEncoded: false)) else {
+            // A profile is a bookmark source if it has a local `Bookmarks` file
+            // or, for signed-in profiles, an `AccountBookmarks` file (same JSON
+            // format). Prefer the local file when both exist (no change to
+            // already-shown profiles); fall back to the account file otherwise.
+            let localURL = url.appending(path: Self.bookmarksFileName, directoryHint: .notDirectory)
+            let accountURL = url.appending(path: Self.accountBookmarksFileName, directoryHint: .notDirectory)
+
+            let bookmarksURL: URL
+            if fileManager.fileExists(atPath: localURL.path(percentEncoded: false)) {
+                bookmarksURL = localURL
+            } else if fileManager.fileExists(atPath: accountURL.path(percentEncoded: false)) {
+                bookmarksURL = accountURL
+            } else {
                 return nil
             }
 

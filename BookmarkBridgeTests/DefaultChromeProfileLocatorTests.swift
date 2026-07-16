@@ -75,6 +75,34 @@ struct DefaultChromeProfileLocatorTests {
         #expect(profiles.allSatisfy { $0.bookmarksURL.lastPathComponent == "Bookmarks" })
     }
 
+    @Test("Discovers account-only profiles (AccountBookmarks), preferring local when both exist")
+    func discoversAccountBookmarks() throws {
+        let fileManager = FileManager.default
+        let base = fileManager.temporaryDirectory
+            .appending(path: "bb-account-\(UUID().uuidString)", directoryHint: .isDirectory)
+        let chrome = base.appending(path: "Chrome", directoryHint: .isDirectory)
+        defer { try? fileManager.removeItem(at: base) }
+
+        // Signed-in profile: only AccountBookmarks.
+        let accountOnly = chrome.appending(path: "Profile 2", directoryHint: .isDirectory)
+        try fileManager.createDirectory(at: accountOnly, withIntermediateDirectories: true)
+        try Data().write(to: accountOnly.appending(path: "AccountBookmarks", directoryHint: .notDirectory))
+
+        // Profile with both: local should win.
+        let both = chrome.appending(path: "Profile 3", directoryHint: .isDirectory)
+        try fileManager.createDirectory(at: both, withIntermediateDirectories: true)
+        try Data().write(to: both.appending(path: "Bookmarks", directoryHint: .notDirectory))
+        try Data().write(to: both.appending(path: "AccountBookmarks", directoryHint: .notDirectory))
+
+        let profiles = try DefaultChromeProfileLocator().profiles(in: chrome)
+
+        #expect(profiles.map(\.profileDirectoryName) == ["Profile 2", "Profile 3"])
+        let profile2 = profiles.first { $0.profileDirectoryName == "Profile 2" }
+        let profile3 = profiles.first { $0.profileDirectoryName == "Profile 3" }
+        #expect(profile2?.bookmarksURL.lastPathComponent == "AccountBookmarks")
+        #expect(profile3?.bookmarksURL.lastPathComponent == "Bookmarks")
+    }
+
     @Test("Throws sourceNotFound when the Chrome directory is missing")
     func throwsWhenMissing() {
         let missing = FileManager.default.temporaryDirectory
