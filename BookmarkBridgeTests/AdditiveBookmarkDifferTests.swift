@@ -74,6 +74,13 @@ struct AdditiveBookmarkDifferTests {
         #expect(differ.plan(from: source, to: target).isEmpty)
     }
 
+    @Test("A link and the same link with tracking params are one favourite")
+    func trackingParamsDoNotDuplicate() {
+        let source = tree(.safari, [("s", "Article", "https://example.com/a?utm_source=nl")])
+        let target = tree(.chrome, [("t", "Article", "https://example.com/a")])
+        #expect(differ.plan(from: source, to: target).isEmpty)
+    }
+
     @Test("Distinct queries are treated as different pages")
     func distinctQueriesAreAdded() {
         let source = tree(.safari, [("s", "Search 1", "https://example.com/s?q=1")])

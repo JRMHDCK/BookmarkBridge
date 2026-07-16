@@ -39,4 +39,26 @@ struct BookmarkMatchKeyTests {
     func fragmentPreserved() {
         #expect(key("https://example.com/p#a") != key("https://example.com/p#b"))
     }
+
+    // MARK: - Tracking parameters
+
+    @Test("Known tracking parameters are dropped")
+    func dropsTrackingParameters() {
+        let bare = key("https://example.com/p")
+        #expect(key("https://example.com/p?utm_source=nl&utm_medium=email") == bare)
+        #expect(key("https://example.com/p?fbclid=abc") == bare)
+        #expect(key("https://example.com/p?gclid=abc") == bare)
+        #expect(key("https://example.com/p?msclkid=abc") == bare)
+        #expect(key("https://example.com/p?dclid=abc") == bare)
+        #expect(key("https://example.com/p?mc_cid=abc&mc_eid=def") == bare)
+        #expect(key("https://example.com/p?UTM_Source=x") == bare)   // case-insensitive
+    }
+
+    @Test("Non-tracking parameters are kept; tracking ones are stripped around them")
+    func keepsMeaningfulParameters() {
+        #expect(key("https://example.com/p?id=123") != key("https://example.com/p"))
+        #expect(key("https://example.com/p?page=2") != key("https://example.com/p?page=3"))
+        // Only the tracking part is removed, the rest is preserved.
+        #expect(key("https://example.com/p?id=123&utm_source=x") == key("https://example.com/p?id=123"))
+    }
 }
