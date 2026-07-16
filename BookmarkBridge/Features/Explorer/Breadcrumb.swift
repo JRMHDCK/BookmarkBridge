@@ -46,3 +46,31 @@ nonisolated struct Breadcrumb: Equatable, Sendable {
         }
     }
 }
+
+extension Breadcrumb {
+    /// How to lay out the trail when it is too long: keep the first crumb
+    /// (source) and the trailing levels, folding the middle into a "…" menu.
+    nonisolated struct Layout: Equatable, Sendable {
+        /// Crumbs shown before the "…" (the source), empty when not collapsed.
+        let leading: [BreadcrumbItem]
+        /// Crumbs hidden inside the "…" menu.
+        let collapsed: [BreadcrumbItem]
+        /// Crumbs shown after the "…" — or all crumbs when not collapsed.
+        let trailing: [BreadcrumbItem]
+
+        var isCollapsed: Bool { !collapsed.isEmpty }
+    }
+
+    /// Splits the trail for display. When `items.count` exceeds `maxVisible`, the
+    /// first crumb and the last `trailingCount` crumbs stay visible and the rest
+    /// are collapsed into the "…" menu.
+    func layout(maxVisible: Int = 4, trailingCount: Int = 2) -> Layout {
+        guard items.count > maxVisible else {
+            return Layout(leading: [], collapsed: [], trailing: items)
+        }
+        let leading = Array(items.prefix(1))
+        let trailing = Array(items.suffix(trailingCount))
+        let collapsed = Array(items[leading.count ..< (items.count - trailingCount)])
+        return Layout(leading: leading, collapsed: collapsed, trailing: trailing)
+    }
+}

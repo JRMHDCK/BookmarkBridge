@@ -5,10 +5,20 @@
 
 import SwiftUI
 
-/// Builds the destination view for one explorer navigation step. Shared by the
-/// dashboard's NavigationStack and the previews so the mapping lives in one place.
+/// Builds the destination view for one explorer navigation step, with the
+/// breadcrumb bar pinned on top. Shared by the dashboard's NavigationStack and
+/// the previews so the mapping lives in one place. The bound `path` lets the
+/// breadcrumb truncate the navigation stack when a crumb is tapped.
 @ViewBuilder
-func explorerDestination(for step: ExplorerStep) -> some View {
+func explorerDestination(for step: ExplorerStep, path: Binding<[ExplorerStep]>) -> some View {
+    explorerStepContent(for: step)
+        .safeAreaInset(edge: .top, spacing: 0) {
+            BreadcrumbView(path: path)
+        }
+}
+
+@ViewBuilder
+private func explorerStepContent(for step: ExplorerStep) -> some View {
     switch step {
     case .source(let source, let tree):
         SourceExplorerView(source: source, tree: tree)
@@ -101,7 +111,7 @@ struct FolderListView: View {
 #Preview("Source") {
     NavigationStack {
         SourceExplorerView(source: .singleProfile(.safari), tree: .sample(for: .safari))
-            .navigationDestination(for: ExplorerStep.self) { explorerDestination(for: $0) }
+            .navigationDestination(for: ExplorerStep.self) { explorerDestination(for: $0, path: .constant([])) }
     }
     .frame(width: 460, height: 420)
 }

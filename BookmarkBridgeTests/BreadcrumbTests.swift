@@ -74,4 +74,42 @@ struct BreadcrumbTests {
         #expect(items[3].path == path)
         #expect(items.filter(\.isCurrent).map(\.id) == [3])   // only the last
     }
+
+    // MARK: - Layout (overflow folding)
+
+    private func path(depth: Int) -> [ExplorerStep] {
+        var steps: [ExplorerStep] = [.source(safari, tree)]
+        for index in 1..<max(depth, 1) {
+            steps.append(.folder(folder("f\(index)", "F\(index)")))
+        }
+        return steps
+    }
+
+    @Test("A short trail is not collapsed")
+    func layoutNotCollapsed() {
+        let breadcrumb = Breadcrumb(path: path(depth: 4))   // 4 items ≤ maxVisible
+        let layout = breadcrumb.layout(maxVisible: 4, trailingCount: 2)
+
+        #expect(layout.isCollapsed == false)
+        #expect(layout.leading.isEmpty)
+        #expect(layout.collapsed.isEmpty)
+        #expect(layout.trailing == breadcrumb.items)
+    }
+
+    @Test("A long trail keeps the source and the last levels, folding the middle")
+    func layoutCollapsed() {
+        let breadcrumb = Breadcrumb(path: path(depth: 6))   // 6 items > maxVisible
+        let layout = breadcrumb.layout(maxVisible: 4, trailingCount: 2)
+
+        #expect(layout.isCollapsed)
+        #expect(layout.leading.map(\.id) == [0])                 // source
+        #expect(layout.collapsed.map(\.id) == [1, 2, 3])         // folded middle
+        #expect(layout.trailing.map(\.id) == [4, 5])             // last levels
+    }
+
+    @Test("Collapsing appears exactly one past the visible limit")
+    func layoutBoundary() {
+        #expect(Breadcrumb(path: path(depth: 4)).layout(maxVisible: 4, trailingCount: 2).isCollapsed == false)
+        #expect(Breadcrumb(path: path(depth: 5)).layout(maxVisible: 4, trailingCount: 2).isCollapsed)
+    }
 }

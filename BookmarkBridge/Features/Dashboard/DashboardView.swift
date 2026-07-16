@@ -41,7 +41,7 @@ struct DashboardView: View {
                 }
             }
             .navigationDestination(for: ExplorerStep.self) { step in
-                explorerDestination(for: step)
+                explorerDestination(for: step, path: $path)
             }
             .navigationTitle("BookmarkBridge")
             .toolbar {
