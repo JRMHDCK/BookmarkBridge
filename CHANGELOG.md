@@ -59,6 +59,10 @@ toute implémentation de lecture ou de synchronisation des favoris.
   profil en lecture seule (compte/deux stockages) n'escamote plus le bouton « Appliquer » ; il
   reste **visible mais désactivé**, avec un **message** expliquant l'indisponibilité, et le
   sélecteur suffixe ces profils « (lecture seule) ».
+- **Synchronisation — `AccountBookmarks` vide n'est plus bloquant (stabilisation)** : un profil
+  possédant `Bookmarks` **et** un `AccountBookmarks` **vide** n'est plus signalé « deux stockages » ;
+  on utilise simplement le fichier `Bookmarks` local (qui contient tout). Cas confirmé sur le profil
+  principal. Les profils dont `AccountBookmarks` est réellement non vide restent signalés. Test ajouté.
 
 ### Ajouté
 - Fichiers de gouvernance : `CLAUDE.md`, `README.md`, `CONTRIBUTING.md`, `LICENSE` (MIT), `CHANGELOG.md`.

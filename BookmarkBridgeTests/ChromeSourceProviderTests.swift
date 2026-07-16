@@ -118,6 +118,33 @@ struct ChromeSourceProviderTests {
         }
     }
 
+    @Test("Both files but an empty AccountBookmarks → uses the local Bookmarks (no error)")
+    func emptyAccountFileUsesLocal() async throws {
+        let fileManager = FileManager.default
+        let base = fileManager.temporaryDirectory
+            .appending(path: "bb-chrome-\(UUID().uuidString)", directoryHint: .isDirectory)
+        let chrome = base.appending(path: "Chrome", directoryHint: .isDirectory)
+        defer { try? fileManager.removeItem(at: base) }
+
+        let dir = chrome.appending(path: "Profile 2", directoryHint: .isDirectory)
+        try fileManager.createDirectory(at: dir, withIntermediateDirectories: true)
+        try ChromeBookmarksFixture.data().write(to: dir.appending(path: "Bookmarks", directoryHint: .notDirectory))
+        let emptyAccount = try JSONSerialization.data(withJSONObject: [
+            "version": 1, "checksum": "0",
+            "roots": [
+                "bookmark_bar": ["type": "folder", "id": "1", "name": "Bar", "children": []],
+                "other": ["type": "folder", "id": "2", "name": "Other", "children": []],
+                "synced": ["type": "folder", "id": "3", "name": "Mobile", "children": []],
+            ],
+        ])
+        try emptyAccount.write(to: dir.appending(path: "AccountBookmarks", directoryHint: .notDirectory))
+
+        let readers = try await makeProvider(chromeDirectory: chrome).makeReaders()
+        #expect(readers.count == 1)
+        let tree = try await readers[0].readBookmarkTree()   // must not throw multipleBookmarkStores
+        #expect(tree.bookmarkCount == 6)                     // the local Bookmarks fixture
+    }
+
     // MARK: - Authorization
 
     @Test("Propagates authorizationRequired when the directory is not authorized")

@@ -45,7 +45,9 @@ nonisolated struct ChromeSourceProvider: BrowserSourceProviding {
 
         // Open access once to enumerate profiles and read Local State names.
         let discovery = try fileAccess.withReadOnlyAccess(to: directoryLocation) { directoryURL in
-            let profiles = try profileLocator.profiles(in: directoryURL)
+            let profiles = try profileLocator.profiles(in: directoryURL).map { profile in
+                resolvingEmptyAccountFile(profile)
+            }
             let localStateData = try? readData(profileLocator.localStateURL(in: directoryURL))
             let names = localStateData.map(ChromeLocalState.profileNames(from:)) ?? [:]
             return Discovery(profiles: profiles, names: names)
@@ -74,6 +76,20 @@ nonisolated struct ChromeSourceProvider: BrowserSourceProviding {
                 return AmbiguousChromeProfileReader(source: source)
             }
         }
+    }
+
+    /// When a profile exposes both files but `AccountBookmarks` is **empty**, the
+    /// local `Bookmarks` file already holds everything, so use it (no ambiguity,
+    /// no error). Profiles whose account file actually has bookmarks stay
+    /// ambiguous. Must be called inside the granted read-only access.
+    private func resolvingEmptyAccountFile(_ profile: ChromeProfileLocation) -> ChromeProfileLocation {
+        guard case .ambiguous(let bookmarks, let account) = profile.storage else { return profile }
+        if let data = try? readData(account),
+           let tree = try? decoder.decodeTree(from: data),
+           tree.bookmarkCount == 0 {
+            return ChromeProfileLocation(profileDirectoryName: profile.profileDirectoryName, storage: .bookmarks(bookmarks))
+        }
+        return profile
     }
 
     private struct Discovery {
