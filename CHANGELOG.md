@@ -193,6 +193,15 @@ toute implémentation de lecture ou de synchronisation des favoris.
   `safeAreaInset`. Previews (court / long replié). Dashboard/Core/lecteurs inchangés,
   lecture seule. Tests du repli (4).
 
+### Ajouté (en cours — design system)
+- **Design system — fondations du thème (palier 1)** : jetons centralisés dans
+  `Shared/DesignSystem/Theme.swift` — palette de marque (bleu identité + vert statut,
+  variantes claire/sombre via Asset Catalog), `AccentColor` = bleu de marque, échelle
+  d'espacement (4→32), rayons (contrôle / carte), typographie sémantique **SF Pro Rounded**
+  pour titres et chiffres. Modifieurs réutilisables `.cardStyle()` (surface pleine + ombre
+  douce + hairline) et vue `ReadOnlyBadge`. Previews. Aucun écran existant restylé à ce
+  stade (fondations uniquement). Tests des jetons et de l'existence des couleurs (3).
+
 ### Corrigé
 - **Explorateur — noms des racines Safari** : affichage traduit des racines techniques
   (`BookmarksBar` → « Barre des favoris », `BookmarksMenu` → « Autres favoris »,
