@@ -10,7 +10,7 @@
 import SwiftUI
 
 struct SyncPreviewView: View {
-    let model: SyncPreviewViewModel
+    @Bindable var model: SyncPreviewViewModel
     @State private var confirmingApply = false
 
     var body: some View {
@@ -38,7 +38,30 @@ struct SyncPreviewView: View {
             }
         }
         .navigationTitle("Aperçu de la synchronisation")
+        .safeAreaInset(edge: .top) { profilePicker }
         .safeAreaInset(edge: .bottom) { bottomBar }
+    }
+
+    /// Lets the user choose the target Chrome profile when several are available.
+    @ViewBuilder
+    private var profilePicker: some View {
+        if model.chromeCandidates.count > 1 {
+            HStack(spacing: Theme.Spacing.m) {
+                Text("Profil Chrome cible")
+                Spacer(minLength: 0)
+                Picker("Profil Chrome cible", selection: $model.selectedChromeID) {
+                    ForEach(model.chromeCandidates) { candidate in
+                        Text(candidate.source.displayName).tag(Optional(candidate.id))
+                    }
+                }
+                .labelsHidden()
+                .fixedSize()
+            }
+            .padding(.horizontal, Theme.Spacing.l)
+            .padding(.vertical, Theme.Spacing.s)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(.bar)
+        }
     }
 
     @ViewBuilder

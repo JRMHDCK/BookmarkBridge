@@ -51,6 +51,10 @@ toute implémentation de lecture ou de synchronisation des favoris.
   applicateur mocké : succès, refus si Chrome ouvert, pas de cible inscriptible, restauration).
   *(Nécessite l'entitlement fichier en lecture-écriture, activé dans Xcode. Écriture Safari et
   synchronisation bidirectionnelle : après la V1.)*
+- **Synchronisation — aperçu : fermeture & choix du profil (stabilisation)** : la fenêtre d'aperçu
+  a un bouton **Annuler** (+ Échap, via `cancellationAction`) et, quand plusieurs profils Chrome
+  existent, un **sélecteur** de profil cible dans la fenêtre (l'aperçu et l'application se
+  recalculent pour le profil choisi ; auparavant le premier profil était imposé).
 
 ### Ajouté
 - Fichiers de gouvernance : `CLAUDE.md`, `README.md`, `CONTRIBUTING.md`, `LICENSE` (MIT), `CHANGELOG.md`.

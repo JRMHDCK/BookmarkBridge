@@ -62,8 +62,15 @@ struct DashboardView: View {
                     searchModel.updateSources(sources)
                 }
                 .sheet(isPresented: $showingSyncPreview) {
-                    NavigationStack { SyncPreviewView(model: syncModel) }
-                        .frame(minWidth: 480, minHeight: 440)
+                    NavigationStack {
+                        SyncPreviewView(model: syncModel)
+                            .toolbar {
+                                ToolbarItem(placement: .cancellationAction) {
+                                    Button("Annuler") { showingSyncPreview = false }
+                                }
+                            }
+                    }
+                    .frame(minWidth: 480, minHeight: 440)
                 }
         }
         .frame(minWidth: 420, minHeight: 300)
@@ -82,10 +89,19 @@ struct DashboardView: View {
     }
 
     private func presentSyncPreview() {
-        guard let (a, b) = syncPair else { return }
-        // b is the Chrome source; only a writable (.bookmarks) profile can be applied.
-        let chromeWritable = viewModel.writableLocation(for: b.source.id)
-        syncModel.computePreview((a.source, a.tree), (b.source, b.tree), chromeWritableLocation: chromeWritable)
+        let sources = viewModel.searchableSources
+        guard let safari = sources.first(where: { $0.source.browser == .safari }) else { return }
+        let chromeCandidates = sources
+            .filter { $0.source.browser == .chrome }
+            .map { candidate in
+                SyncPreviewViewModel.ChromeCandidate(
+                    source: candidate.source,
+                    tree: candidate.tree,
+                    writable: viewModel.writableLocation(for: candidate.source.id)
+                )
+            }
+        guard !chromeCandidates.isEmpty else { return }
+        syncModel.configure(safari: (safari.source, safari.tree), chromeCandidates: chromeCandidates)
         showingSyncPreview = true
     }
 

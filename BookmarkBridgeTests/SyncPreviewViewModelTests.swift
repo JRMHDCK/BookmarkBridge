@@ -131,6 +131,31 @@ struct SyncPreviewViewModelTests {
         #expect(model.applyState == .idle)
     }
 
+    @Test("Selecting a Chrome target recomputes the preview for that profile")
+    func selectsChromeTarget() {
+        let t = trees()
+        let chromeB = BookmarkSource(browser: .chrome, profile: "Profile 2", displayName: "Chrome — Test")
+        // chromeB already contains Safari's bookmarks → nothing to add to it.
+        let bBar = BookmarkFolder(id: BookmarkID("b.bar"), title: "Barre", children: [
+            bookmark("b.ap", "Apple", "https://apple.com"),
+            bookmark("b.sw", "Swift", "https://swift.org"),
+        ])
+        let bTree = BookmarkTree(browser: .chrome, roots: [bBar], capturedAt: .distantPast)
+
+        let model = SyncPreviewViewModel()
+        model.configure(safari: (safari, t.safari), chromeCandidates: [
+            .init(source: chrome, tree: t.chrome, writable: nil),   // has only Hacker News
+            .init(source: chromeB, tree: bTree, writable: nil),     // already has Apple + Swift
+        ])
+
+        #expect(model.chromeCandidates.count == 2)
+        #expect(model.selectedChromeID == chrome.id)     // first selected by default
+        #expect(model.chromeAdditionsCount == 2)         // Apple + Swift → Chrome — Perso
+
+        model.selectedChromeID = chromeB.id
+        #expect(model.chromeAdditionsCount == 0)         // Chrome — Test already has them
+    }
+
     @Test("Identical sources preview as empty (no directions)")
     func emptyWhenIdentical() {
         let dev = BookmarkFolder(id: BookmarkID("x"), title: "X", children: [bookmark("a", "Apple", "https://apple.com")])

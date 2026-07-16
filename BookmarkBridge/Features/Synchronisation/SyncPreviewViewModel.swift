@@ -73,6 +73,42 @@ final class SyncPreviewViewModel {
     /// Number of bookmarks that would be added to Chrome.
     var chromeAdditionsCount: Int { chromeAdditions.count }
 
+    // MARK: - Chrome target selection
+
+    /// A candidate Chrome profile the user can sync toward.
+    struct ChromeCandidate: Identifiable {
+        let source: BookmarkSource
+        let tree: BookmarkTree
+        let writable: BrowserLocation?
+        var id: BookmarkSourceID { source.id }
+    }
+
+    private(set) var chromeCandidates: [ChromeCandidate] = []
+    private var safariPair: (source: BookmarkSource, tree: BookmarkTree)?
+
+    /// The selected Chrome target; changing it recomputes the preview.
+    var selectedChromeID: BookmarkSourceID? {
+        didSet {
+            guard oldValue != selectedChromeID else { return }
+            recomputeForSelection()
+        }
+    }
+
+    /// Sets up the preview for Safari ↔ one of several Chrome profiles, selecting
+    /// the first by default.
+    func configure(safari: (source: BookmarkSource, tree: BookmarkTree), chromeCandidates: [ChromeCandidate]) {
+        self.safariPair = safari
+        self.chromeCandidates = chromeCandidates
+        self.selectedChromeID = chromeCandidates.first?.id
+        recomputeForSelection()
+    }
+
+    private func recomputeForSelection() {
+        guard let safariPair,
+              let candidate = chromeCandidates.first(where: { $0.id == selectedChromeID }) else { return }
+        computePreview(safariPair, (candidate.source, candidate.tree), chromeWritableLocation: candidate.writable)
+    }
+
     /// Computes the read-only preview between two loaded sources. Pass the Chrome
     /// profile's writable location (from `DashboardViewModel.writableLocation`)
     /// to enable the Safari → Chrome apply action.
