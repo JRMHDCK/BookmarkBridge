@@ -161,6 +161,10 @@ toute implémentation de lecture ou de synchronisation des favoris.
   coordinateur). `AppDependencies` fournit les providers Safari + Chrome réels ;
   `BookmarkBridgeApp` câble les deux coordinateurs (fichier Safari / dossier Chrome). Dashboard
   affiche désormais une carte par source (Safari + un profil Chrome par carte). Safari inchangé.
+- **Explorateur (palier 1 — présentation)** : modèles de présentation `FolderPresentation`
+  et `FolderItemPresentation` (dossier navigable / favori feuille avec hôte) + mappeur
+  testable `BookmarkFolder`/racines de `BookmarkTree` → présentation (une seule profondeur,
+  aucun parcours dans la vue). Tests (5). Aucune UI, aucun changement des lecteurs.
 
 ### Modifié
 - Passage du projet en **Swift 6** (`SWIFT_VERSION = 6.0`) avec concurrence stricte
