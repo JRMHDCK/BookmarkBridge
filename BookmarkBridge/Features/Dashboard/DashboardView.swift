@@ -54,10 +54,18 @@ struct DashboardView: View {
     @ViewBuilder
     private var content: some View {
         if searchModel.hasQuery {
-            SearchResultsView(model: searchModel)
+            SearchResultsView(model: searchModel, onSelect: openResult)
         } else {
             dashboard
         }
+    }
+
+    /// Reveals a search hit by driving the existing explorer navigation: resolve
+    /// the hit to an `[ExplorerStep]` chain and set the shared path. The query
+    /// stays active, so the back button returns to the results. Read-only.
+    private func openResult(_ result: BookmarkSearchResult) {
+        guard let tree = viewModel.tree(for: result.source.id) else { return }
+        path = ExplorerStep.path(to: result, in: tree)
     }
 
     private var dashboard: some View {

@@ -11,6 +11,9 @@ import SwiftUI
 /// Spotlight-style overlay, no extra animation.
 struct SearchResultsView: View {
     let model: SearchViewModel
+    /// Invoked when the user activates a result; the dashboard turns it into an
+    /// explorer navigation. The view itself performs no navigation logic.
+    let onSelect: (BookmarkSearchResult) -> Void
 
     var body: some View {
         if model.showsNoResults {
@@ -20,7 +23,13 @@ struct SearchResultsView: View {
                 ForEach(model.resultsBySource) { group in
                     Section {
                         ForEach(group.results) { result in
-                            SearchResultRow(result: result)
+                            Button {
+                                onSelect(result)
+                            } label: {
+                                SearchResultRow(result: result)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityHint("Ouvre l'emplacement dans l'explorateur")
                         }
                     } header: {
                         Text(group.source.displayName)
@@ -110,14 +119,14 @@ private func previewModel(query: String) -> SearchViewModel {
 
 #Preview("Résultats") {
     NavigationStack {
-        SearchResultsView(model: previewModel(query: "s"))
+        SearchResultsView(model: previewModel(query: "s"), onSelect: { _ in })
     }
     .frame(width: 480, height: 440)
 }
 
 #Preview("Aucun résultat") {
     NavigationStack {
-        SearchResultsView(model: previewModel(query: "zzzzz"))
+        SearchResultsView(model: previewModel(query: "zzzzz"), onSelect: { _ in })
     }
     .frame(width: 480, height: 300)
 }

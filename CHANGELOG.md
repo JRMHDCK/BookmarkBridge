@@ -217,6 +217,13 @@ toute implémentation de lecture ou de synchronisation des favoris.
   extrait dans `Shared/FolderTitleFormatter` (réutilisé par l'explorateur, sans dépendance croisée).
   Design system v1.2.0 conservé, navigation inchangée, lecture seule ; navigation vers le résultat
   au palier 4. Previews (résultats / aucun résultat). Tests (4) : formateur partagé, `searchableSources`.
+- **Recherche globale — navigation vers le résultat (palier 4)** : cliquer un résultat ouvre
+  l'explorateur au bon emplacement, via la **pile `ExplorerStep` existante** (aucune duplication de
+  navigation). Résolveur pur `ExplorerStep.path(to:in:)` (source + dossiers ancêtres résolus depuis
+  l'arbre ; un favori s'ouvre sur son dossier parent, un dossier sur lui-même) ; `SearchResultsView`
+  émet la sélection via closure et le Dashboard fixe le `path`. La requête reste active (retour =
+  résultats). Fil d'Ariane et lecture seule inchangés. Tests (4) : chemin favori imbriqué / dossier /
+  racine / composant inconnu. Résolveur écrit sans closures (évite un trap d'isolation `MainActor`).
 
 ### Ajouté (en cours — design system)
 - **Design system — fondations du thème (palier 1)** : jetons centralisés dans
