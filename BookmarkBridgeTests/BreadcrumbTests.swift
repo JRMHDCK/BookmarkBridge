@@ -112,4 +112,30 @@ struct BreadcrumbTests {
         #expect(Breadcrumb(path: path(depth: 4)).layout(maxVisible: 4, trailingCount: 2).isCollapsed == false)
         #expect(Breadcrumb(path: path(depth: 5)).layout(maxVisible: 4, trailingCount: 2).isCollapsed)
     }
+
+    @Test("Long trail (as in the preview): menu holds the middle, last two stay, menu jumps back")
+    func longTrailMatchesPreview() {
+        // Mirrors BreadcrumbView's "Long (replié)" preview: source + A…E (6 items).
+        let a = folder("a", "A")
+        let b = folder("b", "B")
+        let c = folder("c", "C")
+        let d = folder("d", "D")
+        let e = folder("e", "E")
+        let fullPath: [ExplorerStep] = [.source(safari, tree), .folder(a), .folder(b), .folder(c), .folder(d), .folder(e)]
+        let layout = Breadcrumb(path: fullPath).layout()   // defaults: maxVisible 4, trailingCount 2
+
+        // 1. The "…" menu appears, holding the folded middle levels.
+        #expect(layout.isCollapsed)
+        #expect(layout.collapsed.map(\.title) == ["A", "B", "C"])
+
+        // 2. The last two levels stay visible; the current one (E) is not tappable.
+        #expect(layout.trailing.map(\.title) == ["D", "E"])
+        #expect(layout.trailing.last?.isCurrent == true)
+        #expect(layout.trailing.first?.isCurrent == false)
+
+        // 3. A menu entry jumps directly back to its level (truncation path).
+        let middleB = layout.collapsed[1]
+        #expect(middleB.title == "B")
+        #expect(middleB.path == Array(fullPath.prefix(3)))   // [source, A, B]
+    }
 }
