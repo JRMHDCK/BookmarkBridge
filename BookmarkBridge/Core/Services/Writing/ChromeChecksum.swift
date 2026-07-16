@@ -10,9 +10,11 @@ import CryptoKit
 ///
 /// Chrome stores an MD5 digest in the `checksum` field and, on load, compares it
 /// against a digest recomputed from the bookmark tree. The digest is built by
-/// walking the permanent roots in a fixed order and, per node, feeding: the id,
-/// the title (UTF-8), the type string (`"url"`/`"folder"`), and — for URL nodes —
-/// the URL. Mirrors Chromium's `BookmarkCodec::UpdateChecksum*`.
+/// walking the permanent roots in a fixed order and, per node, feeding: the id
+/// (UTF-8), the title (**UTF-16, native little-endian** — Chromium hashes the raw
+/// bytes of the `std::u16string`), the type string `"url"`/`"folder"` (UTF-8),
+/// and — for URL nodes — the URL (UTF-8). Mirrors Chromium's
+/// `BookmarkCodec::UpdateChecksumWith{Url,Folder}Node`.
 ///
 /// It is computed over the **raw JSON dictionary** (original ids/titles/URLs
 /// preserved) so a modified file matches what Chrome expects.
@@ -41,7 +43,7 @@ nonisolated enum ChromeChecksum {
         let type = node["type"] as? String ?? ""
 
         md5.update(data: Data(id.utf8))
-        md5.update(data: Data(title.utf8))
+        md5.update(data: title.data(using: .utf16LittleEndian) ?? Data())   // Chromium hashes UTF-16 bytes
         md5.update(data: Data(type.utf8))
 
         if type == "url" {

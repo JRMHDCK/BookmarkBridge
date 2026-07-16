@@ -33,7 +33,7 @@ func updateChecksum(_ md5: inout Insecure.MD5, node: [String: Any]) {
     let title = node["name"] as? String ?? ""
     let type = node["type"] as? String ?? ""
     md5.update(data: Data(id.utf8))
-    md5.update(data: Data(title.utf8))
+    md5.update(data: title.data(using: .utf16LittleEndian) ?? Data())   // Chromium hashes UTF-16 bytes
     md5.update(data: Data(type.utf8))
     if type == "url" {
         md5.update(data: Data((node["url"] as? String ?? "").utf8))

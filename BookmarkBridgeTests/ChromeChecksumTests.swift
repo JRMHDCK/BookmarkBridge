@@ -24,6 +24,17 @@ struct ChromeChecksumTests {
         #expect(checksum == checksum.lowercased())
     }
 
+    @Test("Reproduces a real Chrome digest (empty permanent roots)")
+    func matchesRealChromeReference() {
+        // Golden vector captured from a real (empty) Chrome profile, French locale.
+        let roots: [String: Any] = [
+            "bookmark_bar": ["type": "folder", "id": "1", "name": "Barre de favoris"],
+            "other": ["type": "folder", "id": "2", "name": "Autres favoris"],
+            "synced": ["type": "folder", "id": "3", "name": "Favoris sur mobile"],
+        ]
+        #expect(ChromeChecksum.compute(roots: roots) == "0431dee65ca9397b4bb3114b2be01539")
+    }
+
     @Test("Is deterministic for the same tree")
     func deterministic() throws {
         let roots = try fixtureRoots()
