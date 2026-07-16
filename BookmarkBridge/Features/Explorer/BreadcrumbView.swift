@@ -14,7 +14,7 @@ struct BreadcrumbView: View {
     var body: some View {
         if !path.isEmpty {
             let cells = breadcrumbCells
-            HStack(spacing: 6) {
+            HStack(spacing: Theme.Spacing.s) {
                 ForEach(Array(cells.enumerated()), id: \.element.id) { index, cell in
                     cellView(cell)
                     if index < cells.count - 1 {
@@ -27,8 +27,8 @@ struct BreadcrumbView: View {
             }
             .font(.callout)
             .lineLimit(1)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
+            .padding(.horizontal, Theme.Spacing.l)
+            .padding(.vertical, Theme.Spacing.s)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(.bar)
         }

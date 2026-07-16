@@ -193,6 +193,26 @@ toute implémentation de lecture ou de synchronisation des favoris.
   `safeAreaInset`. Previews (court / long replié). Dashboard/Core/lecteurs inchangés,
   lecture seule. Tests du repli (4).
 
+### Ajouté (en cours — design system)
+- **Design system — fondations du thème (palier 1)** : jetons centralisés dans
+  `Shared/DesignSystem/Theme.swift` — palette de marque (bleu identité + vert statut,
+  variantes claire/sombre via Asset Catalog), `AccentColor` = bleu de marque, échelle
+  d'espacement (4→32), rayons (contrôle / carte), typographie sémantique **SF Pro Rounded**
+  pour titres et chiffres. Modifieurs réutilisables `.cardStyle()` (surface pleine + ombre
+  douce + hairline) et vue `ReadOnlyBadge`. Previews. Aucun écran existant restylé à ce
+  stade (fondations uniquement). Tests des jetons et de l'existence des couleurs (3).
+- **Design system — cartes de source restylées (palier 2)** : le Dashboard adopte les
+  jetons du thème. `GroupBox` remplacé par `.cardStyle()` (surface pleine + ombre + hairline) ;
+  pastille d'icône navigateur bleue ; badge partagé `ReadOnlyBadge` ; tuiles de statistiques
+  (chiffres arrondis en bleu de marque) ; typographie `Theme.Typography` ; teinte d'erreur
+  sémantique et bouton d'autorisation en `.borderedProminent`. Renforce l'identité bleu/vert.
+  Lecture seule, ViewModel/Core/lecteurs inchangés.
+- **Design system — explorateur & fil d'Ariane restylés (palier 3)** : lignes plus aérées
+  (jetons d'espacement), icônes distinctes — dossiers `folder.fill` en bleu de marque
+  (cibles navigables) vs favoris en glyphe neutre — style de liste `.inset`, et fil d'Ariane
+  aux espacements généreux (`Theme.Spacing`). Rendu sobre et lisible, dans la ligne d'une
+  app macOS professionnelle. Lecture seule, navigation et Core inchangés.
+
 ### Corrigé
 - **Explorateur — noms des racines Safari** : affichage traduit des racines techniques
   (`BookmarksBar` → « Barre des favoris », `BookmarksMenu` → « Autres favoris »,
