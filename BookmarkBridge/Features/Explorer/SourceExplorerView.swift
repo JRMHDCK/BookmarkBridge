@@ -65,6 +65,7 @@ struct FolderListView: View {
                 bookmarkRow(title: title, host: host, url: url)
             }
         }
+        .listStyle(.inset)
         .overlay {
             if presentation.items.isEmpty {
                 ContentUnavailableView("Dossier vide", systemImage: "folder")
@@ -72,26 +73,32 @@ struct FolderListView: View {
         }
     }
 
+    /// A navigable folder: a filled, brand-blue glyph makes drill-down targets
+    /// stand out from the neutral bookmark leaves.
     private func folderRow(title: String, itemCount: Int) -> some View {
         Label {
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
                 Text(title.isEmpty ? "Dossier" : title)
                 Text("^[\(itemCount) élément](inflect: true)")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
         } icon: {
-            Image(systemName: "folder")
+            Image(systemName: "folder.fill")
+                .foregroundStyle(Theme.Palette.blue)
         }
+        .padding(.vertical, Theme.Spacing.xs)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Dossier \(title.isEmpty ? "sans nom" : title), \(itemCount) élément(s)")
     }
 
+    /// A read-only bookmark leaf: a neutral outline glyph keeps it visually
+    /// quieter than the navigable folders.
     private func bookmarkRow(title: String, host: String?, url: URL) -> some View {
         let subtitle = host ?? url.absoluteString
         let displayTitle = title.isEmpty ? "(Sans titre)" : title
         return Label {
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
                 Text(displayTitle)
                 Text(subtitle)
                     .font(.caption)
@@ -100,7 +107,9 @@ struct FolderListView: View {
             }
         } icon: {
             Image(systemName: "bookmark")
+                .foregroundStyle(.secondary)
         }
+        .padding(.vertical, Theme.Spacing.xs)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Favori \(displayTitle), \(subtitle)")
     }

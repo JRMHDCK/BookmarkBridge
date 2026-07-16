@@ -207,6 +207,11 @@ toute implémentation de lecture ou de synchronisation des favoris.
   (chiffres arrondis en bleu de marque) ; typographie `Theme.Typography` ; teinte d'erreur
   sémantique et bouton d'autorisation en `.borderedProminent`. Renforce l'identité bleu/vert.
   Lecture seule, ViewModel/Core/lecteurs inchangés.
+- **Design system — explorateur & fil d'Ariane restylés (palier 3)** : lignes plus aérées
+  (jetons d'espacement), icônes distinctes — dossiers `folder.fill` en bleu de marque
+  (cibles navigables) vs favoris en glyphe neutre — style de liste `.inset`, et fil d'Ariane
+  aux espacements généreux (`Theme.Spacing`). Rendu sobre et lisible, dans la ligne d'une
+  app macOS professionnelle. Lecture seule, navigation et Core inchangés.
 
 ### Corrigé
 - **Explorateur — noms des racines Safari** : affichage traduit des racines techniques
