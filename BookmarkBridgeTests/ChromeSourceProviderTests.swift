@@ -96,6 +96,28 @@ struct ChromeSourceProviderTests {
         #expect(defaultTree.capturedAt == fixedDate)
     }
 
+    // MARK: - Ambiguous storage
+
+    @Test("A profile with both bookmark files is surfaced as multiple-stores, not auto-picked")
+    func flagsProfileWithBothStores() async throws {
+        let fileManager = FileManager.default
+        let base = fileManager.temporaryDirectory
+            .appending(path: "bb-chrome-\(UUID().uuidString)", directoryHint: .isDirectory)
+        let chrome = base.appending(path: "Chrome", directoryHint: .isDirectory)
+        defer { try? fileManager.removeItem(at: base) }
+
+        let bothDir = chrome.appending(path: "Profile 2", directoryHint: .isDirectory)
+        try fileManager.createDirectory(at: bothDir, withIntermediateDirectories: true)
+        try ChromeBookmarksFixture.data().write(to: bothDir.appending(path: "Bookmarks", directoryHint: .notDirectory))
+        try ChromeBookmarksFixture.data().write(to: bothDir.appending(path: "AccountBookmarks", directoryHint: .notDirectory))
+
+        let readers = try await makeProvider(chromeDirectory: chrome).makeReaders()
+        #expect(readers.count == 1)
+        await #expect(throws: BookmarkError.multipleBookmarkStores(.chrome)) {
+            _ = try await readers[0].readBookmarkTree()
+        }
+    }
+
     // MARK: - Authorization
 
     @Test("Propagates authorizationRequired when the directory is not authorized")

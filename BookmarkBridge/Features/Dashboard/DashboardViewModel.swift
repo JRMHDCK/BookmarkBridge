@@ -212,6 +212,8 @@ final class DashboardViewModel {
             return "Format du fichier illisible."
         case .unsupportedBrowser:
             return "Navigateur non pris en charge."
+        case .multipleBookmarkStores:
+            return "Deux stockages de favoris détectés (Bookmarks + AccountBookmarks). Choix non décidé en V1."
         case .unknownNode, .authorizationRequired:
             return "Une erreur est survenue."
         }

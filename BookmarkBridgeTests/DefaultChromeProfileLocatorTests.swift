@@ -72,10 +72,11 @@ struct DefaultChromeProfileLocatorTests {
         let profiles = try DefaultChromeProfileLocator().profiles(in: chrome)
 
         #expect(profiles.map(\.profileDirectoryName) == ["Default", "Profile 1"])
-        #expect(profiles.allSatisfy { $0.bookmarksURL.lastPathComponent == "Bookmarks" })
+        let allLocal = profiles.allSatisfy { if case .bookmarks = $0.storage { true } else { false } }
+        #expect(allLocal)
     }
 
-    @Test("Discovers account-only profiles (AccountBookmarks), preferring local when both exist")
+    @Test("Discovers account-only profiles and flags ambiguity when both files exist")
     func discoversAccountBookmarks() throws {
         let fileManager = FileManager.default
         let base = fileManager.temporaryDirectory
@@ -97,10 +98,21 @@ struct DefaultChromeProfileLocatorTests {
         let profiles = try DefaultChromeProfileLocator().profiles(in: chrome)
 
         #expect(profiles.map(\.profileDirectoryName) == ["Profile 2", "Profile 3"])
-        let profile2 = profiles.first { $0.profileDirectoryName == "Profile 2" }
-        let profile3 = profiles.first { $0.profileDirectoryName == "Profile 3" }
-        #expect(profile2?.bookmarksURL.lastPathComponent == "AccountBookmarks")
-        #expect(profile3?.bookmarksURL.lastPathComponent == "Bookmarks")
+
+        // Account-only profile → .account (the AccountBookmarks file).
+        if case .account(let url) = profiles.first(where: { $0.profileDirectoryName == "Profile 2" })?.storage {
+            #expect(url.lastPathComponent == "AccountBookmarks")
+        } else {
+            Issue.record("expected Profile 2 to use the account storage")
+        }
+
+        // Both files present → .ambiguous (no arbitrary pick).
+        if case .ambiguous(let bookmarks, let account) = profiles.first(where: { $0.profileDirectoryName == "Profile 3" })?.storage {
+            #expect(bookmarks.lastPathComponent == "Bookmarks")
+            #expect(account.lastPathComponent == "AccountBookmarks")
+        } else {
+            Issue.record("expected Profile 3 to be ambiguous (both files)")
+        }
     }
 
     @Test("Throws sourceNotFound when the Chrome directory is missing")

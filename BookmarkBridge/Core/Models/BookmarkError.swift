@@ -30,4 +30,9 @@ nonisolated enum BookmarkError: Error, Sendable, Equatable {
 
     /// The requested browser is not supported by this build.
     case unsupportedBrowser(Browser)
+
+    /// A profile exposes more than one bookmark storage file (`Bookmarks` and
+    /// `AccountBookmarks`). V1 does not pick one arbitrarily; the profile is
+    /// surfaced as needing an explicit, behaviour-based strategy.
+    case multipleBookmarkStores(Browser)
 }

@@ -5,12 +5,33 @@
 
 import Foundation
 
+/// Which bookmark storage file(s) a Chrome profile exposes.
+///
+/// Names per Chromium `bookmark_constants`: `Bookmarks` is
+/// `kLocalOrSyncableBookmarksFileName`, `AccountBookmarks` is
+/// `kAccountBookmarksFileName`. We make no assumption about sync status.
+nonisolated enum ChromeBookmarkStorage: Hashable, Sendable {
+    /// Only the `Bookmarks` file is present.
+    case bookmarks(URL)
+    /// Only the `AccountBookmarks` file is present.
+    case account(URL)
+    /// **Both** files are present. V1 does not pick one arbitrarily — the
+    /// profile is surfaced as "two storages detected" pending an explicit,
+    /// behaviour-based strategy.
+    case ambiguous(bookmarks: URL, account: URL)
+}
+
 /// The on-disk location of one Chrome profile's bookmarks.
 nonisolated struct ChromeProfileLocation: Hashable, Sendable {
     /// The profile's directory name (stable identity): "Default", "Profile 1", …
     let profileDirectoryName: String
-    /// The profile's `Bookmarks` file.
-    let bookmarksURL: URL
+    /// The bookmark storage file(s) this profile exposes.
+    let storage: ChromeBookmarkStorage
+
+    init(profileDirectoryName: String, storage: ChromeBookmarkStorage) {
+        self.profileDirectoryName = profileDirectoryName
+        self.storage = storage
+    }
 }
 
 /// Locates Chrome's data directory and discovers its bookmark profiles.
@@ -85,24 +106,24 @@ nonisolated struct DefaultChromeProfileLocator: ChromeProfileLocating {
                 return nil
             }
 
-            // A profile is a bookmark source if it has a `Bookmarks` file and/or
-            // an `AccountBookmarks` file (same JSON format). Choice is by file
-            // existence only — no inference from sync/sign-in status: use
-            // `Bookmarks` if present, else `AccountBookmarks`. (When both exist,
-            // `Bookmarks` wins for now; an explicit strategy is a later decision.)
+            // Discovery is by file existence only (no sync/sign-in inference):
+            // `Bookmarks` alone, `AccountBookmarks` alone, or both. When both
+            // exist, V1 makes no arbitrary choice — it flags the profile as
+            // ambiguous rather than guessing which file is authoritative.
             let localURL = url.appending(path: Self.bookmarksFileName, directoryHint: .notDirectory)
             let accountURL = url.appending(path: Self.accountBookmarksFileName, directoryHint: .notDirectory)
+            let hasLocal = fileManager.fileExists(atPath: localURL.path(percentEncoded: false))
+            let hasAccount = fileManager.fileExists(atPath: accountURL.path(percentEncoded: false))
 
-            let bookmarksURL: URL
-            if fileManager.fileExists(atPath: localURL.path(percentEncoded: false)) {
-                bookmarksURL = localURL
-            } else if fileManager.fileExists(atPath: accountURL.path(percentEncoded: false)) {
-                bookmarksURL = accountURL
-            } else {
-                return nil
+            let storage: ChromeBookmarkStorage
+            switch (hasLocal, hasAccount) {
+            case (true, true): storage = .ambiguous(bookmarks: localURL, account: accountURL)
+            case (true, false): storage = .bookmarks(localURL)
+            case (false, true): storage = .account(accountURL)
+            case (false, false): return nil
             }
 
-            return ChromeProfileLocation(profileDirectoryName: name, bookmarksURL: bookmarksURL)
+            return ChromeProfileLocation(profileDirectoryName: name, storage: storage)
         }
 
         return locations.sorted { $0.profileDirectoryName < $1.profileDirectoryName }

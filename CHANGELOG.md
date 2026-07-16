@@ -32,11 +32,14 @@ toute implémentation de lecture ou de synchronisation des favoris.
   `ChromeBookmarkApplier` (refus si Chrome ouvert → **sauvegarde obligatoire** → écriture atomique +
   `.bak`, réversible). Tests exclusivement sur fixtures/fichiers temporaires. Outil de validation
   `Tools/validate-chrome-checksum.swift`.
-- **Synchronisation — découverte des profils Chrome connectés** : `DefaultChromeProfileLocator`
-  reconnaît désormais aussi le fichier **`AccountBookmarks`** (favoris de compte synchronisés,
-  même format JSON que `Bookmarks`). Un profil est découvert s'il a `Bookmarks` **ou**
-  `AccountBookmarks` (le local est préféré si les deux existent). Corrige l'absence des profils
-  connectés (ex. « Test »/Profile 2) dans le tableau de bord. Test (découverte account-only + préférence locale).
+- **Synchronisation — découverte des profils Chrome (deux stockages)** : `DefaultChromeProfileLocator`
+  reconnaît le fichier **`Bookmarks`** (`kLocalOrSyncableBookmarksFileName`) **et/ou**
+  **`AccountBookmarks`** (`kAccountBookmarksFileName`), par **existence de fichier** (aucune
+  inférence de synchro). Modèle `ChromeBookmarkStorage` à 3 états : `bookmarks`, `account`, ou
+  **`ambiguous`** quand les deux existent. Corrige l'absence des profils n'ayant que `AccountBookmarks`
+  (ex. « Test »). Si les deux fichiers coexistent, la V1 **ne choisit pas** : le profil est **signalé**
+  « deux stockages détectés » (`BookmarkError.multipleBookmarkStores`, `AmbiguousChromeProfileReader`)
+  en attendant une stratégie fondée sur le comportement réel. Tests (locator 3 états, provider ambigu).
 
 ### Ajouté
 - Fichiers de gouvernance : `CLAUDE.md`, `README.md`, `CONTRIBUTING.md`, `LICENSE` (MIT), `CHANGELOG.md`.

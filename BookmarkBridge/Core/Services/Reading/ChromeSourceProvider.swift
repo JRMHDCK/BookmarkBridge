@@ -51,22 +51,28 @@ nonisolated struct ChromeSourceProvider: BrowserSourceProviding {
             return Discovery(profiles: profiles, names: names)
         }
 
-        return discovery.profiles.map { profile in
+        return discovery.profiles.map { profile -> any BookmarkReading in
             let userName = discovery.names[profile.profileDirectoryName] ?? profile.profileDirectoryName
             let source = BookmarkSource(
                 browser: .chrome,
                 profile: profile.profileDirectoryName,
                 displayName: "Chrome — \(userName)"
             )
-            return ChromeBookmarkReader(
-                source: source,
-                directoryLocation: directoryLocation,
-                bookmarksURL: profile.bookmarksURL,
-                fileAccess: fileAccess,
-                decoder: decoder,
-                readData: readData,
-                now: now
-            )
+            switch profile.storage {
+            case .bookmarks(let bookmarksURL), .account(let bookmarksURL):
+                return ChromeBookmarkReader(
+                    source: source,
+                    directoryLocation: directoryLocation,
+                    bookmarksURL: bookmarksURL,
+                    fileAccess: fileAccess,
+                    decoder: decoder,
+                    readData: readData,
+                    now: now
+                )
+            case .ambiguous:
+                // Both files present — surface it, don't guess.
+                return AmbiguousChromeProfileReader(source: source)
+            }
         }
     }
 
