@@ -34,7 +34,7 @@ nonisolated struct FolderPresentation: Equatable, Sendable {
 
     /// The contents of a folder (its direct children), for display.
     init(folder: BookmarkFolder) {
-        self.init(title: folder.title, items: Self.items(of: folder.children))
+        self.init(title: Self.displayTitle(folder.title), items: Self.items(of: folder.children))
     }
 
     /// The top level of a source: its root folders, under a given title.
@@ -42,7 +42,7 @@ nonisolated struct FolderPresentation: Equatable, Sendable {
         let items = tree.roots.map { root in
             FolderItemPresentation.folder(
                 id: root.id,
-                title: root.title,
+                title: Self.displayTitle(root.title),
                 itemCount: root.children.count,
                 destination: root
             )
@@ -56,7 +56,7 @@ nonisolated struct FolderPresentation: Equatable, Sendable {
             case .folder(let folder):
                 .folder(
                     id: folder.id,
-                    title: folder.title,
+                    title: displayTitle(folder.title),
                     itemCount: folder.children.count,
                     destination: folder
                 )
@@ -68,6 +68,17 @@ nonisolated struct FolderPresentation: Equatable, Sendable {
                     url: bookmark.url
                 )
             }
+        }
+    }
+
+    /// Maps Safari's technical root folder names to human-readable French names.
+    /// Any other title is returned unchanged.
+    static func displayTitle(_ rawTitle: String) -> String {
+        switch rawTitle {
+        case "BookmarksBar": "Barre des favoris"
+        case "BookmarksMenu": "Autres favoris"
+        case "com.apple.ReadingList": "Liste de lecture"
+        default: rawTitle
         }
     }
 }

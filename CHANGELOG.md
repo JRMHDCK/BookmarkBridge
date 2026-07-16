@@ -176,6 +176,12 @@ toute implémentation de lecture ou de synchronisation des favoris.
   seule), état « dossier vide », libellés d'accessibilité, previews. Aucune logique
   d'arbre dans la vue.
 
+### Corrigé
+- **Explorateur — noms des racines Safari** : affichage traduit des racines techniques
+  (`BookmarksBar` → « Barre des favoris », `BookmarksMenu` → « Autres favoris »,
+  `com.apple.ReadingList` → « Liste de lecture ») dans la couche de présentation
+  (`FolderPresentation`), sans modifier le décodeur ni le Core. Tests (3).
+
 ### Modifié
 - Passage du projet en **Swift 6** (`SWIFT_VERSION = 6.0`) avec concurrence stricte
   (`SWIFT_STRICT_CONCURRENCY = complete`) sur toutes les cibles.

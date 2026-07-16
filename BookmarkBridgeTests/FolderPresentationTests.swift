@@ -86,6 +86,38 @@ struct FolderPresentationTests {
 
     // MARK: - Source roots
 
+    // MARK: - Friendly Safari root names
+
+    @Test("Translates Safari's technical root names to French")
+    func mapsSafariRootNames() throws {
+        let roots = [
+            BookmarkFolder(id: BookmarkID("bar"), title: "BookmarksBar"),
+            BookmarkFolder(id: BookmarkID("menu"), title: "BookmarksMenu"),
+            BookmarkFolder(id: BookmarkID("rl"), title: "com.apple.ReadingList"),
+        ]
+        let tree = BookmarkTree(browser: .safari, roots: roots, capturedAt: .distantPast)
+
+        let presentation = FolderPresentation(rootsOf: tree, title: "Safari")
+
+        let titles = presentation.items.map { item -> String in
+            if case .folder(_, let title, _, _) = item { return title }
+            return "?"
+        }
+        #expect(titles == ["Barre des favoris", "Autres favoris", "Liste de lecture"])
+    }
+
+    @Test("Uses the friendly name as the opened folder's title")
+    func mapsFolderTitle() {
+        let folder = BookmarkFolder(id: BookmarkID("bar"), title: "BookmarksBar")
+        #expect(FolderPresentation(folder: folder).title == "Barre des favoris")
+    }
+
+    @Test("Leaves non-technical folder titles unchanged")
+    func leavesOtherTitlesUnchanged() {
+        #expect(FolderPresentation.displayTitle("Perso") == "Perso")
+        #expect(FolderPresentation(folder: BookmarkFolder(id: BookmarkID("x"), title: "Perso")).title == "Perso")
+    }
+
     @Test("Maps a source's roots to navigable folder items")
     func mapsRoots() throws {
         let bar = BookmarkFolder(id: BookmarkID("bar"), title: "Bookmarks Bar", children: [

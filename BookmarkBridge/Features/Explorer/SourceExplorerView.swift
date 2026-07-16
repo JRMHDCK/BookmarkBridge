@@ -28,8 +28,9 @@ struct FolderContentsView: View {
     let folder: BookmarkFolder
 
     var body: some View {
-        FolderListView(presentation: FolderPresentation(folder: folder))
-            .navigationTitle(folder.title.isEmpty ? "Dossier" : folder.title)
+        let presentation = FolderPresentation(folder: folder)
+        FolderListView(presentation: presentation)
+            .navigationTitle(presentation.title.isEmpty ? "Dossier" : presentation.title)
     }
 }
 
