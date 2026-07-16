@@ -15,6 +15,8 @@ import SwiftUI
 struct DashboardView: View {
     @State private var viewModel: DashboardViewModel
     @State private var searchModel: SearchViewModel
+    @State private var syncModel = SyncPreviewViewModel()
+    @State private var showingSyncPreview = false
     @State private var path: [ExplorerStep] = []
 
     init(viewModel: DashboardViewModel, searchEngine: any BookmarkSearching = BookmarkSearchEngine()) {
@@ -32,6 +34,15 @@ struct DashboardView: View {
                 .toolbar {
                     ToolbarItem {
                         Button {
+                            presentSyncPreview()
+                        } label: {
+                            Label("Synchroniser…", systemImage: "arrow.triangle.2.circlepath")
+                        }
+                        .disabled(syncPair == nil)
+                        .accessibilityLabel("Prévisualiser la synchronisation")
+                    }
+                    ToolbarItem {
+                        Button {
                             Task { await viewModel.reloadAll() }
                         } label: {
                             Label("Actualiser", systemImage: "arrow.clockwise")
@@ -44,9 +55,30 @@ struct DashboardView: View {
                 .onChange(of: viewModel.searchableSources, initial: true) { _, sources in
                     searchModel.updateSources(sources)
                 }
+                .sheet(isPresented: $showingSyncPreview) {
+                    NavigationStack { SyncPreviewView(model: syncModel) }
+                        .frame(minWidth: 480, minHeight: 440)
+                }
         }
         .frame(minWidth: 420, minHeight: 300)
         .task { await viewModel.load() }
+    }
+
+    /// The Safari + first Chrome loaded sources, when both are available. Pair
+    /// selection is deliberately simple for now (UX refinement comes later).
+    private var syncPair: (SearchableSource, SearchableSource)? {
+        let sources = viewModel.searchableSources
+        guard let safari = sources.first(where: { $0.source.browser == .safari }),
+              let chrome = sources.first(where: { $0.source.browser == .chrome }) else {
+            return nil
+        }
+        return (safari, chrome)
+    }
+
+    private func presentSyncPreview() {
+        guard let (a, b) = syncPair else { return }
+        syncModel.computePreview((a.source, a.tree), (b.source, b.tree))
+        showingSyncPreview = true
     }
 
     /// Search results replace the dashboard while a query is active; an empty
