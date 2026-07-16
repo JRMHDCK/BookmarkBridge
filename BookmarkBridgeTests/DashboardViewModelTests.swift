@@ -225,4 +225,102 @@ struct DashboardViewModelTests {
 
         #expect(viewModel.isLoading == false)
     }
+
+    // MARK: - Decoded tree cache (for the explorer)
+
+    @Test("Keeps the decoded tree for a loaded source")
+    func keepsTreeAfterLoad() async {
+        let tree = BookmarkTree.sample(for: .safari)
+        let viewModel = DashboardViewModel(providers: [
+            StubSourceProvider(browser: .safari, readers: [
+                InMemoryBookmarkReader(browser: .safari, tree: tree)
+            ])
+        ])
+
+        await viewModel.load()
+
+        #expect(viewModel.tree(for: id(.safari)) == tree)
+    }
+
+    @Test("No tree is returned before loading or for an unknown source")
+    func noTreeWhenAbsent() async {
+        let viewModel = DashboardViewModel(providers: [
+            StubSourceProvider(browser: .safari, readers: [
+                InMemoryBookmarkReader(browser: .safari, tree: .sample(for: .safari))
+            ])
+        ])
+
+        #expect(viewModel.tree(for: id(.safari)) == nil)   // before load
+
+        await viewModel.load()
+
+        #expect(viewModel.tree(for: id(.chrome)) == nil)   // unknown source
+    }
+
+    @Test("No tree is kept when the source fails to load")
+    func noTreeWhenFailed() async {
+        let viewModel = DashboardViewModel(providers: [
+            StubSourceProvider(browser: .safari, readers: [
+                FailingBookmarkReader(browser: .safari, error: .sourceNotFound(.safari))
+            ])
+        ])
+
+        await viewModel.load()
+
+        #expect(viewModel.tree(for: id(.safari)) == nil)
+    }
+
+    @Test("Keeps a distinct tree per Chrome profile")
+    func keepsTreePerProfile() async {
+        let treeA = BookmarkTree(
+            browser: .chrome,
+            roots: [BookmarkFolder(id: BookmarkID("a"), title: "A")],
+            capturedAt: .distantPast
+        )
+        let treeB = BookmarkTree(
+            browser: .chrome,
+            roots: [BookmarkFolder(id: BookmarkID("b"), title: "B")],
+            capturedAt: .distantPast
+        )
+        let viewModel = DashboardViewModel(providers: [
+            StubSourceProvider(browser: .chrome, readers: [
+                InMemoryBookmarkReader(
+                    source: BookmarkSource(browser: .chrome, profile: "Default", displayName: "Chrome — Perso"),
+                    tree: treeA
+                ),
+                InMemoryBookmarkReader(
+                    source: BookmarkSource(browser: .chrome, profile: "Profile 1", displayName: "Chrome — Pro"),
+                    tree: treeB
+                ),
+            ])
+        ])
+
+        await viewModel.load()
+
+        #expect(viewModel.tree(for: id(.chrome, "Default")) == treeA)
+        #expect(viewModel.tree(for: id(.chrome, "Profile 1")) == treeB)
+    }
+
+    @Test("Drops the tree when a reload requires re-authorization")
+    func dropsTreeOnReauthorization() async {
+        let box = AuthorizationBox(isAuthorized: true)
+        let viewModel = DashboardViewModel(providers: [
+            GatedSourceProvider(browser: .chrome, box: box, readers: [
+                InMemoryBookmarkReader(
+                    source: BookmarkSource(browser: .chrome, profile: "Default", displayName: "Chrome — Perso"),
+                    tree: .sample(for: .chrome)
+                )
+            ])
+        ])
+
+        await viewModel.load()
+        #expect(viewModel.tree(for: id(.chrome, "Default")) != nil)
+
+        // Access revoked; a reload now yields a browser-level authorizationRequired card.
+        box.isAuthorized = false
+        await viewModel.reloadAll()
+
+        #expect(viewModel.tree(for: id(.chrome, "Default")) == nil)
+        #expect(status(viewModel, id(.chrome)) == .authorizationRequired)
+    }
 }

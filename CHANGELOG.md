@@ -165,6 +165,9 @@ toute implémentation de lecture ou de synchronisation des favoris.
   et `FolderItemPresentation` (dossier navigable / favori feuille avec hôte) + mappeur
   testable `BookmarkFolder`/racines de `BookmarkTree` → présentation (une seule profondeur,
   aucun parcours dans la vue). Tests (5). Aucune UI, aucun changement des lecteurs.
+- **Explorateur (palier 2 — cache d'arbre)** : `DashboardViewModel` conserve l'arbre
+  décodé par source (`trees[sourceID]`) + accesseur `tree(for:)` ; rafraîchi à chaque
+  (re)chargement, vidé en cas d'échec / ré-autorisation. Cartes inchangées. Tests (5).
 
 ### Modifié
 - Passage du projet en **Swift 6** (`SWIFT_VERSION = 6.0`) avec concurrence stricte

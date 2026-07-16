@@ -45,6 +45,10 @@ final class DashboardViewModel {
     private let authorizer: (any BookmarkAuthorizationRequesting)?
     private var readers: [BookmarkSourceID: any BookmarkReading] = [:]
 
+    /// The decoded tree kept for each loaded source, so the explorer can browse
+    /// it without re-reading. Refreshed on every (re)load.
+    private var trees: [BookmarkSourceID: BookmarkTree] = [:]
+
     init(
         providers: [any BrowserSourceProviding],
         authorizer: (any BookmarkAuthorizationRequesting)? = nil
@@ -64,9 +68,15 @@ final class DashboardViewModel {
     func reloadAll() async {
         sources = []
         readers = [:]
+        trees = [:]
         for provider in providers {
             await discover(provider)
         }
+    }
+
+    /// The decoded tree for a loaded source, if available (for the explorer).
+    func tree(for sourceID: BookmarkSourceID) -> BookmarkTree? {
+        trees[sourceID]
     }
 
     /// Reloads a single card ("Réessayer"). A discovered source re-reads itself;
@@ -117,10 +127,13 @@ final class DashboardViewModel {
     private func refresh(_ reader: any BookmarkReading) async {
         do {
             let tree = try await reader.readBookmarkTree()
+            trees[reader.source.id] = tree
             setStatus(.loaded(BrowserBookmarkSummary(tree: tree)), for: reader.source.id)
         } catch let error as BookmarkError where Self.isAuthorizationRequired(error) {
+            trees[reader.source.id] = nil
             setStatus(.authorizationRequired, for: reader.source.id)
         } catch {
+            trees[reader.source.id] = nil
             setStatus(.failed(message(for: error)), for: reader.source.id)
         }
     }
@@ -133,7 +146,7 @@ final class DashboardViewModel {
 
     /// Replaces a browser's cards (in place) with the discovered per-source cards.
     private func replaceSources(for browser: Browser, with discovered: [any BookmarkReading]) {
-        removeReaders(for: browser)
+        removeStoredData(for: browser)
         let index = insertionIndex(for: browser)
         sources.removeAll { $0.source.browser == browser }
         let newStates = discovered.map { reader -> SourceState in
@@ -145,7 +158,7 @@ final class DashboardViewModel {
 
     /// Replaces a browser's cards (in place) with a single browser-level card.
     private func setBrowserLevelStatus(_ status: Status, for browser: Browser) {
-        removeReaders(for: browser)
+        removeStoredData(for: browser)
         let index = insertionIndex(for: browser)
         sources.removeAll { $0.source.browser == browser }
         let source = BookmarkSource(browser: browser, displayName: browser.displayName)
@@ -161,9 +174,12 @@ final class DashboardViewModel {
         sources.firstIndex { $0.source.browser == browser } ?? sources.count
     }
 
-    private func removeReaders(for browser: Browser) {
+    private func removeStoredData(for browser: Browser) {
         for key in readers.keys where key.browser == browser {
             readers[key] = nil
+        }
+        for key in trees.keys where key.browser == browser {
+            trees[key] = nil
         }
     }
 
