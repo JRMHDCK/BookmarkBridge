@@ -69,6 +69,23 @@ struct FileBookmarkBackupTests {
         #expect(try Data(contentsOf: original) == Data("ORIGINAL".utf8))
     }
 
+    @Test("Lists only backups matching the exact bookmark file")
+    func listsBackupsForExactLocation() async throws {
+        let root = makeRoot()
+        let backup = FileBookmarkBackup(rootDirectory: root)
+        let firstProfile = try writeFile("first")
+        let secondProfile = try writeFile("second")
+        let firstLocation = BrowserLocation(browser: .chrome, fileURL: firstProfile)
+        let secondLocation = BrowserLocation(browser: .chrome, fileURL: secondProfile)
+        let firstHandle = try await backup.backup(firstLocation)
+        _ = try await backup.backup(secondLocation)
+
+        let reopenedBackupStore = FileBookmarkBackup(rootDirectory: root)
+        let matching = try await reopenedBackupStore.backups(for: firstLocation)
+
+        #expect(matching.map(\.id) == [firstHandle.id])
+    }
+
     @Test("Restoring an unknown handle throws")
     func restoreUnknownThrows() async throws {
         let backup = FileBookmarkBackup(rootDirectory: makeRoot())

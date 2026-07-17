@@ -11,15 +11,26 @@ import SwiftUI
 
 struct SyncPreviewView: View {
     @Bindable var model: SyncPreviewViewModel
+    let reloadChromeTree: @MainActor (BookmarkSourceID) async -> BookmarkTree?
+    let dismissAfterSuccess: @MainActor () -> Void
     @State private var confirmingApply = false
+
+    init(
+        model: SyncPreviewViewModel,
+        reloadChromeTree: @escaping @MainActor (BookmarkSourceID) async -> BookmarkTree? = { _ in nil },
+        dismissAfterSuccess: @escaping @MainActor () -> Void = {}
+    ) {
+        self.model = model
+        self.reloadChromeTree = reloadChromeTree
+        self.dismissAfterSuccess = dismissAfterSuccess
+    }
 
     var body: some View {
         Group {
             if model.isEmpty {
                 ContentUnavailableView(
-                    "Déjà synchronisés",
-                    systemImage: "checkmark.circle",
-                    description: Text("Aucun favori à ajouter d'un côté ou de l'autre.")
+                    "Les deux profils sont déjà synchronisés",
+                    systemImage: "checkmark.circle.fill"
                 )
             } else {
                 List {
@@ -40,6 +51,9 @@ struct SyncPreviewView: View {
         .navigationTitle("Aperçu de la synchronisation")
         .safeAreaInset(edge: .top) { profilePicker }
         .safeAreaInset(edge: .bottom) { bottomBar }
+        .task(id: model.selectedChromeID) {
+            await model.refreshAvailableBackup()
+        }
     }
 
     /// Lets the user choose the target Chrome profile when several are available.
@@ -59,6 +73,7 @@ struct SyncPreviewView: View {
                 }
                 .labelsHidden()
                 .fixedSize()
+                .disabled(model.isBusy)
             }
             .padding(.horizontal, Theme.Spacing.l)
             .padding(.vertical, Theme.Spacing.s)
@@ -69,7 +84,11 @@ struct SyncPreviewView: View {
 
     @ViewBuilder
     private var bottomBar: some View {
-        if model.canApplyToChrome {
+        if model.applyState != .idle {
+            applyBar
+        } else if model.canRestore {
+            applyBar
+        } else if model.canApplyToChrome {
             applyBar
         } else if model.selectedChromeIsReadOnly {
             readOnlyBar
@@ -83,9 +102,10 @@ struct SyncPreviewView: View {
     private var readOnlyBar: some View {
         HStack(spacing: Theme.Spacing.m) {
             VStack(alignment: .leading, spacing: 2) {
-                Text("« \(model.chromeTargetName ?? "Ce profil") » est en lecture seule")
+                Label("Ce profil est en lecture seule.", systemImage: "exclamationmark.triangle.fill")
                     .font(.callout).fontWeight(.medium)
-                Text("Favoris de compte ou profil à deux stockages — écriture non prise en charge en V1.")
+                    .foregroundStyle(Theme.Palette.warning)
+                Text(model.chromeTargetName ?? "Chrome")
                     .font(.caption).foregroundStyle(.secondary)
             }
             Spacer(minLength: 0)
@@ -119,33 +139,62 @@ struct SyncPreviewView: View {
             case .idle:
                 HStack(spacing: Theme.Spacing.m) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Ajouter \(model.chromeAdditionsCount) favori(s) à \(name)")
-                            .font(.callout).fontWeight(.medium)
-                        Text("Google Chrome doit être fermé. Sauvegarde automatique.")
-                            .font(.caption).foregroundStyle(.secondary)
+                        if model.canApplyToChrome {
+                            Text("Ajouter \(model.chromeAdditionsCount) \(favoriteWord(model.chromeAdditionsCount)) à \(name)")
+                                .font(.callout).fontWeight(.medium)
+                            Text("Chrome doit être fermé. Une sauvegarde sera créée automatiquement.")
+                                .font(.caption).foregroundStyle(.secondary)
+                        } else {
+                            Text("Une sauvegarde de \(name) est disponible.")
+                                .font(.callout).fontWeight(.medium)
+                            Text("Chrome doit être fermé avant la restauration.")
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
                     }
                     Spacer(minLength: 0)
-                    Button("Appliquer") { confirmingApply = true }
-                        .buttonStyle(.borderedProminent)
+                    if model.canRestore {
+                        Button("Restaurer") { Task { await restoreAndReload() } }
+                    }
+                    if model.canApplyToChrome {
+                        Button("Appliquer") { confirmingApply = true }
+                            .buttonStyle(.borderedProminent)
+                    }
                 }
             case .applying:
                 HStack(spacing: Theme.Spacing.s) {
                     ProgressView().controlSize(.small)
-                    Text("Application en cours…").foregroundStyle(.secondary)
+                    Text("Synchronisation en cours…").foregroundStyle(.secondary)
                 }
             case .applied(let count):
                 HStack(spacing: Theme.Spacing.m) {
-                    Label("\(count) favori(s) ajouté(s) à \(name).", systemImage: "checkmark.circle.fill")
+                    Label("\(count) \(favoriteWord(count)) \(count == 1 ? "ajouté" : "ajoutés") à \(name).", systemImage: "checkmark.circle.fill")
                         .foregroundStyle(Theme.Palette.green)
                     Spacer(minLength: 0)
-                    Button("Restaurer") { Task { await model.restore() } }
+                    if model.canRestore {
+                        Button("Restaurer") { Task { await restoreAndReload() } }
+                    }
                 }
+            case .restoring:
+                HStack(spacing: Theme.Spacing.s) {
+                    ProgressView().controlSize(.small)
+                    Text("Restauration en cours…").foregroundStyle(.secondary)
+                }
+            case .restored:
+                Label("Restauration terminée.", systemImage: "checkmark.circle.fill")
+                    .foregroundStyle(Theme.Palette.green)
             case .failed(let message):
                 HStack(spacing: Theme.Spacing.m) {
                     Label(message, systemImage: "exclamationmark.triangle.fill")
                         .foregroundStyle(Theme.Palette.error)
                     Spacer(minLength: 0)
-                    Button("Restaurer") { Task { await model.restore() } }
+                    if model.canRestore {
+                        Button("Restaurer") { Task { await restoreAndReload() } }
+                    } else if model.canRetry {
+                        Button("Réessayer") {
+                            model.prepareRetry()
+                            confirmingApply = true
+                        }
+                    }
                 }
             }
         }
@@ -153,12 +202,52 @@ struct SyncPreviewView: View {
         .padding(.horizontal, Theme.Spacing.l)
         .padding(.vertical, Theme.Spacing.s)
         .background(.bar)
-        .confirmationDialog("Appliquer à \(name) ?", isPresented: $confirmingApply, titleVisibility: .visible) {
-            Button("Appliquer") { Task { await model.apply() } }
+        .confirmationDialog(
+            "Ajouter \(model.chromeAdditionsCount) \(favoriteWord(model.chromeAdditionsCount)) à \(name) ?",
+            isPresented: $confirmingApply,
+            titleVisibility: .visible
+        ) {
+            Button("Appliquer") { Task { await applyAndReload() } }
             Button("Annuler", role: .cancel) {}
         } message: {
-            Text("Google Chrome doit être fermé. Une sauvegarde automatique est créée ; la restauration reste possible.")
+            Text("Chrome doit être fermé. Une sauvegarde automatique sera créée avant toute modification.")
         }
+    }
+
+    private func applyAndReload() async {
+        await model.apply()
+        guard case .applied = model.applyState,
+              let sourceID = model.selectedChromeID else { return }
+        if let tree = await reloadChromeTree(sourceID) {
+            model.updateSelectedChromeTree(tree)
+        }
+        do {
+            try await Task.sleep(for: .seconds(1))
+        } catch {
+            return
+        }
+        guard case .applied = model.applyState else { return }
+        dismissAfterSuccess()
+    }
+
+    private func restoreAndReload() async {
+        let sourceID = model.selectedChromeID
+        await model.restore()
+        guard case .restored = model.applyState else { return }
+        if let sourceID, let tree = await reloadChromeTree(sourceID) {
+            model.updateSelectedChromeTree(tree)
+        }
+        do {
+            try await Task.sleep(for: .seconds(1))
+        } catch {
+            return
+        }
+        guard case .restored = model.applyState else { return }
+        dismissAfterSuccess()
+    }
+
+    private func favoriteWord(_ count: Int) -> String {
+        count == 1 ? "favori" : "favoris"
     }
 }
 

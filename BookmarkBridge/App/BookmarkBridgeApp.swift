@@ -20,7 +20,8 @@ struct BookmarkBridgeApp: App {
                     detector: SystemRunningBrowserDetector(),
                     backup: dependencies.backup
                 ),
-                backup: dependencies.backup
+                backup: dependencies.backup,
+                browserDetector: SystemRunningBrowserDetector()
             )
         }
     }

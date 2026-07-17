@@ -1,4 +1,4 @@
-# CLAUDE.md — BookmarkBridge
+# AGENTS.md — BookmarkBridge
 
 Ce document est la **source de vérité** pour le développement de BookmarkBridge. Toute contribution (humaine ou assistée par IA) doit s'y conformer. Il est destiné à évoluer avec le projet.
 
@@ -169,7 +169,7 @@ Exemples :
 feat(reader): add Safari bookmark plist parser
 test(diff): cover folder rename detection
 chore(git): add .gitignore and governance files
-docs(claude): document read-only-before-write principle
+docs(Codex): document read-only-before-write principle
 ```
 
 Règles : commits **atomiques** et cohérents, sujet ≤ 72 caractères, corps expliquant le *pourquoi* si nécessaire. `main` reste toujours dans un état compilable.
@@ -218,7 +218,7 @@ Framework : **Swift Testing** (`import Testing`, macros `@Test` / `#expect` / `#
 
 ---
 
-## 11. Règles pour l'assistant (Claude)
+## 11. Règles pour l'assistant (Codex)
 
 - Le moteur de synchronisation V1 est **gelé** : ne pas le modifier sans demande explicite de l'utilisateur.
 - **Respecter la phase « lecture seule avant écriture »** (section 3) : ne proposer aucune écriture dans les favoris sans les garde-fous décrits.

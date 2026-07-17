@@ -34,6 +34,8 @@ final class SyncPreviewViewModel {
         case idle
         case applying
         case applied(count: Int)
+        case restoring
+        case restored
         case failed(String)
     }
 
@@ -48,32 +50,53 @@ final class SyncPreviewViewModel {
     private let planner: BookmarkSyncPlanner
     private let applier: (any ChromeBookmarkApplying)?
     private let backup: (any BookmarkBackup)?
+    private let browserDetector: (any RunningBrowserDetecting)?
+    private let fileController: any SecurityScopedFileControlling
 
     /// Set when a preview is computed with a writable Chrome target.
     private var chromeLocation: BrowserLocation?
     /// The security-scoped Chrome directory to open while writing.
     private var chromeScopeDirectory: BrowserLocation?
     private var chromeAdditions: [Bookmark] = []
-    private var lastBackupHandle: BackupHandle?
+    private var backupHandlesBySource: [BookmarkSourceID: BackupHandle] = [:]
 
     init(
         planner: BookmarkSyncPlanner = BookmarkSyncPlanner(),
         applier: (any ChromeBookmarkApplying)? = nil,
-        backup: (any BookmarkBackup)? = nil
+        backup: (any BookmarkBackup)? = nil,
+        browserDetector: (any RunningBrowserDetecting)? = nil,
+        fileController: any SecurityScopedFileControlling = SystemSecurityScopedFileController()
     ) {
         self.planner = planner
         self.applier = applier
         self.backup = backup
+        self.browserDetector = browserDetector
+        self.fileController = fileController
     }
 
     /// Whether the Safari → Chrome additions can be written (a writable Chrome
     /// target with at least one addition and an applier available).
     var canApplyToChrome: Bool {
-        applier != nil && chromeLocation != nil && !chromeAdditions.isEmpty
+        !isBusy && applier != nil && chromeLocation != nil && !chromeAdditions.isEmpty
     }
 
     /// Number of bookmarks that would be added to Chrome.
     var chromeAdditionsCount: Int { chromeAdditions.count }
+
+    /// True only when a real pre-write backup handle is available.
+    var canRestore: Bool {
+        guard let selectedChromeID else { return false }
+        return backup != nil && browserDetector != nil && backupHandlesBySource[selectedChromeID] != nil
+    }
+
+    var isBusy: Bool {
+        applyState == .applying || applyState == .restoring
+    }
+
+    var canRetry: Bool {
+        guard case .failed = applyState else { return false }
+        return !canRestore && applier != nil && chromeLocation != nil && !chromeAdditions.isEmpty
+    }
 
     /// True when the selected Chrome profile can be previewed but not written in
     /// V1 (account or ambiguous storage) — used to explain why Apply is disabled.
@@ -125,6 +148,23 @@ final class SyncPreviewViewModel {
         )
     }
 
+    /// Replaces the selected profile with the tree just re-read from disk and
+    /// recomputes the preview without discarding the successful write's backup.
+    func updateSelectedChromeTree(_ tree: BookmarkTree) {
+        guard let selectedChromeID,
+              let index = chromeCandidates.firstIndex(where: { $0.id == selectedChromeID }) else { return }
+        let candidate = chromeCandidates[index]
+        let previousApplyState = applyState
+        chromeCandidates[index] = ChromeCandidate(
+            source: candidate.source,
+            tree: tree,
+            writable: candidate.writable,
+            scope: candidate.scope
+        )
+        recomputeForSelection()
+        applyState = previousApplyState
+    }
+
     /// Computes the read-only preview between two loaded sources. Pass the Chrome
     /// profile's writable location (from `DashboardViewModel.writableLocation`)
     /// to enable the Safari → Chrome apply action.
@@ -138,7 +178,6 @@ final class SyncPreviewViewModel {
         totalChanges = preview.totalChanges
         isEmpty = preview.isEmpty
         applyState = .idle
-        lastBackupHandle = nil
 
         let names: [Browser: String] = [
             a.source.browser: a.source.displayName,
@@ -174,23 +213,81 @@ final class SyncPreviewViewModel {
               !chromeAdditions.isEmpty else { return }
         applyState = .applying
         do {
-            lastBackupHandle = try await applier.apply(chromeAdditions, to: location, in: scope, now: now)
-            applyState = .applied(count: chromeAdditions.count)
+            let result = try await applier.apply(chromeAdditions, to: location, in: scope, now: now)
+            if let selectedChromeID {
+                backupHandlesBySource[selectedChromeID] = result.backup
+            }
+            applyState = .applied(count: result.addedCount)
         } catch ChromeWriteError.browserIsRunning {
-            applyState = .failed("Ferme Google Chrome avant d'appliquer.")
+            applyState = .failed("Chrome doit être fermé.")
+        } catch ChromeWriteError.browserStartedDuringTransaction(let handle) {
+            if let selectedChromeID {
+                backupHandlesBySource[selectedChromeID] = handle
+            }
+            applyState = .failed("Chrome doit être fermé.")
+        } catch ChromeWriteError.bakCreationFailed(let handle, _) {
+            if let selectedChromeID {
+                backupHandlesBySource[selectedChromeID] = handle
+            }
+            applyState = .failed("Impossible de créer Bookmarks.bak.")
+        } catch ChromeWriteError.transactionFailed(let handle, _) {
+            if let selectedChromeID {
+                backupHandlesBySource[selectedChromeID] = handle
+            }
+            applyState = .failed("Impossible de mettre à jour les favoris Chrome.")
+        } catch ChromeWriteError.backupFailed {
+            applyState = .failed("Impossible de créer la sauvegarde.")
+        } catch ChromeWriteError.securityScopeDenied {
+            applyState = .failed("Impossible d'accéder au profil Chrome en écriture.")
         } catch {
-            applyState = .failed("L'application a échoué. La sauvegarde reste disponible.")
+            applyState = .failed("La synchronisation a échoué.")
         }
+    }
+
+    /// Reloads the latest on-disk backup for the selected Chrome profile.
+    func refreshAvailableBackup() async {
+        guard let backup,
+              let selectedChromeID,
+              let location = chromeLocation,
+              backupHandlesBySource[selectedChromeID] == nil else { return }
+        do {
+            backupHandlesBySource[selectedChromeID] = try await backup.backups(for: location).first
+        } catch {
+            // Backup discovery is non-destructive; an unavailable listing simply
+            // leaves restoration disabled until a real handle can be loaded.
+        }
+    }
+
+    func prepareRetry() {
+        guard canRetry else { return }
+        applyState = .idle
     }
 
     /// Restores the pre-write state from the last apply's backup.
     func restore() async {
-        guard let backup, let handle = lastBackupHandle else { return }
+        guard let backup,
+              let browserDetector,
+              let selectedChromeID,
+              let handle = backupHandlesBySource[selectedChromeID],
+              let scope = chromeScopeDirectory else { return }
+        guard !browserDetector.isRunning(.chrome) else {
+            applyState = .failed("Chrome doit être fermé.")
+            return
+        }
+        applyState = .restoring
+        let scopeURL = scope.fileURL
+        let accessing = fileController.startAccessing(scopeURL)
+        guard accessing else {
+            applyState = .failed("Impossible d'accéder au profil Chrome en écriture.")
+            return
+        }
+        defer { fileController.stopAccessing(scopeURL) }
         do {
             try await backup.restore(handle)
-            applyState = .idle
+            backupHandlesBySource[selectedChromeID] = nil
+            applyState = .restored
         } catch {
-            applyState = .failed("La restauration a échoué.")
+            applyState = .failed("Impossible de restaurer la sauvegarde.")
         }
     }
 

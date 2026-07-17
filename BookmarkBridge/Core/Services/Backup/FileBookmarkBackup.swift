@@ -80,6 +80,17 @@ nonisolated struct FileBookmarkBackup: BookmarkBackup {
     }
 
     func backups(for browser: Browser) async throws -> [BackupHandle] {
+        try records(for: browser).map(\.handle)
+    }
+
+    func backups(for location: BrowserLocation) async throws -> [BackupHandle] {
+        let targetURL = location.fileURL.standardizedFileURL
+        return try records(for: location.browser)
+            .filter { $0.originalURL.standardizedFileURL == targetURL }
+            .map(\.handle)
+    }
+
+    private func records(for browser: Browser) throws -> [Record] {
         let directory = directory(for: browser)
         let contents = (try? FileManager.default.contentsOfDirectory(
             at: directory,
@@ -87,14 +98,14 @@ nonisolated struct FileBookmarkBackup: BookmarkBackup {
         )) ?? []
 
         let decoder = JSONDecoder()
-        let handles = contents
+        let records = contents
             .filter { $0.pathExtension == "json" }
-            .compactMap { url -> BackupHandle? in
+            .compactMap { url -> Record? in
                 guard let data = try? Data(contentsOf: url),
                       let record = try? decoder.decode(Record.self, from: data) else { return nil }
-                return record.handle
+                return record
             }
-        return handles.sorted { $0.createdAt > $1.createdAt }
+        return records.sorted { $0.handle.createdAt > $1.handle.createdAt }
     }
 
     // MARK: - Filesystem helpers

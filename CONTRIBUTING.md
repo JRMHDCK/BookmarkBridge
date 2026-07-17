@@ -14,10 +14,11 @@ Merci de contribuer ! Ce document résume le **processus**. Les **règles d'ing�
 
 ## Principe non négociable — « Lecture seule avant toute écriture »
 
-Aucune contribution ne doit introduire d'écriture dans les favoris d'un navigateur
-tant que la chaîne lecture → modélisation → **prévisualisation (dry-run)** n'est pas
-éprouvée et testée. Toute PR touchant à l'écriture doit démontrer explicitement le
-respect des six règles de la section 3 de [`CLAUDE.md`](CLAUDE.md).
+La V1 a ouvert une écriture strictement limitée à Safari → fichier Chrome local
+`Bookmarks`, après validation de la chaîne lecture → modélisation → prévisualisation.
+Toute PR touchant à l'écriture doit continuer à démontrer explicitement le respect
+des six règles de la section 3 de [`CLAUDE.md`](CLAUDE.md) et de
+[`ADR-0005`](Docs/adr/0005-ecriture-chrome-v1.md). Le moteur V1 est gelé.
 
 ## Flux de travail
 

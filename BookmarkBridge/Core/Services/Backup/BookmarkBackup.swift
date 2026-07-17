@@ -19,4 +19,7 @@ nonisolated protocol BookmarkBackup: Sendable {
 
     /// Lists available backups for a browser, newest first.
     func backups(for browser: Browser) async throws -> [BackupHandle]
+
+    /// Lists available backups for one exact bookmark file, newest first.
+    func backups(for location: BrowserLocation) async throws -> [BackupHandle]
 }

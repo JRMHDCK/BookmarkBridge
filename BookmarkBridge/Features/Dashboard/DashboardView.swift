@@ -23,11 +23,16 @@ struct DashboardView: View {
         viewModel: DashboardViewModel,
         searchEngine: any BookmarkSearching = BookmarkSearchEngine(),
         chromeApplier: (any ChromeBookmarkApplying)? = nil,
-        backup: (any BookmarkBackup)? = nil
+        backup: (any BookmarkBackup)? = nil,
+        browserDetector: (any RunningBrowserDetecting)? = nil
     ) {
         _viewModel = State(initialValue: viewModel)
         _searchModel = State(initialValue: SearchViewModel(engine: searchEngine))
-        _syncModel = State(initialValue: SyncPreviewViewModel(applier: chromeApplier, backup: backup))
+        _syncModel = State(initialValue: SyncPreviewViewModel(
+            applier: chromeApplier,
+            backup: backup,
+            browserDetector: browserDetector
+        ))
     }
 
     var body: some View {
@@ -63,14 +68,20 @@ struct DashboardView: View {
                 }
                 .sheet(isPresented: $showingSyncPreview) {
                     NavigationStack {
-                        SyncPreviewView(model: syncModel)
+                        SyncPreviewView(
+                            model: syncModel,
+                            reloadChromeTree: reloadChromeTree,
+                            dismissAfterSuccess: { showingSyncPreview = false }
+                        )
                             .toolbar {
                                 ToolbarItem(placement: .cancellationAction) {
                                     Button("Annuler") { showingSyncPreview = false }
+                                        .disabled(syncModel.isBusy)
                                 }
                             }
                     }
                     .frame(minWidth: 480, minHeight: 440)
+                    .interactiveDismissDisabled(syncModel.isBusy)
                 }
         }
         .frame(minWidth: 420, minHeight: 300)
@@ -104,6 +115,11 @@ struct DashboardView: View {
         guard !chromeCandidates.isEmpty else { return }
         syncModel.configure(safari: (safari.source, safari.tree), chromeCandidates: chromeCandidates)
         showingSyncPreview = true
+    }
+
+    private func reloadChromeTree(_ sourceID: BookmarkSourceID) async -> BookmarkTree? {
+        await viewModel.retry(sourceID)
+        return viewModel.tree(for: sourceID)
     }
 
     /// Search results replace the dashboard while a query is active; an empty

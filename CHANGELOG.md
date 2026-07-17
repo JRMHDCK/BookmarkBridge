@@ -1,321 +1,65 @@
 # Changelog
 
-Toutes les évolutions notables de ce projet sont documentées dans ce fichier.
-
-Le format s'appuie sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
-et le projet suit le [Semantic Versioning](https://semver.org/lang/fr/).
+Toutes les évolutions notables de BookmarkBridge sont documentées dans ce fichier.
+Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le
+projet utilise le versionnement sémantique.
 
 ## [Non publié]
 
-Phase d'amorçage : mise en place de la gouvernance et de l'architecture, **avant**
-toute implémentation de lecture ou de synchronisation des favoris.
+Aucun changement fonctionnel depuis le gel du moteur V1.
 
-### Ajouté (en cours — synchronisation)
-- **Synchronisation — moteur de diff (P1)** : `AdditiveBookmarkDiffer` (`BookmarkDiffing`),
-  différentiel **réel, pur et non destructif** remplaçant le placeholder. `plan(from:to:)`
-  ne produit que des `.add` : les favoris de `source` dont l'URL (via `BookmarkMatchKey`,
-  clé canonique — casse scheme/host, slash final ignoré, query/fragment conservés) est
-  **absente** de `target` ; jamais de suppression, additions dédupliquées. Union obtenue en
-  planifiant les deux sens. Lecture seule, aucune écriture. Câblé dans `AppDependencies`.
-  Tests (14) : présence, ajouts, dédup, correspondance par URL normalisée, requêtes distinctes,
-  nœud conservé, navigateurs du plan, union bidirectionnelle ; + clé de correspondance.
-- **Synchronisation — aperçu (P2)** : `BookmarkSyncPlanner` (dry-run bidirectionnel) + modèle
-  `SyncPreview` ; `SyncChange.add` enrichi d'un `sourcePath` (chemin d'origine) ; UI de
-  prévisualisation `SyncPreviewView`/`SyncPreviewViewModel` (groupée par source, **sans bouton
-  d'application**), câblée au Dashboard (bouton « Synchroniser… », paire Safari ↔ 1er Chrome).
-- **Synchronisation — sauvegarde (P3)** : `FileBookmarkBackup` (copie horodatée privée + sidecar,
-  restauration, listing) remplaçant le placeholder ; câblé dans `AppDependencies`.
-- **Synchronisation — écriture Chrome (P4, fixtures uniquement)** : `ChromeChecksum` (MD5 exact de
-  `bookmark_codec` — titre **UTF-16**, id/type/URL UTF-8 ; **validé en lecture seule contre de vrais
-  fichiers Chrome**, dossiers + liens, test golden) ; `ChromeBookmarkWriter` (ajout additif +
-  checksum) ; détection « navigateur ouvert » (`RunningBrowserDetecting` + `Browser.bundleIdentifier`) ;
-  `ChromeBookmarkApplier` (refus si Chrome ouvert → **sauvegarde obligatoire** → écriture atomique +
-  `.bak`, réversible). Tests exclusivement sur fixtures/fichiers temporaires. Outil de validation
-  `Tools/validate-chrome-checksum.swift`.
-- **Synchronisation — découverte des profils Chrome (deux stockages)** : `DefaultChromeProfileLocator`
-  reconnaît le fichier **`Bookmarks`** (`kLocalOrSyncableBookmarksFileName`) **et/ou**
-  **`AccountBookmarks`** (`kAccountBookmarksFileName`), par **existence de fichier** (aucune
-  inférence de synchro). Modèle `ChromeBookmarkStorage` à 3 états : `bookmarks`, `account`, ou
-  **`ambiguous`** quand les deux existent. Corrige l'absence des profils n'ayant que `AccountBookmarks`
-  (ex. « Test »). Si les deux fichiers coexistent, la V1 **ne choisit pas** : le profil est **signalé**
-  « deux stockages détectés » (`BookmarkError.multipleBookmarkStores`, `AmbiguousChromeProfileReader`)
-  en attendant une stratégie fondée sur le comportement réel. Tests (locator 3 états, provider ambigu).
-- **Synchronisation — bouton « Appliquer » (Safari → Chrome, V1)** : l'aperçu propose désormais
-  d'**appliquer** les favoris manquants côté Chrome, en réutilisant **exactement** la chaîne
-  d'écriture validée (`ChromeBookmarkApplier` : refus si Chrome ouvert, **sauvegarde automatique**,
-  écriture **atomique** + `.bak`, **restauration** possible). Écriture activée **uniquement** pour
-  les profils inscriptibles (`.bookmarks` local) — exposés via `BookmarkReading.writableLocation` /
-  `DashboardViewModel.writableLocation(for:)` ; les profils `account`/`ambiguous` restent en lecture
-  seule. Confirmation nommant le profil cible. `ChromeBookmarkApplying` (protocole) pour la testabilité ;
-  état d'application (idle/applying/applied/failed) + restauration dans `SyncPreviewViewModel`. Tests (4,
-  applicateur mocké : succès, refus si Chrome ouvert, pas de cible inscriptible, restauration).
-  *(Nécessite l'entitlement fichier en lecture-écriture, activé dans Xcode. Écriture Safari et
-  synchronisation bidirectionnelle : après la V1.)*
-- **Synchronisation — aperçu : fermeture & choix du profil (stabilisation)** : la fenêtre d'aperçu
-  a un bouton **Annuler** (+ Échap, via `cancellationAction`) et, quand plusieurs profils Chrome
-  existent, un **sélecteur** de profil cible dans la fenêtre (l'aperçu et l'application se
-  recalculent pour le profil choisi ; auparavant le premier profil était imposé).
-- **Synchronisation — profils non inscriptibles clarifiés (stabilisation)** : sélectionner un
-  profil en lecture seule (compte/deux stockages) n'escamote plus le bouton « Appliquer » ; il
-  reste **visible mais désactivé**, avec un **message** expliquant l'indisponibilité, et le
-  sélecteur suffixe ces profils « (lecture seule) ».
-- **Synchronisation — `AccountBookmarks` vide n'est plus bloquant (stabilisation)** : un profil
-  possédant `Bookmarks` **et** un `AccountBookmarks` **vide** n'est plus signalé « deux stockages » ;
-  on utilise simplement le fichier `Bookmarks` local (qui contient tout). Cas confirmé sur le profil
-  principal. Les profils dont `AccountBookmarks` est réellement non vide restent signalés. Test ajouté.
+## [1.0.0] - 2026-07-17
 
 ### Ajouté
-- Fichiers de gouvernance : `CLAUDE.md`, `README.md`, `CONTRIBUTING.md`, `LICENSE` (MIT), `CHANGELOG.md`.
-- `.gitignore` adapté à macOS / Xcode / Swift.
-- Documentation d'architecture dans `Docs/` (`ARCHITECTURE.md` et journal des décisions `adr/`, ADR-0001 à 0004).
-- Arborescence modulaire **App / Core / Features / Shared** (dossiers de structure, sans code métier).
-- **Modèles de domaine** (`Core/Models`) immuables et `Sendable` : `Browser`, `BookmarkID`,
-  `Bookmark`, `BookmarkFolder`, `BookmarkNode`, `BookmarkTree`, `BrowserLocation`,
-  `BookmarkError`, `SyncChange`, `SyncPlan`, `SyncReport`, `BackupHandle`.
-- **Protocoles de services** (`Core`) : `BookmarkReading`, `BookmarkSourceLocating`,
-  `BookmarkDiffing`, `BookmarkBackup`, `BookmarkDecoding`, `FileAccessProviding` —
-  contrats read-only uniquement, sans implémentation.
-- **Ossature MVVM** : composition root `AppDependencies`, `DashboardViewModel`,
-  `DashboardView` câblée, `BrowserBookmarkSummary`.
-- **Doubles in-memory** des protocoles (`InMemoryBookmarkReader`,
-  `InMemoryBookmarkDiffer`, `InMemoryBackupStore`) pour faire tourner l'app et les
-  previews sans accès fichier.
-- **Tests unitaires de base** (Swift Testing) : modèles de domaine, modèles de
-  synchronisation et `DashboardViewModel` (succès / liste vide / échec) via les doubles.
-- **Lecture Safari — localisation** : `SafariBookmarkSourceLocator` (calcul pur du
-  chemin `~/Library/Safari/Bookmarks.plist`, home injectable), avec tests.
-- **Lecture Safari — fixtures** : `SafariBookmarksFixture`, générateur programmatique
-  et anonymisé d'un `Bookmarks.plist` (binaire, déterministe) couvrant barre des
-  favoris, dossiers imbriqués, dossier vide, liste de lecture, titre vide, URL
-  inhabituelle et caractères Unicode ; tests du format brut (10).
-- **Lecture Safari — parseur** : `SafariBookmarkDecoder` (`BookmarkDecoding`), décodage
-  pur `Data` → `BookmarkTree` immuable, sans accès fichier. Percent-encode
-  automatiquement les URL Unicode et ne rejette que les entrées irrécupérables ;
-  `capturedAt` laissé en sentinelle (`.distantPast`), horodaté par le reader. Tests (14).
-- **Accès fichier sandbox (lecture seule)** : API `FileAccessProviding` refactorée en
-  accès à portée délimitée `withReadOnlyAccess { }` (fermeture systématique via
-  `defer`), `SandboxFileAccessProvider` et l'abstraction injectable
-  `SecurityScopedFileControlling` (+ implémentation système). Encapsule
-  `start/stopAccessingSecurityScopedResource`, indépendant de Safari. Tests (7).
-- **Lecture Safari — orchestrateur** : `SafariBookmarkReader` (`BookmarkReading`), pur
-  orchestrateur (localisation → accès lecture seule → lecture des octets → décodage →
-  horodatage `capturedAt`), sans logique de parsing ni UI. Dépendances injectables
-  (locator, accès, décodeur, lecture d'octets, horloge). Tests d'intégration sur fichier
-  temporaire + propagation d'erreurs et fermeture systématique de l'accès (7).
-- **Accès réel Safari — entitlement & erreur** : fichier `BookmarkBridge.entitlements`
-  avec `com.apple.security.files.bookmarks.app-scope` (+ app-sandbox et user-selected
-  read-only conservés), câblé via `CODE_SIGN_ENTITLEMENTS` ; droits vérifiés dans la
-  signature. Ajout du cas `BookmarkError.authorizationRequired(Browser)`.
-- **Accès réel Safari — persistance** : protocole `BookmarkStore` (stockage de `Data`
-  uniquement) et `ApplicationSupportBookmarkStore` (fichier privé versionné sous
-  `Application Support/BookmarkBridge/`, écriture atomique, permissions 0700/0600,
-  création du dossier à la demande, gestion des données absentes/corrompues, purge).
-  Répertoire injectable ; tests exclusivement en dossier temporaire.
-- **Accès réel Safari — bookmark security-scoped** : protocoles
-  `SecurityScopedBookmarkCreating` / `SecurityScopedBookmarkResolving` (+ type
-  `ResolvedBookmark` exposant `isStale`) et implémentations système
-  (`.withSecurityScope` read-only). Doubles de test réutilisables ; tests du type,
-  des doubles (frais/périmé/erreur) et du chemin d'erreur du resolver réel.
-- **Accès réel Safari — locator autorisé** : `AuthorizedSafariSourceLocator`
-  (`BookmarkSourceLocating`) orchestrant `BookmarkStore` + resolver + creator :
-  bookmark valide → localisation ; périmé → recréation + sauvegarde automatique
-  (best-effort) ; absent/corrompu/irrésoluble → `authorizationRequired(.safari)`.
-  Aucun accès fichier, aucune UI, aucune dépendance au reader/décodeur. Tests (9).
-- **Accès réel Safari — coordinateur d'autorisation** : protocole `SafariAccessAuthorizing`
-  (seam UI, `@MainActor`) + `SafariAccessCoordinator` orchestrant autorisation →
-  validation stricte du fichier (`Library/Safari/Bookmarks.plist`) → création du bookmark
-  read-only → persistance → retour de l'URL. `SafariAccessError` (cancelled / wrongFile /
-  bookmarkCreationFailed / persistenceFailed). Aucun décodage/lecture/parsing. Tests via
-  faux authorizer, sans NSOpenPanel réel (6).
-- **Accès réel Safari — adaptateur NSOpenPanel** : `OpenPanelSafariAccessAuthorizer`
-  (`SafariAccessAuthorizing`, AppKit), panneau restreint à un seul fichier (dossiers et
-  sélection multiple interdits), validation stricte du nom `Bookmarks.plist`
-  (`wrongFile` sinon), annulation → `cancelled`. Ne crée/persiste/lit/décode rien.
-  Présentation du panneau injectable ; logique de mapping testée sans NSOpenPanel réel (4).
-- **Accès réel Safari — validation de la chaîne** : test d'intégration headless exerçant
-  la chaîne réelle complète (coordinator → creator/store réels → locator autorisé →
-  accès sandbox lecture seule → reader → decoder → `BookmarkTree`) sur un fichier
-  temporaire, avec redémarrage simulé et preuve read-only (taille + date inchangées).
-  Validation manuelle réalisée avec succès sur le vrai `~/Library/Safari/Bookmarks.plist`
-  (31 dossiers, 849 favoris, bookmark persistant OK après redémarrage, aucun souci TCC).
-- **Accès réel Safari — câblage** : `AppDependencies.bootstrap()` branche désormais le
-  vrai `SafariBookmarkReader` (via `AuthorizedSafariSourceLocator` + `SandboxFileAccessProvider`
-  + `SafariBookmarkDecoder`), Safari uniquement ; store et creator exposés pour le futur
-  flux d'autorisation (couche App). `inApplicationSupport()` rendu non-throwing (dossier
-  créé paresseusement). Harnais de diagnostic temporaire retiré (le test d'intégration de
-  bout en bout est conservé comme régression).
-- **Dashboard — état & action d'autorisation (par navigateur)** : `DashboardViewModel`
-  refondu en état **par navigateur** (`[BrowserState]` : `loading` / `loaded` /
-  `authorizationRequired` / `failed`) — extensible à Chrome/Firefox/Edge. Détection de
-  `authorizationRequired` dans `load()`, action `authorize(_:)` (succès → rechargement,
-  annulation → retour silencieux au prompt, erreur → `failed`). Nouveau protocole
-  `BookmarkAuthorizationRequesting` (abstraction UI-agnostique, injectée). `DashboardView`
-  adaptée a minima (rendu par navigateur + bouton « Autoriser »). Tests (9).
-- **Dashboard — câblage de l'autorisation Safari** : adaptateur `SafariAuthorizationRequester`
-  (`App/Access`, `#if os(macOS)`) enveloppant `SafariAccessCoordinator` (annulation → `false`,
-  succès → `true`, erreur réelle propagée). Assemblage dans `BookmarkBridgeApp` (couche App,
-  macOS) : coordinateur construit depuis `bookmarkStore` + `bookmarkCreator` +
-  `OpenPanelSafariAccessAuthorizer`, injecté dans le `DashboardViewModel`. Tests de
-  l'adaptateur (4).
-- **Dashboard UI (palier 1)** : `BrowserBookmarkSummary` étendu avec `folderCount` et
-  `nodeCount` (dossiers + favoris), comptés dans le modèle de présentation (parcours
-  hors de la vue). Tests de comptage (3).
-- **Dashboard UI (palier 2)** : `DashboardViewModel` — `retry(_:)` (relance le seul
-  navigateur concerné, sans prompt), `reloadAll()` (relance tous les navigateurs, ne
-  redemande jamais d'autorisation), `isLoading` (pour désactiver l'actualisation), et
-  mapping des erreurs en messages FR simples et non techniques. Tests (8).
-- **Dashboard UI (palier 3)** : réécriture de `DashboardView` — cartes `GroupBox` par
-  navigateur dans un `ScrollView`, 4 états (chargement / autorisation requise / chargé /
-  erreur), bouton « Autoriser l'accès… » (autorisation requise seulement), « Réessayer »
-  (erreur seulement), toolbar « Actualiser » (désactivée pendant un chargement), badge
-  « Lecture seule », statistiques Dossiers/Favoris/Nœuds, date via `Date.FormatStyle`,
-  icônes SF Symbols par navigateur, état vide, libellés d'accessibilité, previews des
-  4 états. Aucune logique de parcours d'arbre dans la vue.
-- **Lecture Chrome (palier 1 — généralisation « source »)** : modèle Core
-  `BookmarkSourceID` (browser + profil, identité stable) et `BookmarkSource`
-  (id + nom d'affichage). `BookmarkReading` généralisé de `browser` à `source`, et
-  Dashboard refondu **par source** (`SourceState`) au lieu de par navigateur — Safari
-  inchangé (source mono-profil). Prépare les profils Chrome multiples. Tests adaptés,
-  comportement identique.
-- **Lecture Chrome (palier 2 — fixtures)** : `ChromeBookmarksFixture` (JSON `Bookmarks`
-  anonymisé, déterministe : `bookmark_bar`/`other`/`synced`, dossiers imbriqués, dossier
-  vide, titre vide, URL inhabituelle, Unicode, dates Chrome `date_added`, `synced` vide
-  ou avec item) et `ChromeLocalStateFixture` (`profile.info_cache` dossier→nom, noms
-  neutres). Tests du format brut (14).
-- **Lecture Chrome (palier 3 — décodeur)** : `ChromeBookmarkDecoder` (`BookmarkDecoding`),
-  décodage pur JSON → `BookmarkTree` (racines `bookmark_bar`/`other`/`synced` dans l'ordre ;
-  `synced` inclus seulement si non vide ; dates Chrome microsecondes-depuis-1601 converties ;
-  URL Unicode percent-encodées ; rejet des entrées irrécupérables ; `capturedAt` sentinelle).
-  Utilitaire partagé `BookmarkURLNormalizer` (extrait du décodeur Safari, qui le réutilise).
-  Tests (14).
-- **Lecture Chrome (palier 4 — localisation & Local State)** : `ChromeLocalState` (parser
-  pur `Local State` → mapping dossier→nom, best-effort) et `ChromeProfileLocating` /
-  `DefaultChromeProfileLocator` (dossier Chrome par défaut, URL de `Local State`,
-  énumération **dynamique** des profils contenant un fichier `Bookmarks`, dossiers
-  système exclus, tri déterministe). Dossier injecté ; tests en dossiers temporaires (8).
-- **Lecture Chrome (palier 5 — reader & provider)** : `ChromeBookmarkReader` (pur
-  orchestrateur par profil : accès lecture seule au dossier Chrome → lecture du seul
-  fichier `Bookmarks` du profil → décodage → `BookmarkTree` + `capturedAt`) et
-  `ChromeSourceProvider` (abstraction `BrowserSourceProviding` : résout le dossier
-  autorisé, énumère les profils, lit `Local State` pour les noms, construit un reader/
-  source par profil « Chrome — … » ; `authorizationRequired` propagé). Profils jamais
-  mélangés. Tests sur dossiers temporaires + fixtures (4).
-- **Lecture Chrome (palier 6 — autorisation dossier)** : autorisation généralisée et
-  réutilisable par Safari et Chrome — `AccessAuthorizing` (protocole seam) + `AccessError`,
-  `BrowserAccessCoordinator` (paramétré par navigateur + suffixe de chemin, tolérant au
-  slash final, persistance par navigateur), `OpenPanelFileAuthorizer` (fichier, Safari) et
-  `OpenPanelDirectoryAuthorizer` (dossier, Chrome), `BrowserAuthorizationRequester`.
-  `AuthorizedBookmarkSourceLocator` (résolution du bookmark security-scoped, paramétré par
-  navigateur — Safari fichier, Chrome dossier). Renommages depuis les types Safari-only ;
-  comportement Safari inchangé. Tests (adaptés + Chrome + directory authorizer).
-- **Lecture Chrome (palier 7 — intégration Dashboard)** : `DashboardViewModel` refondu
-  autour des **providers** (`BrowserSourceProviding`) avec **découverte dynamique** — carte
-  de niveau navigateur avant autorisation, puis une carte par source/profil après. Ajout de
-  `SafariSourceProvider` et `CompositeAuthorizationRequester` (route Safari/Chrome vers le bon
-  coordinateur). `AppDependencies` fournit les providers Safari + Chrome réels ;
-  `BookmarkBridgeApp` câble les deux coordinateurs (fichier Safari / dossier Chrome). Dashboard
-  affiche désormais une carte par source (Safari + un profil Chrome par carte). Safari inchangé.
-- **Explorateur (palier 1 — présentation)** : modèles de présentation `FolderPresentation`
-  et `FolderItemPresentation` (dossier navigable / favori feuille avec hôte) + mappeur
-  testable `BookmarkFolder`/racines de `BookmarkTree` → présentation (une seule profondeur,
-  aucun parcours dans la vue). Tests (5). Aucune UI, aucun changement des lecteurs.
-- **Explorateur (palier 2 — cache d'arbre)** : `DashboardViewModel` conserve l'arbre
-  décodé par source (`trees[sourceID]`) + accesseur `tree(for:)` ; rafraîchi à chaque
-  (re)chargement, vidé en cas d'échec / ré-autorisation. Cartes inchangées. Tests (5).
-- **Explorateur (palier 3 — vue)** : `SourceExplorerView` (racines d'une source),
-  `FolderContentsView` (contenu d'un dossier) et `FolderListView` (dossiers navigables /
-  favoris feuilles avec hôte-URL) ; navigation **drill-down** `NavigationStack` depuis les
-  cartes chargées du Dashboard (lien « Explorer les favoris » → `ExplorerRoute` portant
-  l'arbre par valeur → dossiers via `navigationDestination`). Affichage seul (lecture
-  seule), état « dossier vide », libellés d'accessibilité, previews. Aucune logique
-  d'arbre dans la vue.
 
-### Ajouté (en cours — fil d'Ariane)
-- **Explorateur — fil d'Ariane (palier 1)** : type de pile `ExplorerStep`
-  (`.source` / `.folder`) et modèle de présentation `Breadcrumb` / `BreadcrumbItem`
-  avec mappeur testable (`[ExplorerStep]` → maillons ; chemin de troncature par maillon ;
-  noms conviviaux des racines Safari). Aucune UI, aucun changement de navigation. Tests (5).
-- **Explorateur — fil d'Ariane (palier 2)** : navigation de l'explorateur refactorée en
-  `NavigationStack(path: [ExplorerStep])` (destinataire unique `explorerDestination(for:)`),
-  remplaçant `ExplorerRoute`/`navigationDestination(for: BookmarkFolder)`. **Comportement
-  identique** (push / retour / drill-down), aucun fil d'Ariane visible, Dashboard/Core/
-  lecteurs inchangés. Tests d'égalité/hachage sur `ExplorerStep` (4).
-- **Explorateur — fil d'Ariane (palier 3)** : `BreadcrumbView` interactif en tête de
-  l'explorateur (bande au-dessus de la liste), maillons cliquables (troncature du chemin),
-  maillon courant non cliquable, repli des niveaux intermédiaires dans un menu « … »
-  (`Breadcrumb.layout`, testable). Branché via `explorerDestination(for:path:)` +
-  `safeAreaInset`. Previews (court / long replié). Dashboard/Core/lecteurs inchangés,
-  lecture seule. Tests du repli (4).
+- Application macOS native SwiftUI, compilée avec Swift 6 et la concurrence stricte.
+- Lecture réelle des favoris Safari et des profils Google Chrome.
+- Autorisations persistantes App Sandbox par security-scoped bookmarks.
+- Dashboard par source avec statistiques de favoris, dossiers et nœuds.
+- Explorateur hiérarchique, fil d'Ariane et recherche globale multi-sources.
+- Détection additive des favoris absents avec normalisation des URL et suppression
+  des paramètres de suivi connus.
+- Aperçu bidirectionnel des différences avant application.
+- Sélection du profil Chrome cible ; les profils non inscriptibles sont clairement
+  signalés en lecture seule.
+- Application V1 dans le sens Safari → Chrome uniquement.
+- Génération du JSON Chrome et de son checksum compatible `bookmark_codec`.
+- Sauvegarde horodatée obligatoire, persistante et isolée par fichier de profil.
+- Création ou remplacement atomique de `Bookmarks.bak`.
+- Remplacement atomique du fichier `Bookmarks`.
+- Restauration depuis la dernière sauvegarde du profil, y compris après réouverture
+  de la fenêtre ou redémarrage de l'application.
+- Rafraîchissement automatique du Dashboard et de l'aperçu après application ou
+  restauration.
+- États de progression, confirmation explicite et messages utilisateur localisés.
 
-### Ajouté (en cours — recherche globale)
-- **Recherche globale — modèle & moteur (palier 1)** : couche `Core` pure et testable.
-  Modèle `BookmarkSearchResult` (source, nœud, chemin d'ancêtres léger `BookmarkPathComponent`,
-  pertinence `BookmarkSearchRelevance`), protocole `BookmarkSearching` + entrée `SearchableSource`
-  (source + arbre déjà en mémoire), et `BookmarkSearchEngine` : parcours en profondeur unique,
-  correspondance titre/hôte/URL/nom de dossier, insensible à la casse et aux accents, classement
-  exact → début de titre → autres, multi-sources. **Aucune lecture fichier**, lecture seule, aucune
-  UI. Tests unitaires (10) : casse/accents, champs matchés, dossiers, classement, multi-sources,
-  chemin, unicité.
-- **Recherche globale — ViewModel (palier 2)** : `SearchViewModel` (`@MainActor @Observable`,
-  `Features/Search`) — orchestration d'état **uniquement** : requête, résultats, sources en
-  mémoire (`updateSources`), état dérivé (`hasQuery`, `showsNoResults`, regroupement par source).
-  **Aucune logique métier** : tout le filtrage/classement/pertinence reste dans le moteur `Core` ;
-  le ViewModel ne fait que déléguer à `BookmarkSearching`. Aucune UI. Tests via moteur mocké (7) :
-  délégation requête+sources, republication verbatim (pas de reclassement), relance sur maj des
-  sources, état dérivé, regroupement ordonné.
-- **Recherche globale — UI `.searchable` (palier 3)** : champ de recherche **natif** (`.searchable`)
-  sur le Dashboard ; requête active → `SearchResultsView` (liste `.inset` groupée par source, lignes
-  titre + hôte/URL + chemin complet + icône de type) remplace les cartes ; requête vide → Dashboard
-  inchangé (aucune régression) ; « aucun résultat » via `ContentUnavailableView.search`. Alimentée par
-  `DashboardViewModel.searchableSources` (paires source+arbre en mémoire). Mapping des noms conviviaux
-  extrait dans `Shared/FolderTitleFormatter` (réutilisé par l'explorateur, sans dépendance croisée).
-  Design system v1.2.0 conservé, navigation inchangée, lecture seule ; navigation vers le résultat
-  au palier 4. Previews (résultats / aucun résultat). Tests (4) : formateur partagé, `searchableSources`.
-- **Recherche globale — navigation vers le résultat (palier 4)** : cliquer un résultat ouvre
-  l'explorateur au bon emplacement, via la **pile `ExplorerStep` existante** (aucune duplication de
-  navigation). Résolveur pur `ExplorerStep.path(to:in:)` (source + dossiers ancêtres résolus depuis
-  l'arbre ; un favori s'ouvre sur son dossier parent, un dossier sur lui-même) ; `SearchResultsView`
-  émet la sélection via closure et le Dashboard fixe le `path`. La requête reste active (retour =
-  résultats). Fil d'Ariane et lecture seule inchangés. Tests (4) : chemin favori imbriqué / dossier /
-  racine / composant inconnu. Résolveur écrit sans closures (évite un trap d'isolation `MainActor`).
+### Sécurité
 
-### Ajouté (en cours — design system)
-- **Design system — fondations du thème (palier 1)** : jetons centralisés dans
-  `Shared/DesignSystem/Theme.swift` — palette de marque (bleu identité + vert statut,
-  variantes claire/sombre via Asset Catalog), `AccentColor` = bleu de marque, échelle
-  d'espacement (4→32), rayons (contrôle / carte), typographie sémantique **SF Pro Rounded**
-  pour titres et chiffres. Modifieurs réutilisables `.cardStyle()` (surface pleine + ombre
-  douce + hairline) et vue `ReadOnlyBadge`. Previews. Aucun écran existant restylé à ce
-  stade (fondations uniquement). Tests des jetons et de l'existence des couleurs (3).
-- **Design system — cartes de source restylées (palier 2)** : le Dashboard adopte les
-  jetons du thème. `GroupBox` remplacé par `.cardStyle()` (surface pleine + ombre + hairline) ;
-  pastille d'icône navigateur bleue ; badge partagé `ReadOnlyBadge` ; tuiles de statistiques
-  (chiffres arrondis en bleu de marque) ; typographie `Theme.Typography` ; teinte d'erreur
-  sémantique et bouton d'autorisation en `.borderedProminent`. Renforce l'identité bleu/vert.
-  Lecture seule, ViewModel/Core/lecteurs inchangés.
-- **Design system — explorateur & fil d'Ariane restylés (palier 3)** : lignes plus aérées
-  (jetons d'espacement), icônes distinctes — dossiers `folder.fill` en bleu de marque
-  (cibles navigables) vs favoris en glyphe neutre — style de liste `.inset`, et fil d'Ariane
-  aux espacements généreux (`Theme.Spacing`). Rendu sobre et lisible, dans la ligne d'une
-  app macOS professionnelle. Lecture seule, navigation et Core inchangés.
+- App Sandbox maintenu actif avec accès aux fichiers sélectionnés en lecture-écriture.
+- Refus de la synchronisation et de la restauration lorsque Chrome est ouvert.
+- Nouvelle vérification de Chrome immédiatement avant le remplacement final.
+- Relecture du fichier `Bookmarks` courant avant chaque écriture.
+- Filtrage idempotent des ajouts avec la même logique que l'aperçu.
+- Conservation du handle de sauvegarde lorsque la transaction échoue après backup.
+- Échec explicite si le security scope ou la création de `Bookmarks.bak` échoue.
+- Aucun test n'accède aux favoris réels : fixtures et dossiers temporaires uniquement.
 
 ### Corrigé
-- **Explorateur — noms des racines Safari** : affichage traduit des racines techniques
-  (`BookmarksBar` → « Barre des favoris », `BookmarksMenu` → « Autres favoris »,
-  `com.apple.ReadingList` → « Liste de lecture ») dans la couche de présentation
-  (`FolderPresentation`), sans modifier le décodeur ni le Core. Tests (3).
 
-### Modifié
-- Passage du projet en **Swift 6** (`SWIFT_VERSION = 6.0`) avec concurrence stricte
-  (`SWIFT_STRICT_CONCURRENCY = complete`) sur toutes les cibles.
-- Réorganisation des fichiers template dans l'arborescence définitive :
-  `BookmarkBridgeApp.swift` → `App/`, et `ContentView.swift` renommé en
-  `DashboardView.swift` → `Features/Dashboard/`.
+- Accès App Sandbox en écriture au dossier Chrome autorisé.
+- Création et remplacement de `Bookmarks.bak` dans le security scope du profil.
+- Absence de doublons lors de deux applications successives.
+- Nombre affiché aligné sur le nombre de favoris réellement écrits.
+- Sauvegarde restaurable après fermeture de la fenêtre de synchronisation.
+- Profil possédant un `AccountBookmarks` vide traité comme un profil local inscriptible.
 
-### Sécurité / Retiré
-- `xcuserdata` (état utilisateur Xcode) retiré du suivi Git et ignoré désormais.
+### Limites connues de la V1
 
----
+- Safari reste strictement en lecture seule.
+- Les fichiers Chrome `AccountBookmarks` ne sont jamais modifiés.
+- Les profils avec deux stockages non vides restent en lecture seule.
+- Les ajouts Chrome sont placés dans « Autres favoris » sans reconstruire les
+  dossiers d'origine.
 
-> Aucune version n'a encore été publiée. La première entrée versionnée sera ajoutée
-> lors du premier jalon fonctionnel (voir la feuille de route dans `Docs/`).
+[Non publié]: https://github.com/JRMHDCK/BookmarkBridge/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/JRMHDCK/BookmarkBridge/releases/tag/v1.0.0

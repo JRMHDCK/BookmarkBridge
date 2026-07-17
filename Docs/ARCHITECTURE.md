@@ -1,164 +1,170 @@
-# Architecture — BookmarkBridge
+# Architecture — BookmarkBridge V1
 
-> Ce document détaille l'architecture. La **source de vérité** des règles reste
-> [`../CLAUDE.md`](../CLAUDE.md) ; ce fichier en développe la mise en œuvre concrète.
-> Il décrit une **cible d'architecture** : aucune logique métier n'est encore implémentée.
+Ce document décrit l'architecture effectivement mise en œuvre dans la V1. Les
+règles de contribution complètes restent définies dans [`../AGENTS.md`](../AGENTS.md)
+et son équivalent [`../CLAUDE.md`](../CLAUDE.md).
 
-## 1. Vue d'ensemble
+## Vue d'ensemble
 
-BookmarkBridge suit le patron **MVVM**, complété par une couche **Services** et une
-séparation modulaire en quatre zones :
+BookmarkBridge suit MVVM avec une couche de services injectés :
 
-- **App** — point d'entrée (`@main`), composition root, injection des dépendances.
-- **Core** — domaine et logique métier, **sans aucune dépendance à SwiftUI**.
-- **Features** — modules d'interface verticaux (chacun : `View` + `ViewModel`).
-- **Shared** — éléments UI et utilitaires transverses à plusieurs features.
-
-Objectif : un cœur métier (`Core`) testable en isolation, des features autonomes, et
-une frontière nette entre logique et présentation.
-
-## 2. Arborescence
-
+```text
+View SwiftUI
+    │ intentions / bindings
+    ▼
+ViewModel @MainActor @Observable
+    │ protocoles Core
+    ▼
+Services et modèles nonisolated / Sendable
+    │
+    ├── parsing et diff purs
+    └── I/O fichiers et security scopes
 ```
+
+Les vues ne lisent aucun fichier et n'exécutent aucun algorithme métier. Les
+ViewModels orchestrent les services et publient un état de présentation. Les
+détails Safari, Chrome et App Sandbox restent dans `Core` ou dans les adaptateurs
+macOS de `App`.
+
+## Organisation
+
+```text
 BookmarkBridge/
-├── App/                    # @main, composition root, injection des dépendances
-├── Core/                   # Domaine & métier — AUCUNE dépendance à SwiftUI
-│   ├── Models/             # Types de domaine immuables & Sendable
-│   ├── Services/
-│   │   ├── Reading/        # Lecture des favoris (protocole BookmarkReading)
-│   │   ├── Writing/        # Écriture des favoris (phase 2 — BookmarkWriting)
-│   │   ├── Diffing/        # Différences & planification de synchronisation
-│   │   └── Backup/         # Sauvegarde & restauration horodatées
-│   ├── Parsers/            # Encodage/décodage (Safari .plist, Chrome JSON)
-│   ├── Security/           # Sandbox, security-scoped bookmarks, accès fichiers
-│   └── Utilities/          # Helpers purement métier
-├── Features/               # Modules d'interface verticaux
-│   ├── Dashboard/          # Vue d'ensemble de l'état des favoris
-│   ├── Synchronisation/    # Prévisualisation (dry-run) & déclenchement
-│   ├── Settings/           # Préférences
-│   └── Logs/               # Historique & journal d'audit
-├── Shared/                 # Transverse à plusieurs features
-│   ├── Components/         # Composants SwiftUI réutilisables
-│   ├── Extensions/         # Extensions Swift/SwiftUI
-│   └── Resources/          # Ressources partagées
-└── Assets.xcassets/        # Catalogue d'assets
+├── App/
+│   ├── BookmarkBridgeApp.swift       # @main et composition
+│   ├── AppDependencies.swift         # graphe de production
+│   └── Access/                       # NSOpenPanel et détection des apps macOS
+├── Core/
+│   ├── Models/                       # valeurs immuables du domaine
+│   ├── Parsers/                      # Safari plist et Chrome JSON/checksum
+│   ├── Security/                     # bookmarks et security scopes
+│   └── Services/
+│       ├── Reading/                  # découverte et lecture des sources
+│       ├── Searching/                # recherche pure
+│       ├── Diffing/                  # comparaison additive
+│       ├── Syncing/                  # construction de l'aperçu
+│       ├── Backup/                   # sauvegarde et restauration disque
+│       └── Writing/                  # transaction Chrome V1
+├── Features/
+│   ├── Dashboard/
+│   ├── Explorer/
+│   ├── Search/
+│   └── Synchronisation/
+├── Shared/                           # UI et formatage transverses
+└── Assets.xcassets/
 ```
 
-## 3. Flux de données (MVVM)
+`Settings` et `Logs` sont encore des emplacements réservés sans fonctionnalité V1.
 
-```
-┌─────────────┐   observe / intents   ┌──────────────┐   appelle   ┌───────────────┐
-│    View     │ ────────────────────▶ │  ViewModel   │ ──────────▶ │   Services     │
-│  (SwiftUI)  │ ◀──────────────────── │ (@Observable │ ◀────────── │  (protocoles)  │
-│  Features/  │      état publié      │  @MainActor) │  résultats  │    Core/       │
-└─────────────┘                       └──────────────┘             └───────────────┘
-                                              │                              │
-                                              ▼                              ▼
-                                        ┌──────────┐                 ┌──────────────┐
-                                        │  Models  │                 │   Parsers    │
-                                        │ (Core)   │                 │  (Core)      │
-                                        └──────────┘                 └──────────────┘
-```
+## Flux de lecture
 
-- **View** : présentation uniquement. Aucun I/O, aucune logique métier.
-- **ViewModel** (`@Observable`, `@MainActor`) : état de présentation et orchestration.
-  Dépend **uniquement de protocoles** `Core`, jamais d'implémentations concrètes.
-- **Services / Core** : logique métier derrière des protocoles ; implémentations
-  injectées depuis la composition root (`App`).
+1. `DashboardViewModel` demande aux `BrowserSourceProviding` les lecteurs disponibles.
+2. Safari et Chrome localisent leurs sources via le security-scoped bookmark
+   précédemment autorisé.
+3. `SandboxFileAccessProvider` ouvre l'accès pour la durée de la lecture.
+4. Les décodeurs transforment les octets en `BookmarkTree` immuable.
+5. Le Dashboard conserve l'arbre par `BookmarkSourceID` et calcule les statistiques.
 
-## 4. Règles de dépendances
+Chrome expose un lecteur par profil. `DefaultChromeProfileLocator` distingue :
 
-| Zone       | Peut dépendre de              | Ne doit PAS dépendre de                     |
-|------------|-------------------------------|---------------------------------------------|
-| `App`      | `Core`, `Features`, `Shared`  | —                                           |
-| `Features` | `Core`, `Shared`              | autres `Features`                           |
-| `Shared`   | `Core` (types uniquement)     | `Features`, état d'application              |
-| `Core`     | rien (Foundation seulement)   | SwiftUI, `Features`, `Shared`, `App`        |
+- `Bookmarks` local, inscriptible en V1 ;
+- `AccountBookmarks`, lu mais jamais modifié ;
+- deux stockages non vides, état ambigu et lecture seule.
 
-- Dépendances dirigées vers l'intérieur : les détails (formats de fichiers, navigateurs)
-  dépendent des abstractions, jamais l'inverse (**DIP**).
-- Aucune dépendance croisée entre features : toute mutualisation passe par `Core`
-  (métier) ou `Shared` (UI).
+Un `AccountBookmarks` vide n'empêche pas l'utilisation du fichier local `Bookmarks`.
 
-## 5. Protocoles envisagés (cible — non implémentés)
+## Diff et aperçu
 
-Conformément à l'**Interface Segregation**, des protocoles fins et ciblés. Signatures
-données à titre indicatif ; elles seront définies lors de l'étape « modèles &
-protocoles ».
+`AdditiveBookmarkDiffer` compare deux arbres avec `BookmarkMatchKey`. La clé :
 
-```swift
-// Core/Services/Reading — la seule capacité nécessaire à la phase « lecture seule ».
-protocol BookmarkReading: Sendable {
-    func readBookmarkTree() async throws -> BookmarkTree
-}
+- normalise le schéma, l'hôte et le slash terminal ;
+- retire les paramètres de suivi connus ;
+- conserve les paramètres et fragments significatifs.
 
-// Core/Services/Diffing — comparaison de deux arbres, sans effet de bord.
-protocol BookmarkDiffing: Sendable {
-    func diff(source: BookmarkTree, target: BookmarkTree) -> SyncPlan
-}
+`BookmarkSyncPlanner` produit un aperçu additif dans les deux directions. La V1
+n'applique toutefois que le plan Safari → Chrome. Aucune suppression, aucun
+déplacement et aucun renommage n'est écrit.
 
-// Core/Services/Backup — sauvegarde préalable à toute écriture (phase 2).
-protocol BookmarkBackup: Sendable {
-    func backup(_ location: BrowserLocation) async throws -> BackupHandle
-    func restore(_ handle: BackupHandle) async throws
-}
+## Transaction Chrome V1
 
-// Core/Services/Writing — introduit UNIQUEMENT en phase 2, jamais avant.
-protocol BookmarkWriting: Sendable {
-    func apply(_ plan: SyncPlan, dryRun: Bool) async throws -> SyncReport
-}
-```
+`ChromeBookmarkApplier` orchestre la seule écriture de la V1 :
 
-## 6. Principe fondateur — « Lecture seule avant toute écriture »
+1. refus si Chrome est ouvert ;
+2. validation et ouverture du security scope du profil ;
+3. sauvegarde privée horodatée obligatoire ;
+4. relecture du fichier `Bookmarks` courant ;
+5. filtrage idempotent avec `BookmarkMatchKey` ;
+6. génération du JSON et du checksum Chrome ;
+7. création ou remplacement atomique de `Bookmarks.bak` ;
+8. seconde vérification que Chrome est fermé ;
+9. remplacement atomique de `Bookmarks` ;
+10. fermeture systématique du scope avec `defer`.
 
-L'architecture matérialise ce principe (détaillé en section 3 de [`../CLAUDE.md`](../CLAUDE.md)) :
+Le résultat contient le handle de sauvegarde et le nombre réel de favoris écrits.
+Si une étape échoue après la sauvegarde, son handle reste disponible.
 
-1. La phase 1 ne dépend que de `BookmarkReading` et `BookmarkDiffing` — aucune
-   capacité d'écriture n'existe dans le graphe de dépendances.
-2. `BookmarkWriting` n'est introduit qu'en phase 2, derrière une sauvegarde
-   (`BookmarkBackup`) et un mode **dry-run** par défaut.
-3. Le module `Features/Synchronisation` prévisualise un `SyncPlan` avant toute
-   application, sur consentement explicite de l'utilisateur.
+## Sauvegarde et restauration
 
-## 7. Concurrence (Swift 6)
+`FileBookmarkBackup` écrit sous `Application Support/BookmarkBridge/Backups` :
 
-- Isolation `MainActor` par défaut (`SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`).
-- Couche `Core` (modèles + protocoles) : **`nonisolated`**, `Sendable`, immuable —
-  indépendante du main actor et de l'UI (voir `adr/0004-isolation-concurrence.md`).
-- ViewModels (`Features`) : `@MainActor`.
-- I/O et parsing : hors du main actor (`actor` ou fonctions `async`).
-- Concurrence stricte activée (`SWIFT_STRICT_CONCURRENCY = complete`).
+- une copie privée du fichier original ;
+- un sidecar JSON contenant le handle et l'URL originale ;
+- permissions 0700 pour les dossiers et 0600 pour les fichiers.
 
-## 8. Tests
+Les sauvegardes sont recherchées par navigateur et, pour l'interface, par URL exacte
+du fichier du profil. Le dernier handle peut donc être retrouvé après réouverture de
+la fenêtre ou redémarrage de l'application sans risquer une restauration croisée.
 
-Voir la section 9 de [`../CLAUDE.md`](../CLAUDE.md). En résumé : logique `Core`
-testée en isolation via protocoles mockés ; services concrets testés contre des
-**fixtures** en dossier temporaire ; **jamais** contre les favoris réels du système.
+La restauration vérifie que Chrome est fermé, exige l'ouverture du même security
+scope, remplace atomiquement le fichier original, recharge le profil puis actualise
+le Dashboard.
 
-## 9. Prochaines étapes
+## App Sandbox
 
-1. ~~Définir les **modèles de domaine** (`Core/Models`)~~ — fait.
-2. ~~Définir les **protocoles** de services (lecture, diff, backup, parsing, sécurité)~~ — fait.
-3. ~~Compléter l'**architecture MVVM** (composition root, ViewModels de base, injection)~~ — fait.
-4. ~~Écrire les **tests unitaires de base** (modèles + ViewModels via doubles)~~ — fait.
-5. **Puis seulement** : implémenter la lecture (Safari, Chrome), le diff, la
-   prévisualisation, et enfin l'écriture (phase 2, derrière backup + dry-run).
+Le sandbox reste activé. La cible possède :
 
-### Types définis (phase actuelle)
+- `com.apple.security.app-sandbox` ;
+- `com.apple.security.files.user-selected.read-write` ;
+- `com.apple.security.files.bookmarks.app-scope`.
 
-- **Modèles** (`Core/Models`) : `Browser`, `BookmarkID`, `Bookmark`, `BookmarkFolder`,
-  `BookmarkNode`, `BookmarkTree`, `BrowserLocation`, `BookmarkError`, `SyncChange`,
-  `SyncPlan`, `SyncReport`, `BackupHandle`.
-- **Protocoles** : `BookmarkReading`, `BookmarkSourceLocating`, `BookmarkDiffing`,
-  `BookmarkBackup`, `BookmarkDecoding`, `FileAccessProviding`.
-- **Absent volontairement** : `BookmarkWriting` (phase 2 — ADR-0002).
+L'utilisateur autorise explicitement le fichier Safari et le dossier racine Chrome.
+Les autorisations persistantes sont stockées sous forme de security-scoped bookmarks.
+Le droit lecture-écriture n'implique aucune écriture Safari : la politique V1 reste
+appliquée par les services et l'interface.
 
-### Ossature MVVM (phase actuelle)
+## Concurrence
 
-- **Composition root** : `App/AppDependencies` (graphe assemblé une fois, injecté).
-- **ViewModel** : `Features/Dashboard/DashboardViewModel` (`@MainActor @Observable`),
-  dépend uniquement de `BookmarkReading` ; `BrowserBookmarkSummary` comme modèle de présentation.
-- **Vue** : `Features/Dashboard/DashboardView`, purement présentation.
-- **Doubles in-memory** (previews/tests/amorçage, sans I/O) : `InMemoryBookmarkReader`,
-  `InMemoryBookmarkDiffer`, `InMemoryBackupStore`. À remplacer par les implémentations
-  réelles une fois les tests en place.
+La cible utilise Swift 6, `SWIFT_STRICT_CONCURRENCY = complete` et l'isolation
+`MainActor` par défaut. Les modèles et protocoles `Core` sont explicitement
+`nonisolated`, immuables et `Sendable`. Les ViewModels sont `@MainActor`.
+
+Voir [ADR-0004](adr/0004-isolation-concurrence.md).
+
+## Composition et dépendances
+
+`AppDependencies.bootstrap()` construit les lecteurs réels, le moteur de diff, le
+store d'autorisations et le store de sauvegarde. `BookmarkBridgeApp` injecte ensuite
+les services macOS et l'applicateur Chrome dans le Dashboard.
+
+Règles de dépendances :
+
+- `Core` ne dépend ni de SwiftUI, ni de `Features`, ni de `Shared` ;
+- `Features` dépend de `Core` et `Shared` ;
+- `Shared` ne contient aucune logique métier ;
+- `App` est l'unique composition root.
+
+## Tests
+
+La logique métier, les parseurs, la sécurité, le diff, l'écriture, l'idempotence et
+la restauration sont couverts avec Swift Testing. Les intégrations utilisent des
+fixtures et des dossiers temporaires ; aucun test ne touche aux favoris réels.
+
+Les parcours critiques ont également fait l'objet d'une validation manuelle dans
+l'application sandboxée.
+
+## Décisions associées
+
+- [ADR-0002](adr/0002-lecture-seule-avant-ecriture.md) — garde-fous préalables à l'écriture ;
+- [ADR-0003](adr/0003-architecture-modulaire.md) — séparation App/Core/Features/Shared ;
+- [ADR-0004](adr/0004-isolation-concurrence.md) — isolation Swift 6 ;
+- [ADR-0005](adr/0005-ecriture-chrome-v1.md) — ouverture contrôlée de l'écriture Chrome.

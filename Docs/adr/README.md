@@ -12,9 +12,10 @@ structurante est documentée dans un fichier numéroté et immuable.
 | N°   | Titre                                   | Statut   |
 |------|-----------------------------------------|----------|
 | 0001 | Consigner les décisions d'architecture  | Accepté  |
-| 0002 | Lecture seule avant toute écriture      | Accepté  |
+| 0002 | Lecture seule avant toute écriture      | Accepté, complété par 0005 |
 | 0003 | Architecture modulaire App/Core/Features/Shared | Accepté |
 | 0004 | Isolation par défaut MainActor, Core nonisolated | Accepté |
+| 0005 | Écriture Chrome additive et réversible en V1 | Accepté |
 
 ## Modèle
 
