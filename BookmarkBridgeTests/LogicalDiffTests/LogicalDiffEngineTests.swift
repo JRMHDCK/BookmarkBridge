@@ -7,502 +7,320 @@ import Foundation
 import Testing
 @testable import BookmarkBridge
 
-@Suite("BSE Logical Diff")
+@Suite("BSE Logical Diff v2")
 struct LogicalDiffEngineTests {
-    @Test("Identical Baseline presence and logical snapshot are unchanged")
+    @Test("Identical graphs produce no change")
     func noChange() throws {
-        let sourceID = LogicalDiffTestSupport.sourceID(1)
-        let logicalID = LogicalDiffTestSupport.logicalID(1)
-        let baseline = try LogicalDiffTestSupport.baseline(records: [
-            LogicalDiffTestSupport.record(
-                logicalID: logicalID,
-                observations: [LogicalDiffTestSupport.observation(
-                    sourceID: sourceID,
-                    provisionalID: LogicalDiffTestSupport.logicalID(101)
-                )]
-            ),
-        ])
-        let snapshot = try LogicalDiffTestSupport.snapshot(
-            sourceID: sourceID,
-            logicalIDs: [logicalID]
+        let node = try LogicalDiffTestSupport.folder(id: 1)
+        let graph = try LogicalDiffTestSupport.graph([node])
+
+        let result = try LogicalDiffEngine().diff(
+            request: LogicalDiffRequest(before: graph, after: graph)
         )
 
-        let result = try LogicalDiffEngine().diff(request: LogicalDiffRequest(
-            baseline: baseline,
-            logicalSnapshots: [snapshot]
-        ))
-
-        #expect(result.identityChanges.isEmpty)
-        #expect(result.observationChanges.isEmpty)
-        #expect(result.unchangedIdentityIDs == [logicalID])
-        #expect(result.report.unchangedIdentityCount == 1)
+        #expect(result.changes.isEmpty)
+        #expect(result.report.unchangedNodeCount == 1)
+        #expect(result.report.changeCount == 0)
     }
 
-    @Test("An unknown logical identity is created once")
+    @Test("A node present only after is created")
     func creation() throws {
-        let sourceID = LogicalDiffTestSupport.sourceID(1)
-        let logicalID = LogicalDiffTestSupport.logicalID(1)
-        let result = try LogicalDiffEngine().diff(request: LogicalDiffRequest(
-            baseline: LogicalDiffTestSupport.emptyBaseline(),
-            logicalSnapshots: [LogicalDiffTestSupport.snapshot(
-                sourceID: sourceID,
-                logicalIDs: [logicalID]
-            )]
-        ))
+        let node = try LogicalDiffTestSupport.folder(id: 1)
+        let result = try LogicalDiffTestSupport.diff(before: [], after: [node])
 
-        #expect(result.identityChanges == [.created(logicalNodeID: logicalID)])
-        #expect(result.observationChanges == [
-            .added(logicalNodeID: logicalID, sourceID: sourceID),
-        ])
-        #expect(result.report.createdIdentityCount == 1)
+        #expect(result.changes == [.created(CreatedChange(after: node))])
+        #expect(result.report.createdCount == 1)
     }
 
-    @Test("A restored observation updates an active identity")
-    func update() throws {
-        let sourceID = LogicalDiffTestSupport.sourceID(1)
-        let logicalID = LogicalDiffTestSupport.logicalID(1)
-        let baseline = try LogicalDiffTestSupport.baseline(records: [
-            LogicalDiffTestSupport.record(
-                logicalID: logicalID,
-                observations: [LogicalDiffTestSupport.observation(
-                    sourceID: sourceID,
-                    provisionalID: LogicalDiffTestSupport.logicalID(101),
-                    presence: .absent
-                )]
-            ),
-        ])
+    @Test("A node present only before is deleted")
+    func deletion() throws {
+        let node = try LogicalDiffTestSupport.folder(id: 1)
+        let result = try LogicalDiffTestSupport.diff(before: [node], after: [])
 
-        let result = try LogicalDiffEngine().diff(request: LogicalDiffRequest(
-            baseline: baseline,
-            logicalSnapshots: [LogicalDiffTestSupport.snapshot(
-                sourceID: sourceID,
-                logicalIDs: [logicalID]
-            )]
-        ))
-
-        #expect(result.identityChanges == [.updated(logicalNodeID: logicalID)])
-        #expect(result.observationChanges == [
-            .restored(logicalNodeID: logicalID, sourceID: sourceID),
-        ])
-        #expect(result.report.updatedIdentityCount == 1)
+        #expect(result.changes == [.deleted(DeletedChange(before: node))])
+        #expect(result.report.deletedCount == 1)
     }
 
-    @Test("A fully observed disappearance archives an active identity")
-    func archival() throws {
-        let sourceID = LogicalDiffTestSupport.sourceID(1)
-        let logicalID = LogicalDiffTestSupport.logicalID(1)
-        let baseline = try LogicalDiffTestSupport.baseline(records: [
-            LogicalDiffTestSupport.record(
-                logicalID: logicalID,
-                observations: [LogicalDiffTestSupport.observation(
-                    sourceID: sourceID,
-                    provisionalID: LogicalDiffTestSupport.logicalID(101)
-                )]
-            ),
-        ])
+    @Test("A title change is represented as a rename")
+    func rename() throws {
+        let before = try LogicalDiffTestSupport.folder(id: 1, title: "Before")
+        let after = try LogicalDiffTestSupport.folder(id: 1, title: "After")
 
-        let result = try LogicalDiffEngine().diff(request: LogicalDiffRequest(
-            baseline: baseline,
-            logicalSnapshots: [LogicalDiffTestSupport.snapshot(
-                sourceID: sourceID,
-                logicalIDs: []
-            )]
-        ))
+        let result = try LogicalDiffTestSupport.diff(before: [before], after: [after])
 
-        #expect(result.identityChanges == [.archived(logicalNodeID: logicalID)])
-        #expect(result.observationChanges == [
-            .removed(logicalNodeID: logicalID, sourceID: sourceID),
-        ])
-        #expect(result.report.archivedIdentityCount == 1)
+        #expect(result.changes == [.renamed(RenamedChange(
+            logicalNodeID: before.logicalNodeID,
+            before: "Before",
+            after: "After"
+        ))])
     }
 
-    @Test("An observed archived identity is reactivated")
-    func reactivation() throws {
-        let sourceID = LogicalDiffTestSupport.sourceID(1)
-        let logicalID = LogicalDiffTestSupport.logicalID(1)
-        let baseline = try LogicalDiffTestSupport.baseline(records: [
-            LogicalDiffTestSupport.record(
-                logicalID: logicalID,
-                state: .archived,
-                observations: [LogicalDiffTestSupport.observation(
-                    sourceID: sourceID,
-                    provisionalID: LogicalDiffTestSupport.logicalID(101)
-                )]
-            ),
-        ])
+    @Test("A bookmark URL change is explicit")
+    func urlChanged() throws {
+        let root = try LogicalDiffTestSupport.folder(id: 1)
+        let before = try LogicalDiffTestSupport.bookmark(id: 2, parent: 1, url: "https://before.test")
+        let after = try LogicalDiffTestSupport.bookmark(id: 2, parent: 1, url: "https://after.test")
 
-        let result = try LogicalDiffEngine().diff(request: LogicalDiffRequest(
-            baseline: baseline,
-            logicalSnapshots: [LogicalDiffTestSupport.snapshot(
-                sourceID: sourceID,
-                logicalIDs: [logicalID]
-            )]
-        ))
-
-        #expect(result.identityChanges == [
-            .reactivated(logicalNodeID: logicalID, previousState: .archived),
-        ])
-        #expect(result.observationChanges.isEmpty)
-        #expect(result.report.reactivatedIdentityCount == 1)
-    }
-
-    @Test("Presence in a new requested source adds an observation")
-    func observationAddition() throws {
-        let firstSource = LogicalDiffTestSupport.sourceID(1)
-        let secondSource = LogicalDiffTestSupport.sourceID(2)
-        let logicalID = LogicalDiffTestSupport.logicalID(1)
-        let baseline = try LogicalDiffTestSupport.baseline(records: [
-            LogicalDiffTestSupport.record(
-                logicalID: logicalID,
-                observations: [LogicalDiffTestSupport.observation(
-                    sourceID: firstSource,
-                    provisionalID: LogicalDiffTestSupport.logicalID(101)
-                )]
-            ),
-        ])
-        let snapshots = try [firstSource, secondSource].map {
-            try LogicalDiffTestSupport.snapshot(sourceID: $0, logicalIDs: [logicalID])
-        }
-
-        let result = try LogicalDiffEngine().diff(request: LogicalDiffRequest(
-            baseline: baseline,
-            logicalSnapshots: snapshots
-        ))
-
-        #expect(result.identityChanges == [.updated(logicalNodeID: logicalID)])
-        #expect(result.observationChanges == [
-            .added(logicalNodeID: logicalID, sourceID: secondSource),
-        ])
-    }
-
-    @Test("One removed observation does not archive an identity present elsewhere")
-    func observationRemoval() throws {
-        let firstSource = LogicalDiffTestSupport.sourceID(1)
-        let secondSource = LogicalDiffTestSupport.sourceID(2)
-        let logicalID = LogicalDiffTestSupport.logicalID(1)
-        let baseline = try LogicalDiffTestSupport.baseline(records: [
-            LogicalDiffTestSupport.record(
-                logicalID: logicalID,
-                observations: [
-                    LogicalDiffTestSupport.observation(
-                        sourceID: firstSource,
-                        provisionalID: LogicalDiffTestSupport.logicalID(101)
-                    ),
-                    LogicalDiffTestSupport.observation(
-                        sourceID: secondSource,
-                        provisionalID: LogicalDiffTestSupport.logicalID(102)
-                    ),
-                ]
-            ),
-        ])
-        let snapshots = try [
-            LogicalDiffTestSupport.snapshot(sourceID: firstSource, logicalIDs: []),
-            LogicalDiffTestSupport.snapshot(sourceID: secondSource, logicalIDs: [logicalID]),
-        ]
-
-        let result = try LogicalDiffEngine().diff(request: LogicalDiffRequest(
-            baseline: baseline,
-            logicalSnapshots: snapshots
-        ))
-
-        #expect(result.identityChanges == [.updated(logicalNodeID: logicalID)])
-        #expect(result.observationChanges == [
-            .removed(logicalNodeID: logicalID, sourceID: firstSource),
-        ])
-    }
-
-    @Test("An absent source never implies observation removal or archival")
-    func absentSource() throws {
-        let absentSource = LogicalDiffTestSupport.sourceID(1)
-        let requestedSource = LogicalDiffTestSupport.sourceID(2)
-        let logicalID = LogicalDiffTestSupport.logicalID(1)
-        let baseline = try LogicalDiffTestSupport.baseline(records: [
-            LogicalDiffTestSupport.record(
-                logicalID: logicalID,
-                observations: [LogicalDiffTestSupport.observation(
-                    sourceID: absentSource,
-                    provisionalID: LogicalDiffTestSupport.logicalID(101)
-                )]
-            ),
-        ])
-
-        let result = try LogicalDiffEngine().diff(request: LogicalDiffRequest(
-            baseline: baseline,
-            logicalSnapshots: [LogicalDiffTestSupport.snapshot(
-                sourceID: requestedSource,
-                logicalIDs: []
-            )]
-        ))
-
-        #expect(result.identityChanges.isEmpty)
-        #expect(result.observationChanges.isEmpty)
-        #expect(result.unchangedIdentityIDs == [logicalID])
-    }
-
-    @Test("Recognition artifacts are opaque and never affect the diff")
-    func recognitionArtifactsAreIgnored() throws {
-        let sourceID = LogicalDiffTestSupport.sourceID(1)
-        let logicalID = LogicalDiffTestSupport.logicalID(1)
-        let artifact = RecognitionArtifact(
-            kind: try RecognitionArtifactKind("test.opaque"),
-            version: 7,
-            payload: Data([1, 2, 3])
+        let result = try LogicalDiffTestSupport.diff(
+            before: [root, before],
+            after: [root, after]
         )
-        let withoutArtifact = try LogicalDiffTestSupport.baseline(records: [
-            LogicalDiffTestSupport.record(
-                logicalID: logicalID,
-                observations: [LogicalDiffTestSupport.observation(
-                    sourceID: sourceID,
-                    provisionalID: LogicalDiffTestSupport.logicalID(101)
-                )]
-            ),
-        ])
-        let withArtifact = try LogicalDiffTestSupport.baseline(records: [
-            LogicalDiffTestSupport.record(
-                logicalID: logicalID,
-                observations: [LogicalDiffTestSupport.observation(
-                    sourceID: sourceID,
-                    provisionalID: LogicalDiffTestSupport.logicalID(101),
-                    recognitionArtifacts: [artifact]
-                )]
-            ),
-        ])
-        let snapshot = try LogicalDiffTestSupport.snapshot(
-            sourceID: sourceID,
-            logicalIDs: [logicalID]
-        )
-        let engine = LogicalDiffEngine()
 
-        let first = try engine.diff(request: LogicalDiffRequest(
-            baseline: withoutArtifact,
-            logicalSnapshots: [snapshot]
-        ))
-        let second = try engine.diff(request: LogicalDiffRequest(
-            baseline: withArtifact,
-            logicalSnapshots: [snapshot]
-        ))
-
-        #expect(first == second)
+        #expect(result.changes == [.urlChanged(URLChangedChange(
+            logicalNodeID: before.logicalNodeID,
+            before: before.url,
+            after: after.url
+        ))])
     }
 
-    @Test("Diffing never mutates either immutable input")
-    func inputsRemainUnchanged() throws {
-        let baseline = try LogicalDiffTestSupport.emptyBaseline()
-        let snapshot = try LogicalDiffTestSupport.snapshot(
-            sourceID: LogicalDiffTestSupport.sourceID(1),
-            logicalIDs: [LogicalDiffTestSupport.logicalID(1)]
+    @Test("A parent change is represented as a move")
+    func moved() throws {
+        let firstParent = try LogicalDiffTestSupport.folder(id: 1)
+        let secondParent = try LogicalDiffTestSupport.folder(id: 2)
+        let before = try LogicalDiffTestSupport.bookmark(id: 3, parent: 1)
+        let after = try LogicalDiffTestSupport.bookmark(id: 3, parent: 2)
+
+        let result = try LogicalDiffTestSupport.diff(
+            before: [firstParent, secondParent, before],
+            after: [firstParent, secondParent, after]
         )
-        let baselineBefore = baseline
-        let snapshotBefore = snapshot
 
-        _ = try LogicalDiffEngine().diff(request: LogicalDiffRequest(
-            baseline: baseline,
-            logicalSnapshots: [snapshot]
-        ))
-
-        #expect(baseline == baselineBefore)
-        #expect(snapshot == snapshotBefore)
+        #expect(result.changes == [.moved(MovedChange(
+            logicalNodeID: before.logicalNodeID,
+            before: firstParent.logicalNodeID,
+            after: secondParent.logicalNodeID
+        ))])
     }
 
-    @Test("Input ordering does not affect the complete result")
+    @Test("A position change is represented as a reorder")
+    func reordered() throws {
+        let before = try LogicalDiffTestSupport.folder(id: 1, position: 0)
+        let after = try LogicalDiffTestSupport.folder(id: 1, position: 4)
+
+        let result = try LogicalDiffTestSupport.diff(before: [before], after: [after])
+
+        #expect(result.changes == [.reordered(ReorderedChange(
+            logicalNodeID: before.logicalNodeID,
+            before: 0,
+            after: 4
+        ))])
+    }
+
+    @Test("A lifecycle transition is represented explicitly")
+    func lifecycleChanged() throws {
+        let before = try LogicalDiffTestSupport.folder(
+            id: 1,
+            lifecycle: .registered(.active)
+        )
+        let after = try LogicalDiffTestSupport.folder(
+            id: 1,
+            lifecycle: .registered(.archived)
+        )
+
+        let result = try LogicalDiffTestSupport.diff(before: [before], after: [after])
+
+        #expect(result.changes == [.lifecycleChanged(LifecycleChangedChange(
+            logicalNodeID: before.logicalNodeID,
+            before: .registered(.active),
+            after: .registered(.archived)
+        ))])
+    }
+
+    @Test("One node can produce independent rename and move changes")
+    func multipleChangesForOneNode() throws {
+        let firstParent = try LogicalDiffTestSupport.folder(id: 1)
+        let secondParent = try LogicalDiffTestSupport.folder(id: 2)
+        let before = try LogicalDiffTestSupport.bookmark(
+            id: 3,
+            parent: 1,
+            title: "Before"
+        )
+        let after = try LogicalDiffTestSupport.bookmark(
+            id: 3,
+            parent: 2,
+            title: "After"
+        )
+
+        let result = try LogicalDiffTestSupport.diff(
+            before: [firstParent, secondParent, before],
+            after: [firstParent, secondParent, after]
+        )
+
+        #expect(result.changes == [
+            .renamed(RenamedChange(
+                logicalNodeID: before.logicalNodeID,
+                before: "Before",
+                after: "After"
+            )),
+            .moved(MovedChange(
+                logicalNodeID: before.logicalNodeID,
+                before: firstParent.logicalNodeID,
+                after: secondParent.logicalNodeID
+            )),
+        ])
+    }
+
+    @Test("Multiple nodes are ordered by identity then change kind")
+    func multipleNodes() throws {
+        let deleted = try LogicalDiffTestSupport.folder(id: 3)
+        let renamedBefore = try LogicalDiffTestSupport.folder(id: 2, title: "Before")
+        let renamedAfter = try LogicalDiffTestSupport.folder(id: 2, title: "After")
+        let created = try LogicalDiffTestSupport.folder(id: 1)
+
+        let result = try LogicalDiffTestSupport.diff(
+            before: [deleted, renamedBefore],
+            after: [renamedAfter, created]
+        )
+
+        #expect(result.changes.map(\.logicalNodeID) == [
+            created.logicalNodeID,
+            renamedBefore.logicalNodeID,
+            deleted.logicalNodeID,
+        ])
+        #expect(result.report.createdCount == 1)
+        #expect(result.report.renamedCount == 1)
+        #expect(result.report.deletedCount == 1)
+    }
+
+    @Test("Input node order cannot affect the result")
     func deterministic() throws {
-        let logicalID = LogicalDiffTestSupport.logicalID(1)
-        let snapshots = try [1, 2].map {
-            try LogicalDiffTestSupport.snapshot(
-                sourceID: LogicalDiffTestSupport.sourceID($0),
-                logicalIDs: [logicalID]
-            )
-        }
-        let baseline = try LogicalDiffTestSupport.emptyBaseline()
+        let beforeNodes = try [
+            LogicalDiffTestSupport.folder(id: 2, title: "Before"),
+            LogicalDiffTestSupport.folder(id: 1),
+        ]
+        let afterNodes = try [
+            LogicalDiffTestSupport.folder(id: 1),
+            LogicalDiffTestSupport.folder(id: 2, title: "After"),
+        ]
         let engine = LogicalDiffEngine()
-
         let first = try engine.diff(request: LogicalDiffRequest(
-            baseline: baseline,
-            logicalSnapshots: snapshots
+            before: LogicalDiffTestSupport.graph(beforeNodes),
+            after: LogicalDiffTestSupport.graph(afterNodes)
         ))
         let second = try engine.diff(request: LogicalDiffRequest(
-            baseline: baseline,
-            logicalSnapshots: Array(snapshots.reversed())
+            before: LogicalDiffTestSupport.graph(Array(beforeNodes.reversed())),
+            after: LogicalDiffTestSupport.graph(Array(afterNodes.reversed()))
         ))
 
         #expect(first == second)
     }
 
-    @Test("A non-current Baseline schema is rejected explicitly")
-    func invalidBaseline() throws {
-        let baseline = try Baseline(
-            baselineID: BaselineID(LogicalDiffTestSupport.uuid(900)),
-            schemaVersion: BaselineSchemaVersion(2),
-            revision: .zero,
-            identityRecords: []
+    @Test("Diffing does not mutate immutable graph inputs")
+    func inputsRemainUnchanged() throws {
+        let before = try LogicalDiffTestSupport.graph([
+            LogicalDiffTestSupport.folder(id: 1, title: "Before"),
+        ])
+        let after = try LogicalDiffTestSupport.graph([
+            LogicalDiffTestSupport.folder(id: 1, title: "After"),
+        ])
+        let originalBefore = before
+        let originalAfter = after
+
+        _ = try LogicalDiffEngine().diff(
+            request: LogicalDiffRequest(before: before, after: after)
         )
 
-        #expect(throws: LogicalDiffError.invalidBaseline) {
-            _ = try LogicalDiffEngine().diff(request: LogicalDiffRequest(
-                baseline: baseline,
-                logicalSnapshots: []
-            ))
-        }
+        #expect(before == originalBefore)
+        #expect(after == originalAfter)
     }
 
-    @Test("The same logical node repeated for one source is rejected")
-    func duplicateLogicalNode() throws {
-        let sourceID = LogicalDiffTestSupport.sourceID(1)
-        let logicalID = LogicalDiffTestSupport.logicalID(1)
-        let snapshots = try [1, 2].map { _ in
-            try LogicalDiffTestSupport.snapshot(
-                sourceID: sourceID,
-                logicalIDs: [logicalID]
-            )
-        }
-
-        #expect(throws: LogicalDiffError.duplicateLogicalNode(
-            logicalNodeID: logicalID,
-            sourceID: sourceID
-        )) {
-            _ = try LogicalDiffEngine().diff(request: LogicalDiffRequest(
-                baseline: LogicalDiffTestSupport.emptyBaseline(),
-                logicalSnapshots: snapshots
-            ))
-        }
-    }
-
-    @Test("One durable identity cannot have different node kinds")
+    @Test("A node kind mismatch is rejected instead of being corrected")
     func inconsistentState() throws {
-        let logicalID = LogicalDiffTestSupport.logicalID(1)
-        let folderSnapshot = try LogicalDiffTestSupport.snapshot(
-            sourceID: LogicalDiffTestSupport.sourceID(1),
-            logicalIDs: [logicalID]
-        )
-        let bookmarkSnapshot = try LogicalDiffTestSupport.bookmarkSnapshot(
-            sourceID: LogicalDiffTestSupport.sourceID(2),
-            logicalID: logicalID
-        )
+        let parent = try LogicalDiffTestSupport.folder(id: 1)
+        let before = try LogicalDiffTestSupport.bookmark(id: 2, parent: 1)
+        let after = try LogicalDiffTestSupport.folder(id: 2)
 
-        #expect(throws: LogicalDiffError.inconsistentState(logicalID)) {
-            _ = try LogicalDiffEngine().diff(request: LogicalDiffRequest(
-                baseline: LogicalDiffTestSupport.emptyBaseline(),
-                logicalSnapshots: [folderSnapshot, bookmarkSnapshot]
-            ))
+        #expect(throws: LogicalDiffError.inconsistentState(before.logicalNodeID)) {
+            _ = try LogicalDiffTestSupport.diff(
+                before: [parent, before],
+                after: [parent, after]
+            )
         }
     }
 
     @Test("Models and engine satisfy Swift Concurrency boundaries")
     func strictConcurrency() throws {
-        let request = LogicalDiffRequest(
-            baseline: try LogicalDiffTestSupport.emptyBaseline(),
-            logicalSnapshots: []
-        )
+        let graph = try LogicalDiffTestSupport.graph([])
+        let request = LogicalDiffRequest(before: graph, after: graph)
+        let result = try LogicalDiffEngine().diff(request: request)
 
         requireSendable(LogicalDiffEngine())
         requireSendable(request)
-        requireSendable(try LogicalDiffEngine().diff(request: request))
+        requireSendable(result)
+        requireSendable(result.changes)
     }
 
     private func requireSendable<T: Sendable>(_ value: T) { _ = value }
 }
 
 private enum LogicalDiffTestSupport {
-    static func emptyBaseline() throws -> Baseline {
-        try Baseline.empty(baselineID: BaselineID(uuid(900)))
+    static let emptyReport = LogicalStateBuildingReport(
+        baselineIdentityCount: 0,
+        snapshotCount: 0,
+        snapshotNodeCount: 0,
+        logicalNodeCount: 0,
+        structurallyAvailableNodeCount: 0,
+        baselineOnlyNodeCount: 0,
+        unregisteredNodeCount: 0,
+        observationCount: 0
+    )
+
+    static func diff(
+        before: [LogicalNodeState],
+        after: [LogicalNodeState]
+    ) throws -> LogicalDiffResult {
+        try LogicalDiffEngine().diff(request: LogicalDiffRequest(
+            before: graph(before),
+            after: graph(after)
+        ))
     }
 
-    static func baseline(records: [IdentityRecord]) throws -> Baseline {
-        try Baseline(
-            baselineID: BaselineID(uuid(900)),
-            schemaVersion: .current,
-            revision: BaselineRevision(records.isEmpty ? 0 : 1),
-            identityRecords: records
+    static func graph(_ nodes: [LogicalNodeState]) throws -> LogicalStateGraph {
+        try LogicalStateGraph(nodes: nodes, report: emptyReport)
+    }
+
+    static func folder(
+        id: Int,
+        title: String = "Folder",
+        position: Int = 0,
+        lifecycle: LogicalNodeLifecycle = .unregistered
+    ) throws -> LogicalNodeState {
+        try LogicalNodeState(
+            logicalNodeID: logicalID(id),
+            kind: .folder,
+            title: title,
+            url: nil,
+            parentID: nil,
+            position: position,
+            lifecycle: lifecycle,
+            observations: []
         )
     }
 
-    static func record(
-        logicalID: LogicalNodeID,
-        state: IdentityRecordState = .active,
-        observations: [BaselineObservation]
-    ) throws -> IdentityRecord {
-        try IdentityRecord(
-            logicalNodeID: logicalID,
-            revision: IdentityRevision(1),
-            state: state,
-            observations: observations,
-            metadata: IdentityRecordMetadata(
-                createdInBaselineRevision: BaselineRevision(1),
-                lastChangedInBaselineRevision: BaselineRevision(1)
-            )
+    static func bookmark(
+        id: Int,
+        parent: Int,
+        title: String = "Bookmark",
+        url: String = "https://example.test",
+        position: Int = 0,
+        lifecycle: LogicalNodeLifecycle = .unregistered
+    ) throws -> LogicalNodeState {
+        try LogicalNodeState(
+            logicalNodeID: logicalID(id),
+            kind: .bookmark,
+            title: title,
+            url: URL(string: url),
+            parentID: logicalID(parent),
+            position: position,
+            lifecycle: lifecycle,
+            observations: []
         )
-    }
-
-    static func observation(
-        sourceID: BSESourceID,
-        provisionalID: LogicalNodeID,
-        presence: BaselineObservationPresence = .present,
-        recognitionArtifacts: [RecognitionArtifact] = []
-    ) throws -> BaselineObservation {
-        try BaselineObservation(
-            sourceID: sourceID,
-            provisionalLogicalID: provisionalID,
-            recognitionArtifacts: recognitionArtifacts,
-            firstObservedAt: Date(timeIntervalSince1970: 10),
-            lastObservedAt: Date(timeIntervalSince1970: 10),
-            presence: presence
-        )
-    }
-
-    static func snapshot(
-        sourceID: BSESourceID,
-        logicalIDs: [LogicalNodeID]
-    ) throws -> LogicalSnapshot {
-        LogicalSnapshot(
-            source: sourceID,
-            capturedAt: Date(timeIntervalSince1970: 20),
-            tree: try BSETree(nodes: logicalIDs.enumerated().map { index, logicalID in
-                try BSENode(
-                    logicalID: logicalID,
-                    kind: .folder,
-                    title: "Folder \(index)",
-                    position: index
-                )
-            })
-        )
-    }
-
-    static func bookmarkSnapshot(
-        sourceID: BSESourceID,
-        logicalID: LogicalNodeID
-    ) throws -> LogicalSnapshot {
-        let rootID = LogicalNodeID(uuid(800))
-        return LogicalSnapshot(
-            source: sourceID,
-            capturedAt: Date(timeIntervalSince1970: 20),
-            tree: try BSETree(nodes: [
-                BSENode(
-                    logicalID: rootID,
-                    kind: .folder,
-                    title: "Root",
-                    position: 0
-                ),
-                BSENode(
-                    logicalID: logicalID,
-                    kind: .bookmark,
-                    title: "Bookmark",
-                    parentID: rootID,
-                    position: 0,
-                    url: URL(string: "https://example.com")
-                ),
-            ])
-        )
-    }
-
-    static func sourceID(_ value: Int) -> BSESourceID {
-        BSESourceID(uuid(value))
     }
 
     static func logicalID(_ value: Int) -> LogicalNodeID {
-        LogicalNodeID(uuid(value))
-    }
-
-    static func uuid(_ value: Int) -> UUID {
-        UUID(uuidString: String(format: "00000000-0000-0000-0000-%012d", value))!
+        LogicalNodeID(UUID(uuidString: String(
+            format: "00000000-0000-0000-0000-%012d",
+            value
+        ))!)
     }
 }

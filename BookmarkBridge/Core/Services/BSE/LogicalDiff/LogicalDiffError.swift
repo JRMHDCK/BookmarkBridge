@@ -3,10 +3,12 @@
 //  BookmarkBridge
 //
 
+nonisolated enum LogicalDiffGraph: Hashable, Codable, Sendable {
+    case before
+    case after
+}
+
 nonisolated enum LogicalDiffError: Error, Hashable, Sendable {
-    case invalidBaseline
-    case invalidLogicalSnapshot(BSESourceID)
-    case duplicateLogicalNode(logicalNodeID: LogicalNodeID, sourceID: BSESourceID)
-    case duplicateObservation(logicalNodeID: LogicalNodeID, sourceID: BSESourceID)
+    case duplicateLogicalNode(logicalNodeID: LogicalNodeID, graph: LogicalDiffGraph)
     case inconsistentState(LogicalNodeID)
 }

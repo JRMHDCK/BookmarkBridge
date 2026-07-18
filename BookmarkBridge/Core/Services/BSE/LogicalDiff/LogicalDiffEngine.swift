@@ -3,283 +3,121 @@
 //  BookmarkBridge
 //
 
-import Foundation
-
-/// Pure comparison of the durable identity registry with logical source views.
-/// It observes presence only and never interprets node content or artifacts.
+/// Pure comparison of two immutable logical state graphs.
 nonisolated struct LogicalDiffEngine: Sendable {
     init() {}
 
     func diff(
         request: LogicalDiffRequest
     ) throws -> LogicalDiffResult {
-        try validate(request.baseline)
-        let snapshotState = try validatedSnapshotState(request.logicalSnapshots)
-        let baselineIDs = Set(request.baseline.identityRecords.map(\.logicalNodeID))
-        let observedIDs = Set(snapshotState.kindsByIdentity.keys)
+        let before = try validatedIndex(request.before, graph: .before)
+        let after = try validatedIndex(request.after, graph: .after)
+        let allIDs = Set(before.keys).union(after.keys).sorted()
+        var changes: [LogicalChange] = []
+        var unchangedNodeCount = 0
 
-        var identityChanges: [LogicalIdentityChange] = []
-        var observationChanges: [LogicalObservationChange] = []
-        var unchangedIdentityIDs: [LogicalNodeID] = []
-
-        for logicalNodeID in observedIDs.subtracting(baselineIDs).sorted() {
-            identityChanges.append(.created(logicalNodeID: logicalNodeID))
-            for sourceID in snapshotState.sourcesContaining(logicalNodeID) {
-                observationChanges.append(.added(
+        for logicalNodeID in allIDs {
+            switch (before[logicalNodeID], after[logicalNodeID]) {
+            case (nil, let afterNode?):
+                changes.append(.created(CreatedChange(after: afterNode)))
+            case (let beforeNode?, nil):
+                changes.append(.deleted(DeletedChange(before: beforeNode)))
+            case (let beforeNode?, let afterNode?):
+                let nodeChanges = try makeChanges(
                     logicalNodeID: logicalNodeID,
-                    sourceID: sourceID
-                ))
+                    before: beforeNode,
+                    after: afterNode
+                )
+                changes.append(contentsOf: nodeChanges)
+                if nodeChanges.isEmpty {
+                    unchangedNodeCount += 1
+                }
+            case (nil, nil):
+                throw LogicalDiffError.inconsistentState(logicalNodeID)
             }
         }
 
-        for record in request.baseline.identityRecords {
-            let changes = try makeObservationChanges(
-                for: record,
-                requestedSourceIDs: snapshotState.requestedSourceIDs,
-                observedBySource: snapshotState.observedBySource
-            )
-            observationChanges.append(contentsOf: changes)
-
-            let observedSources = snapshotState.sourcesContaining(record.logicalNodeID)
-            if record.state != .active, !observedSources.isEmpty {
-                identityChanges.append(.reactivated(
-                    logicalNodeID: record.logicalNodeID,
-                    previousState: record.state
-                ))
-            } else if shouldArchive(
-                record,
-                requestedSourceIDs: Set(snapshotState.requestedSourceIDs),
-                observedSources: observedSources
-            ) {
-                identityChanges.append(.archived(
-                    logicalNodeID: record.logicalNodeID
-                ))
-            } else if !changes.isEmpty {
-                identityChanges.append(.updated(
-                    logicalNodeID: record.logicalNodeID
-                ))
-            } else {
-                unchangedIdentityIDs.append(record.logicalNodeID)
-            }
-        }
-
-        identityChanges.sort(by: identityChangeOrder)
-        observationChanges.sort(by: observationChangeOrder)
-        unchangedIdentityIDs.sort()
-        let report = makeReport(
-            baseline: request.baseline,
-            snapshotState: snapshotState,
-            identityChanges: identityChanges,
-            observationChanges: observationChanges,
-            unchangedIdentityIDs: unchangedIdentityIDs
+        let report = LogicalDiffReport(
+            beforeNodeCount: before.count,
+            afterNodeCount: after.count,
+            unchangedNodeCount: unchangedNodeCount,
+            createdCount: changes.count(of: .created),
+            deletedCount: changes.count(of: .deleted),
+            renamedCount: changes.count(of: .renamed),
+            urlChangedCount: changes.count(of: .urlChanged),
+            movedCount: changes.count(of: .moved),
+            reorderedCount: changes.count(of: .reordered),
+            lifecycleChangedCount: changes.count(of: .lifecycleChanged)
         )
-        return LogicalDiffResult(
-            identityChanges: identityChanges,
-            observationChanges: observationChanges,
-            unchangedIdentityIDs: unchangedIdentityIDs,
-            report: report
-        )
+        return LogicalDiffResult(changes: changes, report: report)
     }
 
-    private func validate(_ baseline: Baseline) throws {
-        guard baseline.schemaVersion == .current else {
-            throw LogicalDiffError.invalidBaseline
-        }
-        var identityIDs: Set<LogicalNodeID> = []
-        for record in baseline.identityRecords {
-            guard identityIDs.insert(record.logicalNodeID).inserted else {
-                throw LogicalDiffError.invalidBaseline
-            }
-            var sourceIDs: Set<BSESourceID> = []
-            for observation in record.observations {
-                guard sourceIDs.insert(observation.sourceID).inserted else {
-                    throw LogicalDiffError.duplicateObservation(
-                        logicalNodeID: record.logicalNodeID,
-                        sourceID: observation.sourceID
-                    )
-                }
-            }
-        }
-    }
-
-    private func validatedSnapshotState(
-        _ snapshots: [LogicalSnapshot]
-    ) throws -> SnapshotState {
-        var observedBySource: [BSESourceID: Set<LogicalNodeID>] = [:]
-        var kindsByIdentity: [LogicalNodeID: NodeKind] = [:]
-
-        for snapshot in snapshots.sorted(by: snapshotOrder) {
-            guard observedBySource[snapshot.source] == nil else {
-                let duplicates = observedBySource[snapshot.source, default: []]
-                    .intersection(snapshot.tree.nodes.map(\.logicalID))
-                if let duplicate = duplicates.sorted().first {
-                    throw LogicalDiffError.duplicateLogicalNode(
-                        logicalNodeID: duplicate,
-                        sourceID: snapshot.source
-                    )
-                }
-                throw LogicalDiffError.invalidLogicalSnapshot(snapshot.source)
-            }
-
-            var sourceIDs: Set<LogicalNodeID> = []
-            for node in snapshot.tree.nodes {
-                guard sourceIDs.insert(node.logicalID).inserted else {
-                    throw LogicalDiffError.duplicateLogicalNode(
-                        logicalNodeID: node.logicalID,
-                        sourceID: snapshot.source
-                    )
-                }
-                if let existingKind = kindsByIdentity[node.logicalID],
-                   existingKind != node.kind {
-                    throw LogicalDiffError.inconsistentState(node.logicalID)
-                }
-                kindsByIdentity[node.logicalID] = node.kind
-            }
-            observedBySource[snapshot.source] = sourceIDs
-        }
-
-        return SnapshotState(
-            observedBySource: observedBySource,
-            kindsByIdentity: kindsByIdentity
-        )
-    }
-
-    private func makeObservationChanges(
-        for record: IdentityRecord,
-        requestedSourceIDs: [BSESourceID],
-        observedBySource: [BSESourceID: Set<LogicalNodeID>]
-    ) throws -> [LogicalObservationChange] {
-        var observations: [BSESourceID: BaselineObservation] = [:]
-        for observation in record.observations {
-            guard observations.updateValue(
-                observation,
-                forKey: observation.sourceID
-            ) == nil else {
-                throw LogicalDiffError.duplicateObservation(
-                    logicalNodeID: record.logicalNodeID,
-                    sourceID: observation.sourceID
+    private func validatedIndex(
+        _ graph: LogicalStateGraph,
+        graph graphSide: LogicalDiffGraph
+    ) throws -> [LogicalNodeID: LogicalNodeState] {
+        var index: [LogicalNodeID: LogicalNodeState] = [:]
+        for node in graph.nodes {
+            guard index.updateValue(node, forKey: node.logicalNodeID) == nil else {
+                throw LogicalDiffError.duplicateLogicalNode(
+                    logicalNodeID: node.logicalNodeID,
+                    graph: graphSide
                 )
             }
         }
+        return index
+    }
 
-        return requestedSourceIDs.compactMap { sourceID in
-            let isObserved = observedBySource[sourceID, default: []].contains(
-                record.logicalNodeID
-            )
-            switch (observations[sourceID]?.presence, isObserved) {
-            case (nil, true):
-                return .added(logicalNodeID: record.logicalNodeID, sourceID: sourceID)
-            case (.absent, true):
-                return .restored(logicalNodeID: record.logicalNodeID, sourceID: sourceID)
-            case (.present, false):
-                return .removed(logicalNodeID: record.logicalNodeID, sourceID: sourceID)
-            default:
-                return nil
-            }
+    private func makeChanges(
+        logicalNodeID: LogicalNodeID,
+        before: LogicalNodeState,
+        after: LogicalNodeState
+    ) throws -> [LogicalChange] {
+        guard before.kind == after.kind else {
+            throw LogicalDiffError.inconsistentState(logicalNodeID)
         }
-    }
-
-    private func shouldArchive(
-        _ record: IdentityRecord,
-        requestedSourceIDs: Set<BSESourceID>,
-        observedSources: [BSESourceID]
-    ) -> Bool {
-        guard record.state == .active, observedSources.isEmpty else { return false }
-        let presentObservationSources = Set(record.observations.compactMap {
-            $0.presence == .present ? $0.sourceID : nil
-        })
-        return !presentObservationSources.isEmpty
-            && presentObservationSources.isSubset(of: requestedSourceIDs)
-    }
-
-    private func identityChangeOrder(
-        _ lhs: LogicalIdentityChange,
-        _ rhs: LogicalIdentityChange
-    ) -> Bool {
-        if lhs.logicalNodeID != rhs.logicalNodeID {
-            return lhs.logicalNodeID < rhs.logicalNodeID
+        var changes: [LogicalChange] = []
+        if before.title != after.title {
+            changes.append(.renamed(RenamedChange(
+                logicalNodeID: logicalNodeID,
+                before: before.title,
+                after: after.title
+            )))
         }
-        return identityChangeRank(lhs) < identityChangeRank(rhs)
-    }
-
-    private func identityChangeRank(_ change: LogicalIdentityChange) -> Int {
-        switch change {
-        case .created: 0
-        case .updated: 1
-        case .archived: 2
-        case .reactivated: 3
+        if before.url != after.url {
+            changes.append(.urlChanged(URLChangedChange(
+                logicalNodeID: logicalNodeID,
+                before: before.url,
+                after: after.url
+            )))
         }
-    }
-
-    private func observationChangeOrder(
-        _ lhs: LogicalObservationChange,
-        _ rhs: LogicalObservationChange
-    ) -> Bool {
-        if lhs.logicalNodeID != rhs.logicalNodeID {
-            return lhs.logicalNodeID < rhs.logicalNodeID
+        if before.parentID != after.parentID {
+            changes.append(.moved(MovedChange(
+                logicalNodeID: logicalNodeID,
+                before: before.parentID,
+                after: after.parentID
+            )))
         }
-        let lhsSource = lhs.sourceID.rawValue.uuidString
-        let rhsSource = rhs.sourceID.rawValue.uuidString
-        if lhsSource != rhsSource { return lhsSource < rhsSource }
-        return observationChangeRank(lhs) < observationChangeRank(rhs)
-    }
-
-    private func observationChangeRank(_ change: LogicalObservationChange) -> Int {
-        switch change {
-        case .added: 0
-        case .removed: 1
-        case .restored: 2
+        if before.position != after.position {
+            changes.append(.reordered(ReorderedChange(
+                logicalNodeID: logicalNodeID,
+                before: before.position,
+                after: after.position
+            )))
         }
-    }
-
-    private func snapshotOrder(_ lhs: LogicalSnapshot, _ rhs: LogicalSnapshot) -> Bool {
-        lhs.source.rawValue.uuidString < rhs.source.rawValue.uuidString
-    }
-
-    private func makeReport(
-        baseline: Baseline,
-        snapshotState: SnapshotState,
-        identityChanges: [LogicalIdentityChange],
-        observationChanges: [LogicalObservationChange],
-        unchangedIdentityIDs: [LogicalNodeID]
-    ) -> LogicalDiffReport {
-        LogicalDiffReport(
-            requestedSourceIDs: snapshotState.requestedSourceIDs,
-            baselineIdentityCount: baseline.identityRecords.count,
-            observedIdentityCount: snapshotState.kindsByIdentity.count,
-            createdIdentityCount: identityChanges.count {
-                if case .created = $0 { true } else { false }
-            },
-            updatedIdentityCount: identityChanges.count {
-                if case .updated = $0 { true } else { false }
-            },
-            archivedIdentityCount: identityChanges.count {
-                if case .archived = $0 { true } else { false }
-            },
-            reactivatedIdentityCount: identityChanges.count {
-                if case .reactivated = $0 { true } else { false }
-            },
-            observationChangeCount: observationChanges.count,
-            unchangedIdentityCount: unchangedIdentityIDs.count
-        )
+        if before.lifecycle != after.lifecycle {
+            changes.append(.lifecycleChanged(LifecycleChangedChange(
+                logicalNodeID: logicalNodeID,
+                before: before.lifecycle,
+                after: after.lifecycle
+            )))
+        }
+        return changes
     }
 }
 
-private nonisolated struct SnapshotState: Sendable {
-    let observedBySource: [BSESourceID: Set<LogicalNodeID>]
-    let kindsByIdentity: [LogicalNodeID: NodeKind]
-
-    var requestedSourceIDs: [BSESourceID] {
-        observedBySource.keys.sorted {
-            $0.rawValue.uuidString < $1.rawValue.uuidString
-        }
-    }
-
-    func sourcesContaining(_ logicalNodeID: LogicalNodeID) -> [BSESourceID] {
-        observedBySource.compactMap { sourceID, logicalNodeIDs in
-            logicalNodeIDs.contains(logicalNodeID) ? sourceID : nil
-        }.sorted {
-            $0.rawValue.uuidString < $1.rawValue.uuidString
-        }
+private nonisolated extension Array where Element == LogicalChange {
+    func count(of kind: LogicalChange.Kind) -> Int {
+        count { $0.kind == kind }
     }
 }

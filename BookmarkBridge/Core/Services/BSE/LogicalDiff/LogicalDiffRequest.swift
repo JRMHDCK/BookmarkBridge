@@ -4,6 +4,6 @@
 //
 
 nonisolated struct LogicalDiffRequest: Hashable, Sendable {
-    let baseline: Baseline
-    let logicalSnapshots: [LogicalSnapshot]
+    let before: LogicalStateGraph
+    let after: LogicalStateGraph
 }
