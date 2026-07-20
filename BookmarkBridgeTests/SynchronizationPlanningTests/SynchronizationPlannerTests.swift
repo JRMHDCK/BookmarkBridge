@@ -76,6 +76,152 @@ struct SynchronizationPlannerTests {
         ))])
     }
 
+    @Test("A single bookmark deletion is planned without deleting its parent")
+    func bookmarkDeletion() throws {
+        let root = try PlanningTestSupport.folder(id: 10)
+        let bookmark = try PlanningTestSupport.bookmark(id: 1, parent: 10)
+
+        let plan = try PlanningTestSupport.plan(
+            before: [root, bookmark],
+            after: [root]
+        )
+
+        #expect(plan.phases[3].operations == [.delete(DeleteNodeOperation(
+            logicalNodeID: bookmark.logicalNodeID
+        ))])
+    }
+
+    @Test("A deleted subtree is explicit and ordered children before parents")
+    func subtreeDeletionOrder() throws {
+        let root = try PlanningTestSupport.folder(id: 10)
+        let folder = try PlanningTestSupport.folder(id: 1, parent: 10)
+        let subfolder = try PlanningTestSupport.folder(id: 9, parent: 1)
+        let bookmark = try PlanningTestSupport.bookmark(id: 2, parent: 9)
+
+        let plan = try PlanningTestSupport.plan(
+            before: [root, folder, subfolder, bookmark],
+            after: [root]
+        )
+
+        #expect(plan.phases[3].operations.map(\.logicalNodeID) == [
+            bookmark.logicalNodeID,
+            subfolder.logicalNodeID,
+            folder.logicalNodeID,
+        ])
+        #expect(plan.phases[3].operations.count == 3)
+        #expect(plan.phases[3].operations.allSatisfy {
+            if case .delete = $0 { true } else { false }
+        })
+    }
+
+    @Test("Independent branches use depth then logical identity")
+    func independentBranchDeletionOrder() throws {
+        let root = try PlanningTestSupport.folder(id: 20)
+        let firstFolder = try PlanningTestSupport.folder(id: 8, parent: 20)
+        let firstChild = try PlanningTestSupport.bookmark(id: 7, parent: 8)
+        let secondFolder = try PlanningTestSupport.folder(id: 1, parent: 20)
+        let secondChild = try PlanningTestSupport.bookmark(id: 9, parent: 1)
+
+        let plan = try PlanningTestSupport.plan(
+            before: [root, firstFolder, firstChild, secondFolder, secondChild],
+            after: [root]
+        )
+
+        #expect(plan.phases[3].operations.map(\.logicalNodeID) == [
+            firstChild.logicalNodeID,
+            secondChild.logicalNodeID,
+            secondFolder.logicalNodeID,
+            firstFolder.logicalNodeID,
+        ])
+    }
+
+    @Test("Equal-depth deletions are ordered by LogicalNodeID")
+    func equalDepthDeletionOrder() throws {
+        let root = try PlanningTestSupport.folder(id: 10)
+        let higherID = try PlanningTestSupport.bookmark(id: 5, parent: 10)
+        let lowerID = try PlanningTestSupport.bookmark(id: 2, parent: 10)
+
+        let plan = try PlanningTestSupport.plan(
+            before: [root, higherID, lowerID],
+            after: [root]
+        )
+
+        #expect(plan.phases[3].operations.map(\.logicalNodeID) == [
+            lowerID.logicalNodeID,
+            higherID.logicalNodeID,
+        ])
+    }
+
+    @Test("Delete ordering is deterministic for reordered diff input")
+    func deterministicDeletionOrder() throws {
+        let root = try PlanningTestSupport.folder(id: 10)
+        let folder = try PlanningTestSupport.folder(id: 8, parent: 10)
+        let child = try PlanningTestSupport.bookmark(id: 1, parent: 8)
+        let before = [root, folder, child]
+        let diff = try PlanningTestSupport.diff(before: before, after: [root])
+        let reversed = LogicalDiffResult(
+            changes: Array(diff.changes.reversed()),
+            report: diff.report
+        )
+
+        let first = try PlanningTestSupport.plan(diff: diff, before: before)
+        let second = try PlanningTestSupport.plan(diff: reversed, before: before)
+
+        #expect(first == second)
+    }
+
+    @Test("Missing deleted nodes fail explicitly")
+    func missingDeletedNode() throws {
+        let deleted = try PlanningTestSupport.folder(id: 1)
+        let diff = LogicalDiffResult(
+            changes: [.deleted(DeletedChange(before: deleted))],
+            report: LogicalDiffReport(
+                beforeNodeCount: 1,
+                afterNodeCount: 0,
+                unchangedNodeCount: 0,
+                createdCount: 0,
+                deletedCount: 1,
+                renamedCount: 0,
+                urlChangedCount: 0,
+                movedCount: 0,
+                reorderedCount: 0,
+                lifecycleChangedCount: 0
+            )
+        )
+
+        #expect(throws: SynchronizationPlanningError.missingDeletedNode(
+            deleted.logicalNodeID
+        )) {
+            _ = try PlanningTestSupport.plan(diff: diff, before: [])
+        }
+    }
+
+    @Test("Depth resolution fails explicitly for a missing parent")
+    func missingParentDuringDepthResolution() throws {
+        let node = try PlanningTestSupport.bookmark(id: 1, parent: 2)
+        var resolver = DeletionDepthResolver(nodes: [node])
+
+        #expect(throws: SynchronizationPlanningError.missingParent(
+            logicalNodeID: node.logicalNodeID,
+            parentID: PlanningTestSupport.logicalID(2)
+        )) {
+            _ = try resolver.depth(for: node.logicalNodeID)
+        }
+    }
+
+    @Test("Depth resolution fails explicitly for a parent cycle")
+    func cycleDuringDepthResolution() throws {
+        let first = try PlanningTestSupport.folder(id: 1, parent: 2)
+        let second = try PlanningTestSupport.folder(id: 2, parent: 1)
+        var resolver = DeletionDepthResolver(nodes: [first, second])
+
+        #expect(throws: SynchronizationPlanningError.parentCycle(
+            first.logicalNodeID
+        )) {
+            _ = try resolver.depth(for: first.logicalNodeID)
+        }
+    }
+
     @Test("Rename and URL changes are planned independently in content")
     func contentChanges() throws {
         let root = try PlanningTestSupport.folder(id: 1)
@@ -162,6 +308,7 @@ struct SynchronizationPlannerTests {
         let diff = try PlanningTestSupport.diff(before: [before], after: [after])
         let deletePlan = try PlanningTestSupport.plan(
             diff: diff,
+            before: [before],
             policy: SynchronizationPolicy(
                 changeSelection: .allChanges,
                 deletedLifecycleHandling: .delete
@@ -169,6 +316,7 @@ struct SynchronizationPlannerTests {
         )
         let archivePlan = try PlanningTestSupport.plan(
             diff: diff,
+            before: [before],
             policy: SynchronizationPolicy(
                 changeSelection: .allChanges,
                 deletedLifecycleHandling: .archive
@@ -187,6 +335,7 @@ struct SynchronizationPlannerTests {
         )) {
             _ = try PlanningTestSupport.plan(
                 diff: diff,
+                before: [before],
                 policy: SynchronizationPolicy(
                     changeSelection: .allChanges,
                     deletedLifecycleHandling: .reject
@@ -321,14 +470,16 @@ struct SynchronizationPlannerTests {
         )
 
         #expect(throws: SynchronizationPlanningError.inconsistentPlan) {
-            _ = try PlanningTestSupport.plan(diff: diff)
+            _ = try PlanningTestSupport.plan(diff: diff, before: [node])
         }
     }
 
     @Test("Planner and models satisfy Swift Concurrency boundaries")
     func strictConcurrency() throws {
+        let before = try PlanningTestSupport.graph(nodes: [])
         let diff = try PlanningTestSupport.diff(before: [], after: [])
         let request = SynchronizationPlanningRequest(
+            before: before,
             logicalDiff: diff,
             policy: .allChanges
         )
@@ -361,14 +512,28 @@ private enum PlanningTestSupport {
         after: [LogicalNodeState],
         policy: SynchronizationPolicy = .allChanges
     ) throws -> SynchronizationPlan {
-        try plan(diff: diff(before: before, after: after), policy: policy)
+        let beforeGraph = try graph(nodes: before)
+        let afterGraph = try graph(nodes: after)
+        let diff = try LogicalDiffEngine().diff(request: LogicalDiffRequest(
+            before: beforeGraph,
+            after: afterGraph
+        ))
+        return try SynchronizationPlanner().plan(
+            request: SynchronizationPlanningRequest(
+                before: beforeGraph,
+                logicalDiff: diff,
+                policy: policy
+            )
+        )
     }
 
     static func plan(
         diff: LogicalDiffResult,
+        before: [LogicalNodeState] = [],
         policy: SynchronizationPolicy = .allChanges
     ) throws -> SynchronizationPlan {
         try SynchronizationPlanner().plan(request: SynchronizationPlanningRequest(
+            before: graph(nodes: before),
             logicalDiff: diff,
             policy: policy
         ))
@@ -379,9 +544,15 @@ private enum PlanningTestSupport {
         after: [LogicalNodeState]
     ) throws -> LogicalDiffResult {
         try LogicalDiffEngine().diff(request: LogicalDiffRequest(
-            before: LogicalStateGraph(nodes: before, report: emptyGraphReport),
-            after: LogicalStateGraph(nodes: after, report: emptyGraphReport)
+            before: graph(nodes: before),
+            after: graph(nodes: after)
         ))
+    }
+
+    static func graph(
+        nodes: [LogicalNodeState]
+    ) throws -> LogicalStateGraph {
+        try LogicalStateGraph(nodes: nodes, report: emptyGraphReport)
     }
 
     static func report(
@@ -406,6 +577,7 @@ private enum PlanningTestSupport {
         id: Int,
         title: String = "Folder",
         position: Int = 0,
+        parent: Int? = nil,
         lifecycle: LogicalNodeLifecycle = .unregistered
     ) throws -> LogicalNodeState {
         try LogicalNodeState(
@@ -413,7 +585,7 @@ private enum PlanningTestSupport {
             kind: .folder,
             title: title,
             url: nil,
-            parentID: nil,
+            parentID: parent.map(logicalID),
             position: position,
             lifecycle: lifecycle,
             observations: []

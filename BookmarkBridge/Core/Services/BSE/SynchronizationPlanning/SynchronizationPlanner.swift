@@ -42,6 +42,10 @@ nonisolated struct SynchronizationPlanner: Sendable {
         structural.sort(by: operationOrder)
         content.sort(by: operationOrder)
         cleanup.sort(by: operationOrder)
+        cleanup = try orderDeleteOperations(
+            in: cleanup,
+            before: request.before
+        )
         let phases: [SynchronizationPhase] = [
             .preparation(preparation),
             .structural(structural),
@@ -201,6 +205,48 @@ nonisolated struct SynchronizationPlanner: Sendable {
         return lhs.rank < rhs.rank
     }
 
+    /// Reorders only delete slots. Every non-delete cleanup operation retains
+    /// the exact position assigned by the existing deterministic ordering.
+    private func orderDeleteOperations(
+        in operations: [SynchronizationOperation],
+        before: LogicalStateGraph
+    ) throws -> [SynchronizationOperation] {
+        var resolver = DeletionDepthResolver(nodes: before.nodes)
+        var orderedDeletes: [(operation: SynchronizationOperation, depth: Int)] = []
+
+        for operation in operations {
+            guard case .delete = operation else { continue }
+            orderedDeletes.append((
+                operation: operation,
+                depth: try resolver.depth(for: operation.logicalNodeID)
+            ))
+        }
+        orderedDeletes.sort { lhs, rhs in
+            if lhs.depth != rhs.depth {
+                return lhs.depth > rhs.depth
+            }
+            return lhs.operation.logicalNodeID < rhs.operation.logicalNodeID
+        }
+
+        var iterator = orderedDeletes.map(\.operation).makeIterator()
+        var result: [SynchronizationOperation] = []
+        result.reserveCapacity(operations.count)
+        for operation in operations {
+            guard case .delete = operation else {
+                result.append(operation)
+                continue
+            }
+            guard let orderedDelete = iterator.next() else {
+                throw SynchronizationPlanningError.inconsistentPlan
+            }
+            result.append(orderedDelete)
+        }
+        guard iterator.next() == nil else {
+            throw SynchronizationPlanningError.inconsistentPlan
+        }
+        return result
+    }
+
     private func validatePlan(_ phases: [SynchronizationPhase]) throws {
         guard phases.count == 4,
               case .preparation = phases[0],
@@ -225,6 +271,60 @@ nonisolated struct SynchronizationPlanner: Sendable {
                 throw SynchronizationPlanningError.inconsistentPlan
             }
         }
+    }
+}
+
+/// Ephemeral depth calculation owned by the Planner. No derived depth is stored
+/// in domain models or persisted beyond one planning call.
+nonisolated struct DeletionDepthResolver {
+    private let nodesByID: [LogicalNodeID: LogicalNodeState]
+    private var resolvedDepths: [LogicalNodeID: Int] = [:]
+
+    init(nodes: [LogicalNodeState]) {
+        nodesByID = Dictionary(
+            nodes.map { ($0.logicalNodeID, $0) },
+            uniquingKeysWith: { first, _ in first }
+        )
+    }
+
+    mutating func depth(for logicalNodeID: LogicalNodeID) throws -> Int {
+        guard nodesByID[logicalNodeID] != nil else {
+            throw SynchronizationPlanningError.missingDeletedNode(logicalNodeID)
+        }
+        return try resolve(logicalNodeID, path: [])
+    }
+
+    private mutating func resolve(
+        _ logicalNodeID: LogicalNodeID,
+        path: Set<LogicalNodeID>
+    ) throws -> Int {
+        if let depth = resolvedDepths[logicalNodeID] {
+            return depth
+        }
+        guard let node = nodesByID[logicalNodeID] else {
+            throw SynchronizationPlanningError.missingDeletedNode(logicalNodeID)
+        }
+        guard !path.contains(logicalNodeID) else {
+            throw SynchronizationPlanningError.parentCycle(logicalNodeID)
+        }
+        guard let parentID = node.parentID else {
+            resolvedDepths[logicalNodeID] = 0
+            return 0
+        }
+        guard nodesByID[parentID] != nil else {
+            throw SynchronizationPlanningError.missingParent(
+                logicalNodeID: logicalNodeID,
+                parentID: parentID
+            )
+        }
+
+        let parentDepth = try resolve(
+            parentID,
+            path: path.union([logicalNodeID])
+        )
+        let depth = parentDepth + 1
+        resolvedDepths[logicalNodeID] = depth
+        return depth
     }
 }
 
