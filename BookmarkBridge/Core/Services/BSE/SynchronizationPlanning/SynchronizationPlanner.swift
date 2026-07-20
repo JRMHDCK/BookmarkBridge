@@ -11,6 +11,11 @@ nonisolated struct SynchronizationPlanner: Sendable {
         request: SynchronizationPlanningRequest
     ) throws -> SynchronizationPlan {
         try validate(request.logicalDiff)
+        let moveTargetPositions = try resolveMoveTargetPositions(
+            diff: request.logicalDiff,
+            before: request.before,
+            policy: request.policy
+        )
         var preparation: [SynchronizationOperation] = []
         var structural: [SynchronizationOperation] = []
         var content: [SynchronizationOperation] = []
@@ -22,9 +27,17 @@ nonisolated struct SynchronizationPlanner: Sendable {
                 skippedChangeCount += 1
                 continue
             }
+            // A move carries the complete structural destination. When the
+            // diff also reports a position change, that reorder is consumed
+            // here instead of producing a contradictory second mutation.
+            if case .reordered = change,
+               moveTargetPositions[change.logicalNodeID] != nil {
+                continue
+            }
             let operation = try makeOperation(
                 for: change,
-                policy: request.policy
+                policy: request.policy,
+                moveTargetPositions: moveTargetPositions
             )
             switch operation {
             case .create:
@@ -113,7 +126,8 @@ nonisolated struct SynchronizationPlanner: Sendable {
 
     private func makeOperation(
         for change: LogicalChange,
-        policy: SynchronizationPolicy
+        policy: SynchronizationPolicy,
+        moveTargetPositions: [LogicalNodeID: Int]
     ) throws -> SynchronizationOperation {
         switch change {
         case .created(let change):
@@ -151,9 +165,13 @@ nonisolated struct SynchronizationPlanner: Sendable {
                 url: url
             ))
         case .moved(let change):
+            guard let position = moveTargetPositions[change.logicalNodeID] else {
+                throw SynchronizationPlanningError.invalidLogicalDiff
+            }
             return .move(MoveNodeOperation(
                 logicalNodeID: change.logicalNodeID,
-                parentID: change.after
+                parentID: change.after,
+                position: position
             ))
         case .reordered(let change):
             guard let position = change.after, position >= 0 else {
@@ -193,6 +211,53 @@ nonisolated struct SynchronizationPlanner: Sendable {
                 throw SynchronizationPlanningError.unsupportedChange(change.logicalNodeID)
             }
         }
+    }
+
+    /// A complete move destination is reconstructed from the exhaustive diff:
+    /// an accompanying reorder carries the changed target position; otherwise
+    /// the absence of a reorder means the position is unchanged from `before`.
+    private func resolveMoveTargetPositions(
+        diff: LogicalDiffResult,
+        before: LogicalStateGraph,
+        policy: SynchronizationPolicy
+    ) throws -> [LogicalNodeID: Int] {
+        let nodesBefore = Dictionary(
+            uniqueKeysWithValues: before.nodes.map { ($0.logicalNodeID, $0) }
+        )
+        let includedMovedIDs = Set<LogicalNodeID>(diff.changes.compactMap { change in
+            guard case .moved(let moved) = change,
+                  includes(change, policy: policy) else {
+                return nil
+            }
+            return moved.logicalNodeID
+        })
+        var reorderedPositions: [LogicalNodeID: Int] = [:]
+        for change in diff.changes {
+            guard case .reordered(let reordered) = change,
+                  includedMovedIDs.contains(reordered.logicalNodeID) else { continue }
+            guard let position = reordered.after, position >= 0 else {
+                throw SynchronizationPlanningError.invalidLogicalDiff
+            }
+            reorderedPositions[reordered.logicalNodeID] = position
+        }
+
+        var targetPositions: [LogicalNodeID: Int] = [:]
+        for change in diff.changes {
+            guard case .moved(let moved) = change,
+                  includedMovedIDs.contains(moved.logicalNodeID) else { continue }
+            let position: Int
+            if let reorderedPosition = reorderedPositions[moved.logicalNodeID] {
+                position = reorderedPosition
+            } else {
+                guard let beforePosition = nodesBefore[moved.logicalNodeID]?.position,
+                      beforePosition >= 0 else {
+                    throw SynchronizationPlanningError.invalidLogicalDiff
+                }
+                position = beforePosition
+            }
+            targetPositions[moved.logicalNodeID] = position
+        }
+        return targetPositions
     }
 
     private func operationOrder(
@@ -267,7 +332,8 @@ nonisolated struct SynchronizationPlanner: Sendable {
         for ranks in ranksByIdentity.values {
             guard !(ranks.contains(0) && ranks.count > 1),
                   !(ranks.contains(6) && ranks.count > 1),
-                  !(ranks.contains(5) && ranks.contains(6)) else {
+                  !(ranks.contains(5) && ranks.contains(6)),
+                  !(ranks.contains(1) && ranks.contains(2)) else {
                 throw SynchronizationPlanningError.inconsistentPlan
             }
         }

@@ -254,7 +254,7 @@ struct SynchronizationPlannerTests {
         ])
     }
 
-    @Test("Move and reorder changes are planned independently in structural")
+    @Test("Move and reorder changes become one complete move destination")
     func structuralChanges() throws {
         let firstParent = try PlanningTestSupport.folder(id: 1)
         let secondParent = try PlanningTestSupport.folder(id: 2)
@@ -268,13 +268,98 @@ struct SynchronizationPlannerTests {
         #expect(plan.phases[1].operations == [
             .move(MoveNodeOperation(
                 logicalNodeID: before.logicalNodeID,
-                parentID: secondParent.logicalNodeID
-            )),
-            .reorder(ReorderNodeOperation(
-                logicalNodeID: before.logicalNodeID,
+                parentID: secondParent.logicalNodeID,
                 position: 4
             )),
         ])
+        #expect(plan.report.inputChangeCount == 2)
+        #expect(plan.report.plannedOperationCount == 1)
+        #expect(plan.report.skippedChangeCount == 0)
+    }
+
+    @Test("A move without reorder retains the exact unchanged position")
+    func moveWithUnchangedPosition() throws {
+        let firstParent = try PlanningTestSupport.folder(id: 1)
+        let secondParent = try PlanningTestSupport.folder(id: 2)
+        let before = try PlanningTestSupport.bookmark(id: 3, parent: 1, position: 2)
+        let after = try PlanningTestSupport.bookmark(id: 3, parent: 2, position: 2)
+        let plan = try PlanningTestSupport.plan(
+            before: [firstParent, secondParent, before],
+            after: [firstParent, secondParent, after]
+        )
+
+        #expect(plan.phases[1].operations == [.move(MoveNodeOperation(
+            logicalNodeID: before.logicalNodeID,
+            parentID: secondParent.logicalNodeID,
+            position: 2
+        ))])
+    }
+
+    @Test("A reorder without a parent change remains a reorder")
+    func reorderWithoutMove() throws {
+        let parent = try PlanningTestSupport.folder(id: 1)
+        let before = try PlanningTestSupport.bookmark(id: 2, parent: 1, position: 0)
+        let after = try PlanningTestSupport.bookmark(id: 2, parent: 1, position: 3)
+        let plan = try PlanningTestSupport.plan(
+            before: [parent, before],
+            after: [parent, after]
+        )
+
+        #expect(plan.phases[1].operations == [.reorder(ReorderNodeOperation(
+            logicalNodeID: before.logicalNodeID,
+            position: 3
+        ))])
+    }
+
+    @Test("Move destination consolidation is independent of diff ordering")
+    func deterministicMoveDestination() throws {
+        let firstParent = try PlanningTestSupport.folder(id: 1)
+        let secondParent = try PlanningTestSupport.folder(id: 2)
+        let before = try PlanningTestSupport.bookmark(id: 3, parent: 1, position: 0)
+        let after = try PlanningTestSupport.bookmark(id: 3, parent: 2, position: 4)
+        let beforeNodes = [firstParent, secondParent, before]
+        let diff = try PlanningTestSupport.diff(
+            before: beforeNodes,
+            after: [firstParent, secondParent, after]
+        )
+        let reversed = LogicalDiffResult(
+            changes: Array(diff.changes.reversed()),
+            report: diff.report
+        )
+
+        let first = try PlanningTestSupport.plan(diff: diff, before: beforeNodes)
+        let second = try PlanningTestSupport.plan(diff: reversed, before: beforeNodes)
+
+        #expect(first == second)
+        #expect(first.phases[1].operations.count == 1)
+    }
+
+    @Test("A move without its before node cannot invent a target position")
+    func moveMissingBeforeNode() throws {
+        let logicalNodeID = PlanningTestSupport.logicalID(3)
+        let diff = LogicalDiffResult(
+            changes: [.moved(MovedChange(
+                logicalNodeID: logicalNodeID,
+                before: PlanningTestSupport.logicalID(1),
+                after: PlanningTestSupport.logicalID(2)
+            ))],
+            report: LogicalDiffReport(
+                beforeNodeCount: 1,
+                afterNodeCount: 1,
+                unchangedNodeCount: 0,
+                createdCount: 0,
+                deletedCount: 0,
+                renamedCount: 0,
+                urlChangedCount: 0,
+                movedCount: 1,
+                reorderedCount: 0,
+                lifecycleChangedCount: 0
+            )
+        )
+
+        #expect(throws: SynchronizationPlanningError.invalidLogicalDiff) {
+            _ = try PlanningTestSupport.plan(diff: diff, before: [])
+        }
     }
 
     @Test("Archived lifecycle is planned in cleanup")

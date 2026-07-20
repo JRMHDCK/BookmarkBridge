@@ -31,6 +31,7 @@ nonisolated struct UpdateURLOperation: Hashable, Sendable {
 nonisolated struct MoveNodeOperation: Hashable, Sendable {
     let logicalNodeID: LogicalNodeID
     let parentID: LogicalNodeID?
+    let position: Int
 }
 
 nonisolated struct ReorderNodeOperation: Hashable, Sendable {

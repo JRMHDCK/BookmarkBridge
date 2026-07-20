@@ -322,7 +322,8 @@ private nonisolated enum ExecutionTestSupport {
         )),
         .move(MoveNodeOperation(
             logicalNodeID: logicalID(2),
-            parentID: logicalID(1)
+            parentID: logicalID(1),
+            position: 0
         )),
         .rename(RenameNodeOperation(
             logicalNodeID: logicalID(3),

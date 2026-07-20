@@ -244,7 +244,8 @@ private enum WriteAdapterTestSupport {
         )),
         .move(MoveNodeOperation(
             logicalNodeID: logicalID(1),
-            parentID: logicalID(2)
+            parentID: logicalID(2),
+            position: 0
         )),
         .reorder(ReorderNodeOperation(logicalNodeID: logicalID(1), position: 2)),
         .archive(ArchiveNodeOperation(
