@@ -308,6 +308,10 @@ private actor ControlledExecutionAdapter: BookmarkWriteAdapter {
 private nonisolated enum ExecutionTestSupport {
     static let adapterID = WriteAdapterIdentifier(uuid(900))
     static let sourceID = BSESourceID(uuid(901))
+    static let direction = SynchronizationDirection.oneWay(
+        source: BSESourceID(uuid(902)),
+        target: sourceID
+    )
 
     static let allCapabilities = capabilities()
 
@@ -384,7 +388,7 @@ private nonisolated enum ExecutionTestSupport {
         return SynchronizationPlan(
             phases: phases,
             report: SynchronizationPlanningReport(
-                policy: .allChanges,
+                policy: .allChanges(direction: direction),
                 inputChangeCount: phases.flatMap(\.operations).count,
                 plannedOperationCount: phases.flatMap(\.operations).count,
                 skippedChangeCount: 0,

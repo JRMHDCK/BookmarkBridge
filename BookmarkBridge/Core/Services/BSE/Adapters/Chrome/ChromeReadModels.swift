@@ -13,6 +13,10 @@ nonisolated enum ChromeReadIssue: Hashable, Codable, Sendable {
     case unsupportedNode(path: ChromeRecordPath)
     case duplicateNativeIdentifier(path: ChromeRecordPath)
     case missingNativeIdentifier(path: ChromeRecordPath)
+    case invalidNativeIdentifier(
+        path: ChromeRecordPath,
+        reason: ChromeNativeIdentifierError
+    )
     case unknownNodeType(path: ChromeRecordPath)
 }
 
@@ -43,4 +47,5 @@ nonisolated struct ChromeReadResult: Hashable, Sendable {
     let snapshot: BSESnapshot
     let report: ChromeReadReport
     let issues: [ChromeReadIssue]
+    let nativeIdentityObservations: [NativeIdentityObservation]
 }

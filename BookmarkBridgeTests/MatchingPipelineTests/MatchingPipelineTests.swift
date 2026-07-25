@@ -190,6 +190,83 @@ struct MatchingPipelineTests {
         #expect(result.pipelineReport.matchedGroupCount == 1)
     }
 
+    @Test("Homologous permanent roots share one durable identity from an empty Baseline")
+    func permanentRootsFromEmptyBaselineAreStable() async throws {
+        let durableID = PipelineTestSupport.logicalID(100)
+        let repository = PipelineTestRepository(
+            baseline: try PipelineTestSupport.emptyBaseline()
+        )
+        let provider = PipelineTestIdentityProvider(ids: [durableID])
+        let snapshots = try [
+            PipelineTestSupport.snapshot(
+                sourceID: PipelineTestSupport.sourceID(1),
+                nodeID: PipelineTestSupport.logicalID(1),
+                permanentRootRole: .primaryBookmarks
+            ),
+            PipelineTestSupport.snapshot(
+                sourceID: PipelineTestSupport.sourceID(2),
+                nodeID: PipelineTestSupport.logicalID(2),
+                permanentRootRole: .primaryBookmarks
+            ),
+        ]
+        let pipeline = PipelineTestSupport.pipeline(
+            repository: repository,
+            provider: provider
+        )
+
+        let first = try await pipeline.execute(
+            request: MatchingPipelineRequest(snapshots: snapshots)
+        )
+        let second = try await pipeline.execute(
+            request: MatchingPipelineRequest(snapshots: snapshots)
+        )
+        let third = try await pipeline.execute(
+            request: MatchingPipelineRequest(snapshots: snapshots)
+        )
+
+        #expect(first.baselineAfter.identityRecords.count == 1)
+        #expect(first.baselineAfter.identityRecords[0].observations.count == 2)
+        #expect(first.logicalSnapshots.allSatisfy {
+            $0.tree.nodes.first?.logicalID == durableID
+                && $0.tree.nodes.first?.permanentRootRole == .primaryBookmarks
+        })
+        #expect(second.baselineAfter == first.baselineAfter)
+        #expect(third.baselineAfter == first.baselineAfter)
+        #expect(provider.callCount == 1)
+    }
+
+    @Test("Non-homologous permanent roots remain distinct")
+    func nonHomologousPermanentRootsRemainDistinct() async throws {
+        let firstDurableID = PipelineTestSupport.logicalID(100)
+        let secondDurableID = PipelineTestSupport.logicalID(101)
+        let snapshots = try [
+            PipelineTestSupport.snapshot(
+                sourceID: PipelineTestSupport.sourceID(1),
+                nodeID: PipelineTestSupport.logicalID(1),
+                permanentRootRole: .readingList
+            ),
+            PipelineTestSupport.snapshot(
+                sourceID: PipelineTestSupport.sourceID(2),
+                nodeID: PipelineTestSupport.logicalID(2),
+                permanentRootRole: .mobileBookmarks
+            ),
+        ]
+
+        let result = try await PipelineTestSupport.pipeline(
+            repository: PipelineTestRepository(
+                baseline: try PipelineTestSupport.emptyBaseline()
+            ),
+            provider: PipelineTestIdentityProvider(
+                ids: [firstDurableID, secondDurableID]
+            )
+        ).execute(request: MatchingPipelineRequest(snapshots: snapshots))
+
+        #expect(result.baselineAfter.identityRecords.count == 2)
+        #expect(Set(result.logicalSnapshots.compactMap {
+            $0.tree.nodes.first?.logicalID
+        }).count == 2)
+    }
+
     @Test("A Matching Engine failure stops before reconciliation and transaction")
     func matchingFailure() async throws {
         let repository = PipelineTestRepository(
@@ -520,7 +597,8 @@ private enum PipelineTestSupport {
     static func snapshot(
         sourceID: BSESourceID,
         capturedAt: Date = date(20),
-        nodeID: LogicalNodeID
+        nodeID: LogicalNodeID,
+        permanentRootRole: PermanentRootRole? = nil
     ) throws -> BSESnapshot {
         BSESnapshot(
             source: sourceID,
@@ -528,6 +606,7 @@ private enum PipelineTestSupport {
             tree: try BSETree(nodes: [BSENode(
                 logicalID: nodeID,
                 kind: .folder,
+                permanentRootRole: permanentRootRole,
                 title: "Folder",
                 position: 0
             )])

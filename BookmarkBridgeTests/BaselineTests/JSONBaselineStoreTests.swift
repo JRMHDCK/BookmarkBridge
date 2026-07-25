@@ -122,6 +122,30 @@ struct JSONBaselineStoreTests {
         #expect(!FileManager.default.fileExists(atPath: fileURL.path(percentEncoded: false)))
     }
 
+    @Test("Transaction restoration reinstates the previous JSON Baseline")
+    func transactionRestoration() async throws {
+        let directory = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let fileURL = directory.appending(path: "baseline.json")
+        let store = JSONBaselineStore(fileURL: fileURL)
+        let repository = BaselineRepository(store: store)
+        let original = try BaselineTestSupport.emptyBaseline()
+        try await store.save(original, expectedRevision: nil)
+        let snapshot = try await repository.transactionSnapshot()
+        let updated = try BaselineEngine().apply(
+            commands: [.createIdentity(CreateIdentityCommand(
+                logicalNodeID: BaselineTestSupport.logicalID(1),
+                observations: []
+            ))],
+            to: original
+        ).baseline
+
+        try await store.save(updated, expectedRevision: original.revision)
+        try await repository.restoreTransactionSnapshot(snapshot)
+
+        #expect(try await store.load() == original)
+    }
+
     private func temporaryDirectory() throws -> URL {
         let url = FileManager.default.temporaryDirectory
             .appending(path: "BookmarkBridge-BaselineTests-\(UUID().uuidString)")

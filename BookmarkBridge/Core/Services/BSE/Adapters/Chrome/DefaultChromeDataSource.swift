@@ -285,12 +285,13 @@ nonisolated struct DefaultChromeDataSource: ChromeDataSource {
             return nil
         }
 
-        let nativeIdentifier = dictionary["guid"] as? String
-            ?? dictionary["id"] as? String
+        let chromeID = dictionary["id"] as? String
+        let chromeGUID = dictionary["guid"] as? String
         switch dictionary["type"] as? String {
         case "url":
             return .bookmark(ChromeBookmarkRecord(
-                nativeIdentifier: nativeIdentifier,
+                chromeID: chromeID,
+                chromeGUID: chromeGUID,
                 title: dictionary["name"] as? String,
                 urlString: dictionary["url"] as? String,
                 position: position,
@@ -318,7 +319,8 @@ nonisolated struct DefaultChromeDataSource: ChromeDataSource {
                 )
             }
             return .folder(ChromeFolderRecord(
-                nativeIdentifier: nativeIdentifier,
+                chromeID: chromeID,
+                chromeGUID: chromeGUID,
                 title: dictionary["name"] as? String,
                 position: position,
                 path: path,

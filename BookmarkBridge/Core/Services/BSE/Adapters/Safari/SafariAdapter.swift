@@ -68,7 +68,8 @@ nonisolated struct SafariAdapter: BSEAdapter {
         return SafariReadResult(
             snapshot: transformed.snapshot,
             report: report,
-            issues: transformed.issues
+            issues: transformed.issues,
+            nativeIdentityObservations: transformed.nativeIdentityObservations
         )
     }
 

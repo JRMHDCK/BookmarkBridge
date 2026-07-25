@@ -36,8 +36,7 @@ nonisolated struct ChromeBookmarkValidator: ChromeBookmarkValidating {
             throw ChromePersistenceError.invalidStructure(.invalidChecksum)
         }
 
-        var identifiers = Set<String>()
-        var GUIDs = Set<String>()
+        var nativeIdentifiers = Set<NativeNodeIdentifier>()
         for key in roots.keys.sorted() {
             guard Self.supportedRootKeys.contains(key),
                   let root = roots[key] as? [String: Any],
@@ -47,8 +46,7 @@ nonisolated struct ChromeBookmarkValidator: ChromeBookmarkValidating {
             try validateNode(
                 root,
                 path: [key],
-                identifiers: &identifiers,
-                GUIDs: &GUIDs
+                nativeIdentifiers: &nativeIdentifiers
             )
         }
     }
@@ -56,22 +54,39 @@ nonisolated struct ChromeBookmarkValidator: ChromeBookmarkValidating {
     private func validateNode(
         _ node: [String: Any],
         path: [String],
-        identifiers: inout Set<String>,
-        GUIDs: inout Set<String>
+        nativeIdentifiers: inout Set<NativeNodeIdentifier>
     ) throws {
-        guard let identifier = node["id"] as? String, !identifier.isEmpty else {
-            throw ChromePersistenceError.invalidStructure(.missingIdentifier(path: path))
-        }
-        guard identifiers.insert(identifier).inserted else {
-            throw ChromePersistenceError.invalidStructure(.duplicateIdentifier(identifier))
-        }
-        if let GUIDValue = node["guid"] {
-            guard let GUID = GUIDValue as? String, !GUID.isEmpty else {
+        let chromeID = node["id"] as? String
+        let chromeGUID = node["guid"] as? String
+        let resolved: ChromeNativeIdentifier
+        do {
+            resolved = try ChromeNativeIdentifierResolver().resolve(
+                chromeID: chromeID,
+                chromeGUID: chromeGUID
+            )
+        } catch {
+            if node["guid"] != nil {
                 throw ChromePersistenceError.invalidStructure(.invalidGUID(path: path))
             }
-            guard GUIDs.insert(GUID).inserted else {
-                throw ChromePersistenceError.invalidStructure(.duplicateGUID(GUID))
+            throw ChromePersistenceError.invalidStructure(.missingIdentifier(path: path))
+        }
+        guard nativeIdentifiers.insert(resolved.nativeIdentifier).inserted else {
+            switch resolved.kind {
+            case .chromeGUID:
+                throw ChromePersistenceError.invalidStructure(
+                    .duplicateGUID(chromeGUID ?? resolved.nativeIdentifier.rawValue)
+                )
+            case .chromeIDFallback, .opaque:
+                throw ChromePersistenceError.invalidStructure(
+                    .duplicateIdentifier(chromeID ?? resolved.nativeIdentifier.rawValue)
+                )
             }
+        }
+        if let continuityIdentifier = resolved.continuityIdentifier,
+           !nativeIdentifiers.insert(continuityIdentifier).inserted {
+            throw ChromePersistenceError.invalidStructure(
+                .duplicateIdentifier(chromeID ?? continuityIdentifier.rawValue)
+            )
         }
         guard node["name"] is String else {
             throw ChromePersistenceError.invalidStructure(.invalidName(path: path))
@@ -94,8 +109,7 @@ nonisolated struct ChromeBookmarkValidator: ChromeBookmarkValidating {
                 try validateNode(
                     child,
                     path: path + [String(position)],
-                    identifiers: &identifiers,
-                    GUIDs: &GUIDs
+                    nativeIdentifiers: &nativeIdentifiers
                 )
             }
         case "url":

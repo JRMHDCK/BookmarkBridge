@@ -102,7 +102,8 @@ nonisolated struct DefaultIdentityMatchingGroupBuilder: IdentityMatchingGroupBui
 
             groups.append(IdentityMatchingGroup(
                 members: members,
-                matchingResult: matchingResult
+                matchingResult: matchingResult,
+                permanentRootRole: seedNode.permanentRootRole
             ))
         }
 

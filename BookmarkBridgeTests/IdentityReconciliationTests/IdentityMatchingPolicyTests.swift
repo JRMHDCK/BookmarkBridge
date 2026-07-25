@@ -37,6 +37,29 @@ struct IdentityMatchingPolicyTests {
         #expect(decision == .reuse(durableID))
     }
 
+    @Test("A pre-resolved durable member is reused without repository access")
+    func reusePreResolvedDurableIdentity() throws {
+        let sourceID = try ReconciliationTestSupport.sourceID(1)
+        let durableID = try ReconciliationTestSupport.durableID(1)
+        let baseline = try ReconciliationTestSupport.baseline(records: [
+            ReconciliationTestSupport.record(
+                id: durableID,
+                observations: []
+            ),
+        ])
+        let group = ReconciliationTestSupport.group(
+            members: [(sourceID, durableID)],
+            result: .noMatch(reason: .noCandidates)
+        )
+
+        let decision = try policy.decide(for: IdentityMatchingContext(
+            baseline: baseline,
+            group: group
+        ))
+
+        #expect(decision == .reuse(durableID))
+    }
+
     @Test("No Baseline identity and no match requests creation")
     func createForUnmatchedObject() throws {
         let sourceID = try ReconciliationTestSupport.sourceID(1)

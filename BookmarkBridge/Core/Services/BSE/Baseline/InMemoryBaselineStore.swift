@@ -4,7 +4,7 @@
 //
 
 /// Deterministic actor-backed store for tests and ephemeral repositories.
-actor InMemoryBaselineStore: BaselineStore {
+actor InMemoryBaselineStore: BaselineTransactionStore {
     private var storedBaseline: Baseline?
 
     init(baseline: Baseline? = nil) {
@@ -24,6 +24,10 @@ actor InMemoryBaselineStore: BaselineStore {
             currentBaseline: storedBaseline,
             expectedRevision: expectedRevision
         )
+        storedBaseline = baseline
+    }
+
+    func restoreTransactionSnapshot(_ baseline: Baseline?) async throws {
         storedBaseline = baseline
     }
 }

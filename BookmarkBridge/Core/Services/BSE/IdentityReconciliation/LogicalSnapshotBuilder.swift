@@ -47,6 +47,7 @@ nonisolated struct LogicalSnapshotBuilder: LogicalSnapshotBuilding {
                 return try BSENode(
                     logicalID: logicalID,
                     kind: node.kind,
+                    permanentRootRole: node.permanentRootRole,
                     title: node.title,
                     parentID: parentID,
                     position: node.position,

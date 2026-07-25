@@ -20,6 +20,20 @@ nonisolated struct MatchingEngine: Sendable {
             return .noMatch(reason: .differentNodeKind)
         }
 
+        if let nodeRole = node.permanentRootRole,
+           let candidateRole = candidate.permanentRootRole {
+            guard nodeRole == candidateRole else {
+                return .noMatch(reason: .differentPermanentRootRole)
+            }
+            return .match(
+                candidateID: candidate.logicalID,
+                reason: .samePermanentRootRole
+            )
+        }
+        if node.permanentRootRole != nil || candidate.permanentRootRole != nil {
+            return .noMatch(reason: .differentPermanentRootRole)
+        }
+
         if node.logicalID == candidate.logicalID {
             return .match(candidateID: candidate.logicalID, reason: .sameLogicalID)
         }

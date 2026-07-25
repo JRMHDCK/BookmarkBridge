@@ -24,6 +24,10 @@ struct NativeIdentityRepositoryTests {
             for: mapping.logicalNodeID,
             sourceID: mapping.sourceID
         ) == mapping.nativeIdentifier)
+        #expect(repository.logicalNodeID(
+            for: mapping.nativeIdentifier,
+            sourceID: mapping.sourceID
+        ) == mapping.logicalNodeID)
     }
 
     @Test("Removing a mapping leaves it absent")
@@ -42,6 +46,10 @@ struct NativeIdentityRepositoryTests {
 
         #expect(repository.nativeIdentifier(
             for: mapping.logicalNodeID,
+            sourceID: mapping.sourceID
+        ) == nil)
+        #expect(repository.logicalNodeID(
+            for: mapping.nativeIdentifier,
             sourceID: mapping.sourceID
         ) == nil)
     }
@@ -138,6 +146,116 @@ struct NativeIdentityRepositoryTests {
             for: replacement.logicalNodeID,
             sourceID: replacement.sourceID
         ) == replacement.nativeIdentifier)
+        #expect(repository.logicalNodeID(
+            for: original.nativeIdentifier,
+            sourceID: original.sourceID
+        ) == nil)
+        #expect(repository.logicalNodeID(
+            for: replacement.nativeIdentifier,
+            sourceID: replacement.sourceID
+        ) == replacement.logicalNodeID)
+    }
+
+    @Test("Registering the same mapping again is idempotent")
+    func identicalRegistration() {
+        let mapping = NativeIdentityTestSupport.mapping(
+            logical: 1,
+            source: 1,
+            native: "native-one"
+        )
+        let repository = InMemoryNativeIdentityRepository(mappings: [mapping])
+
+        repository.register(mapping)
+        repository.register(mapping)
+
+        #expect(repository.nativeIdentifier(
+            for: mapping.logicalNodeID,
+            sourceID: mapping.sourceID
+        ) == mapping.nativeIdentifier)
+        #expect(repository.logicalNodeID(
+            for: mapping.nativeIdentifier,
+            sourceID: mapping.sourceID
+        ) == mapping.logicalNodeID)
+    }
+
+    @Test("Last registration displaces a native identifier's previous logical owner")
+    func nativeIdentifierReplacement() {
+        let original = NativeIdentityTestSupport.mapping(
+            logical: 1,
+            source: 1,
+            native: "shared-native"
+        )
+        let replacement = NativeIdentityTestSupport.mapping(
+            logical: 2,
+            source: 1,
+            native: "shared-native"
+        )
+        let repository = InMemoryNativeIdentityRepository(mappings: [original])
+
+        repository.register(replacement)
+
+        #expect(repository.nativeIdentifier(
+            for: original.logicalNodeID,
+            sourceID: original.sourceID
+        ) == nil)
+        #expect(repository.nativeIdentifier(
+            for: replacement.logicalNodeID,
+            sourceID: replacement.sourceID
+        ) == replacement.nativeIdentifier)
+        #expect(repository.logicalNodeID(
+            for: replacement.nativeIdentifier,
+            sourceID: replacement.sourceID
+        ) == replacement.logicalNodeID)
+    }
+
+    @Test("The same native identifier remains independent across sources")
+    func inverseLookupIsSourceScoped() {
+        let first = NativeIdentityTestSupport.mapping(
+            logical: 1,
+            source: 1,
+            native: "shared-native"
+        )
+        let second = NativeIdentityTestSupport.mapping(
+            logical: 2,
+            source: 2,
+            native: "shared-native"
+        )
+        let repository = InMemoryNativeIdentityRepository(mappings: [first, second])
+
+        #expect(repository.logicalNodeID(
+            for: first.nativeIdentifier,
+            sourceID: first.sourceID
+        ) == first.logicalNodeID)
+        #expect(repository.logicalNodeID(
+            for: second.nativeIdentifier,
+            sourceID: second.sourceID
+        ) == second.logicalNodeID)
+    }
+
+    @Test("Initializer conflict resolution is deterministic and coherent")
+    func deterministicInitialization() {
+        let first = NativeIdentityTestSupport.mapping(
+            logical: 1,
+            source: 1,
+            native: "shared-native"
+        )
+        let second = NativeIdentityTestSupport.mapping(
+            logical: 2,
+            source: 1,
+            native: "shared-native"
+        )
+
+        for _ in 0..<10 {
+            let repository = InMemoryNativeIdentityRepository(mappings: [first, second])
+            #expect(repository.nativeIdentifier(
+                for: first.logicalNodeID,
+                sourceID: first.sourceID
+            ) == nil)
+            #expect(repository.logicalNodeID(
+                for: second.nativeIdentifier,
+                sourceID: second.sourceID
+            ) == second.logicalNodeID)
+        }
     }
 
     @Test("Serializable values round-trip without interpreting native data")
@@ -183,6 +301,79 @@ struct NativeIdentityRepositoryTests {
         requireSendable(repository)
         requireSendable(repository as any NativeIdentityRepository)
         requireSendable(mappings[0])
+    }
+
+    @Test("A snapshot restores registrations and removals exactly")
+    func snapshotRestoresMultipleChanges() throws {
+        let retained = NativeIdentityTestSupport.mapping(
+            logical: 1,
+            source: 1,
+            native: "retained"
+        )
+        let removed = NativeIdentityTestSupport.mapping(
+            logical: 2,
+            source: 1,
+            native: "removed"
+        )
+        let added = NativeIdentityTestSupport.mapping(
+            logical: 3,
+            source: 1,
+            native: "added"
+        )
+        let repository = InMemoryNativeIdentityRepository(
+            mappings: [retained, removed]
+        )
+        let snapshot = try repository.transactionSnapshot()
+
+        repository.remove(
+            logicalNodeID: removed.logicalNodeID,
+            sourceID: removed.sourceID
+        )
+        repository.register(added)
+        try repository.restore(transactionSnapshot: snapshot)
+
+        #expect(try repository.transactionSnapshot() == snapshot)
+        #expect(repository.nativeIdentifier(
+            for: removed.logicalNodeID,
+            sourceID: removed.sourceID
+        ) == removed.nativeIdentifier)
+        #expect(repository.nativeIdentifier(
+            for: added.logicalNodeID,
+            sourceID: added.sourceID
+        ) == nil)
+    }
+
+    @Test("Snapshot ordering and repeated restoration are deterministic")
+    func snapshotRestorationIsDeterministic() throws {
+        let mappings = [
+            NativeIdentityTestSupport.mapping(
+                logical: 3,
+                source: 2,
+                native: "third"
+            ),
+            NativeIdentityTestSupport.mapping(
+                logical: 1,
+                source: 1,
+                native: "first"
+            ),
+            NativeIdentityTestSupport.mapping(
+                logical: 2,
+                source: 1,
+                native: "second"
+            ),
+        ]
+        let repository = InMemoryNativeIdentityRepository(mappings: mappings)
+        let snapshot = try repository.transactionSnapshot()
+
+        repository.remove(
+            logicalNodeID: mappings[0].logicalNodeID,
+            sourceID: mappings[0].sourceID
+        )
+        try repository.restore(transactionSnapshot: snapshot)
+        try repository.restore(transactionSnapshot: snapshot)
+
+        #expect(try repository.transactionSnapshot() == snapshot)
+        requireSendable(snapshot)
     }
 
     private func requireSendable<T: Sendable>(_ value: T) { _ = value }

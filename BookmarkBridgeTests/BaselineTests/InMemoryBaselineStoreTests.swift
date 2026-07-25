@@ -128,4 +128,39 @@ struct InMemoryBaselineStoreTests {
         #expect(successes.filter { $0 }.count == 1)
         #expect(try await store.load()?.revision == BaselineRevision(1))
     }
+
+    @Test("Transaction restoration reinstates the exact prior Baseline")
+    func transactionRestoration() async throws {
+        let original = try BaselineTestSupport.emptyBaseline()
+        let store = InMemoryBaselineStore(baseline: original)
+        let repository = BaselineRepository(store: store)
+        let snapshot = try await repository.transactionSnapshot()
+        let updated = try BaselineEngine().apply(
+            commands: [.createIdentity(CreateIdentityCommand(
+                logicalNodeID: BaselineTestSupport.logicalID(1),
+                observations: []
+            ))],
+            to: original
+        ).baseline
+
+        try await store.save(updated, expectedRevision: original.revision)
+        try await repository.restoreTransactionSnapshot(snapshot)
+
+        #expect(try await store.load() == original)
+    }
+
+    @Test("Transaction restoration can reinstate an absent Baseline")
+    func transactionRestoresAbsence() async throws {
+        let store = InMemoryBaselineStore()
+        let repository = BaselineRepository(store: store)
+        let snapshot = try await repository.transactionSnapshot()
+
+        try await store.save(
+            BaselineTestSupport.emptyBaseline(),
+            expectedRevision: nil
+        )
+        try await repository.restoreTransactionSnapshot(snapshot)
+
+        #expect(try await store.load() == nil)
+    }
 }

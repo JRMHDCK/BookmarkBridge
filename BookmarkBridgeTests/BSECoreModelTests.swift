@@ -193,15 +193,27 @@ struct BSECoreModelTests {
         }
     }
 
-    @Test("Rejects a simple parent cycle")
-    func rejectsSimpleCycle() throws {
+    @Test("Rejects a direct self-parent cycle")
+    func rejectsDirectCycle() throws {
+        let id = try logicalID(1)
+        let node = try folder(id, parentID: id)
+
+        #expect(throws: BSEModelValidationError.cycleDetected(id)) {
+            _ = try BSETree(nodes: [node])
+        }
+    }
+
+    @Test("Rejects an indirect parent cycle")
+    func rejectsIndirectCycle() throws {
         let firstID = try logicalID(1)
         let secondID = try logicalID(2)
-        let first = try folder(firstID, parentID: secondID)
+        let thirdID = try logicalID(3)
+        let first = try folder(firstID, parentID: thirdID)
         let second = try folder(secondID, parentID: firstID)
+        let third = try folder(thirdID, parentID: secondID)
 
         #expect(throws: BSEModelValidationError.cycleDetected(firstID)) {
-            _ = try BSETree(nodes: [second, first])
+            _ = try BSETree(nodes: [third, second, first])
         }
     }
 

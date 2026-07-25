@@ -79,7 +79,8 @@ nonisolated struct ChromeAdapter: BSEAdapter {
         return ChromeReadResult(
             snapshot: transformed.snapshot,
             report: report,
-            issues: transformed.issues
+            issues: transformed.issues,
+            nativeIdentityObservations: transformed.nativeIdentityObservations
         )
     }
 

@@ -23,6 +23,7 @@ nonisolated struct LogicalNodeStateObservation: Hashable, Codable, Sendable {
 nonisolated struct LogicalNodeState: Hashable, Codable, Sendable {
     let logicalNodeID: LogicalNodeID
     let kind: NodeKind?
+    let permanentRootRole: PermanentRootRole?
     let title: String?
     let url: URL?
     let parentID: LogicalNodeID?
@@ -33,6 +34,7 @@ nonisolated struct LogicalNodeState: Hashable, Codable, Sendable {
     init(
         logicalNodeID: LogicalNodeID,
         kind: NodeKind?,
+        permanentRootRole: PermanentRootRole? = nil,
         title: String?,
         url: URL?,
         parentID: LogicalNodeID?,
@@ -43,6 +45,7 @@ nonisolated struct LogicalNodeState: Hashable, Codable, Sendable {
         try Self.validateStructure(
             logicalNodeID: logicalNodeID,
             kind: kind,
+            permanentRootRole: permanentRootRole,
             title: title,
             url: url,
             parentID: parentID,
@@ -60,6 +63,7 @@ nonisolated struct LogicalNodeState: Hashable, Codable, Sendable {
         }
         self.logicalNodeID = logicalNodeID
         self.kind = kind
+        self.permanentRootRole = permanentRootRole
         self.title = title
         self.url = url
         self.parentID = parentID
@@ -76,6 +80,7 @@ nonisolated struct LogicalNodeState: Hashable, Codable, Sendable {
             try self.init(
                 logicalNodeID: values.logicalNodeID,
                 kind: values.kind,
+                permanentRootRole: values.permanentRootRole,
                 title: values.title,
                 url: values.url,
                 parentID: values.parentID,
@@ -94,6 +99,7 @@ nonisolated struct LogicalNodeState: Hashable, Codable, Sendable {
         try Values(
             logicalNodeID: logicalNodeID,
             kind: kind,
+            permanentRootRole: permanentRootRole,
             title: title,
             url: url,
             parentID: parentID,
@@ -106,16 +112,25 @@ nonisolated struct LogicalNodeState: Hashable, Codable, Sendable {
     private static func validateStructure(
         logicalNodeID: LogicalNodeID,
         kind: NodeKind?,
+        permanentRootRole: PermanentRootRole?,
         title: String?,
         url: URL?,
         parentID: LogicalNodeID?,
         position: Int?
     ) throws {
         guard let kind else {
-            guard title == nil, url == nil, parentID == nil, position == nil else {
+            guard permanentRootRole == nil,
+                  title == nil,
+                  url == nil,
+                  parentID == nil,
+                  position == nil else {
                 throw LogicalStateBuildingError.inconsistentGraph(logicalNodeID)
             }
             return
+        }
+        guard permanentRootRole == nil
+                || kind == .folder && parentID == nil else {
+            throw LogicalStateBuildingError.inconsistentGraph(logicalNodeID)
         }
         guard title != nil, let position, position >= 0 else {
             throw LogicalStateBuildingError.inconsistentGraph(logicalNodeID)
@@ -132,6 +147,7 @@ nonisolated struct LogicalNodeState: Hashable, Codable, Sendable {
     private struct Values: Codable {
         let logicalNodeID: LogicalNodeID
         let kind: NodeKind?
+        let permanentRootRole: PermanentRootRole?
         let title: String?
         let url: URL?
         let parentID: LogicalNodeID?

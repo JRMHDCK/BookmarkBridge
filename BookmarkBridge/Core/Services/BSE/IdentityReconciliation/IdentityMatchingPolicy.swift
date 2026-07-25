@@ -23,10 +23,16 @@ nonisolated struct IdentityNodeReference: Hashable, Codable, Sendable, Comparabl
 nonisolated struct IdentityMatchingGroup: Hashable, Codable, Sendable {
     let members: [IdentityNodeReference]
     let matchingResult: MatchingResult
+    let permanentRootRole: PermanentRootRole?
 
-    init(members: [IdentityNodeReference], matchingResult: MatchingResult) {
+    init(
+        members: [IdentityNodeReference],
+        matchingResult: MatchingResult,
+        permanentRootRole: PermanentRootRole? = nil
+    ) {
         self.members = members.sorted()
         self.matchingResult = matchingResult
+        self.permanentRootRole = permanentRootRole
     }
 }
 
@@ -52,6 +58,18 @@ nonisolated protocol IdentityMatchingPolicy: Sendable {
 /// already-computed MatchingResult. It never compares node content.
 nonisolated struct StrictIdentityMatchingPolicy: IdentityMatchingPolicy {
     func decide(for context: IdentityMatchingContext) throws -> IdentityMatchingDecision {
+        let resolvedCandidates = Set(context.group.members.compactMap {
+            context.baseline.identity($0.provisionalLogicalID) == nil
+                ? nil
+                : $0.provisionalLogicalID
+        }).sorted()
+        if resolvedCandidates.count == 1 {
+            return .reuse(resolvedCandidates[0])
+        }
+        if resolvedCandidates.count > 1 {
+            return .ambiguous(candidateIDs: resolvedCandidates)
+        }
+
         let baselineCandidates = context.baseline.identityRecords.compactMap { record in
             record.observations.contains { observation in
                 context.group.members.contains(IdentityNodeReference(

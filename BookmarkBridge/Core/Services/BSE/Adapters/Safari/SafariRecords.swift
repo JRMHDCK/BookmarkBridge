@@ -40,6 +40,7 @@ nonisolated struct SafariBookmarkRecord: Hashable, Sendable {
 /// Internal representation of a Safari folder before BSE conversion.
 nonisolated struct SafariFolderRecord: Hashable, Sendable {
     let nativeIdentifier: String?
+    let permanentRootRole: PermanentRootRole?
     let title: String?
     let position: Int
     let path: SafariRecordPath
@@ -47,12 +48,14 @@ nonisolated struct SafariFolderRecord: Hashable, Sendable {
 
     init(
         nativeIdentifier: String?,
+        permanentRootRole: PermanentRootRole? = nil,
         title: String?,
         position: Int,
         path: SafariRecordPath,
         children: [SafariRecord]
     ) {
         self.nativeIdentifier = nativeIdentifier
+        self.permanentRootRole = permanentRootRole
         self.title = title
         self.position = position
         self.path = path

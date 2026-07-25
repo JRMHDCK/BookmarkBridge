@@ -41,7 +41,8 @@ struct BSEChromeAdapterTests {
         )
     ) -> ChromeRecord {
         .bookmark(ChromeBookmarkRecord(
-            nativeIdentifier: id,
+            chromeID: nil,
+            chromeGUID: id,
             title: title,
             urlString: url,
             position: position,
@@ -57,7 +58,8 @@ struct BSEChromeAdapterTests {
         children: [ChromeRecord] = []
     ) -> ChromeRecord {
         .folder(ChromeFolderRecord(
-            nativeIdentifier: id,
+            chromeID: nil,
+            chromeGUID: id,
             title: title,
             position: position,
             path: path,
@@ -163,6 +165,157 @@ struct BSEChromeAdapterTests {
         #expect(result.report.profileIdentifier == profileOne)
     }
 
+    @Test(
+        "One coherent Chrome read carries ordered native observations for every profile",
+        arguments: ["Default", "Profile 1"]
+    )
+    func nativeIdentityObservations(profileName: String) async throws {
+        let selectedProfile = try profile(profileName)
+        let expectedSourceID = try sourceID(profileName == "Default" ? 1 : 2)
+        let source = try simpleExtraction(profileIdentifier: selectedProfile)
+        let (adapter, dataSource) = try adapter(
+            extraction: source,
+            adapterSourceID: expectedSourceID,
+            adapterProfile: selectedProfile
+        )
+
+        let result = try await adapter.read()
+
+        #expect(await dataSource.extractionCount() == 1)
+        #expect(result.nativeIdentityObservations.count == result.snapshot.tree.count)
+        #expect(result.nativeIdentityObservations.map(\.provisionalLogicalNodeID)
+            == result.snapshot.tree.nodes.map(\.logicalID))
+        #expect(result.nativeIdentityObservations.map(\.nativeIdentifier) == [
+            NativeNodeIdentifier("guid:root-bar"),
+            NativeNodeIdentifier("guid:bookmark-1"),
+        ])
+        #expect(result.nativeIdentityObservations.allSatisfy {
+            $0.sourceID == expectedSourceID
+        })
+    }
+
+    @Test("Chrome roots preserve canonical observation order and empty profiles stay empty")
+    func nativeIdentityObservationRootOrder() async throws {
+        let source = try extraction(records: [
+            folder(
+                id: "mobile",
+                title: "Mobile Bookmarks",
+                position: 2,
+                path: path(.mobileBookmarks)
+            ),
+            folder(
+                id: "bar",
+                title: "Bookmarks Bar",
+                position: 0,
+                path: path(.bookmarksBar)
+            ),
+            folder(
+                id: "other",
+                title: "Other Bookmarks",
+                position: 1,
+                path: path(.otherBookmarks)
+            ),
+        ])
+        let populated = try adapter(extraction: source).0
+        let empty = try adapter(extraction: extraction(records: [])).0
+
+        let populatedResult = try await populated.read()
+        let emptyResult = try await empty.read()
+
+        #expect(populatedResult.snapshot.tree.roots.map(\.node.title) == [
+            "Bookmarks Bar", "Other Bookmarks", "Mobile Bookmarks",
+        ])
+        #expect(populatedResult.nativeIdentityObservations.map(\.nativeIdentifier) == [
+            NativeNodeIdentifier("guid:bar"),
+            NativeNodeIdentifier("guid:other"),
+            NativeNodeIdentifier("guid:mobile"),
+        ])
+        #expect(emptyResult.snapshot.tree.isEmpty)
+        #expect(emptyResult.nativeIdentityObservations.isEmpty)
+    }
+
+    @Test("Repeated Chrome transformations preserve snapshots and observations")
+    func nativeIdentityObservationDeterminism() async throws {
+        let first = try adapter(extraction: simpleExtraction()).0
+        let second = try adapter(extraction: simpleExtraction()).0
+
+        let firstResult = try await first.read()
+        let secondResult = try await second.read()
+
+        #expect(firstResult.snapshot == secondResult.snapshot)
+        #expect(firstResult.nativeIdentityObservations
+            == secondResult.nativeIdentityObservations)
+    }
+
+    @Test("Chrome id fallback is preserved consistently in the snapshot observation")
+    func nativeIdentityObservationIDFallback() async throws {
+        let record = ChromeRecord.folder(ChromeFolderRecord(
+            chromeID: "42",
+            chromeGUID: nil,
+            title: "Fallback root",
+            position: 0,
+            path: path(.bookmarksBar),
+            children: []
+        ))
+        let reader = try adapter(extraction: extraction(records: [record])).0
+
+        let result = try await reader.read()
+        let observation = try #require(result.nativeIdentityObservations.first)
+
+        #expect(result.snapshot.tree.count == 1)
+        #expect(observation.nativeIdentifier == NativeNodeIdentifier("id:42"))
+        #expect(observation.nativeIdentityKind == .chromeIDFallback)
+        #expect(observation.continuityIdentifier == nil)
+        #expect(observation.continuityIdentityKind == nil)
+    }
+
+    @Test("A preferred GUID observation carries the id fallback continuity proof")
+    func nativeIdentityObservationGUIDWithContinuity() async throws {
+        let record = ChromeRecord.folder(ChromeFolderRecord(
+            chromeID: "42",
+            chromeGUID: "abc",
+            title: "Migrated root",
+            position: 0,
+            path: path(.bookmarksBar),
+            children: []
+        ))
+        let reader = try adapter(extraction: extraction(records: [record])).0
+
+        let result = try await reader.read()
+        let observation = try #require(result.nativeIdentityObservations.first)
+
+        #expect(observation.nativeIdentifier == NativeNodeIdentifier("guid:abc"))
+        #expect(observation.nativeIdentityKind == .chromeGUID)
+        #expect(observation.continuityIdentifier == NativeNodeIdentifier("id:42"))
+        #expect(observation.continuityIdentityKind == .chromeIDFallback)
+    }
+
+    @Test("A node without any valid Chrome identity is reported and omitted coherently")
+    func invalidNativeIdentity() async throws {
+        let nodePath = path(.bookmarksBar)
+        let record = ChromeRecord.folder(ChromeFolderRecord(
+            chromeID: "invalid",
+            chromeGUID: " ",
+            title: "Invalid root",
+            position: 0,
+            path: nodePath,
+            children: []
+        ))
+        let reader = try adapter(extraction: extraction(records: [record])).0
+
+        let result = try await reader.read()
+
+        #expect(result.snapshot.tree.isEmpty)
+        #expect(result.nativeIdentityObservations.isEmpty)
+        #expect(result.issues.contains(.invalidNativeIdentifier(
+            path: nodePath,
+            reason: .noValidIdentifier(
+                chromeID: "invalid",
+                chromeGUID: " "
+            )
+        )))
+    }
+
     @Test("Separate profile adapters never merge their trees")
     func multipleProfilesRemainIndependent() async throws {
         let defaultProfile = try profile("Default")
@@ -223,6 +376,9 @@ struct BSEChromeAdapterTests {
 
         #expect(snapshot.tree.roots.map(\.node.title) == [
             "Bookmarks Bar", "Other Bookmarks", "Mobile Bookmarks",
+        ])
+        #expect(snapshot.tree.roots.map(\.node.permanentRootRole) == [
+            .primaryBookmarks, .secondaryBookmarks, .mobileBookmarks,
         ])
         #expect(snapshot.tree.roots.map(\.node.position) == [0, 1, 2])
     }
@@ -558,7 +714,42 @@ struct BSEChromeAdapterTests {
         #expect(transformed.snapshot.tree.roots.map(\.node.title) == [
             "Bookmarks Bar", "Other Bookmarks", "Mobile Bookmarks",
         ])
+        #expect(transformed.snapshot.tree.roots.map(\.node.permanentRootRole) == [
+            .primaryBookmarks, .secondaryBookmarks, .mobileBookmarks,
+        ])
         #expect(extracted.profileIdentifier.rawValue == "Default")
+    }
+
+    @Test("Default extraction preserves id fallback through transformation")
+    func defaultExtractionIDFallback() async throws {
+        let data = try jsonData(roots: [
+            "bookmark_bar": [
+                "type": "folder",
+                "id": "1",
+                "name": "Bookmarks Bar",
+                "children": [[
+                    "type": "url",
+                    "id": "2",
+                    "name": "Fallback bookmark",
+                    "url": "https://fallback.example",
+                ]],
+            ],
+        ])
+        let extraction = try await defaultDataSource(data: data).extract()
+
+        let transformed = try ChromeSnapshotTransformer().transform(
+            extraction,
+            sourceID: sourceID()
+        )
+
+        #expect(transformed.nativeIdentityObservations.map(\.nativeIdentifier) == [
+            NativeNodeIdentifier("id:1"),
+            NativeNodeIdentifier("id:2"),
+        ])
+        #expect(transformed.nativeIdentityObservations.allSatisfy {
+            $0.nativeIdentityKind == .chromeIDFallback
+                && $0.continuityIdentifier == nil
+        })
     }
 
     @Test("Missing special roots are tolerated without invention")

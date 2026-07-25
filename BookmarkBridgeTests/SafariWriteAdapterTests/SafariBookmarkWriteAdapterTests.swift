@@ -428,6 +428,17 @@ private nonisolated final class ControlledNativeIdentityRepository: NativeIdenti
         }
     }
 
+    func logicalNodeID(
+        for nativeIdentifier: NativeNodeIdentifier,
+        sourceID: BSESourceID
+    ) -> LogicalNodeID? {
+        state.withLock { state in
+            state.mappings.first { key, value in
+                key.sourceID == sourceID && value == nativeIdentifier
+            }?.key.logicalNodeID
+        }
+    }
+
     func register(_ mapping: NativeIdentityMapping) {
         recorder.append(.register(
             mapping.logicalNodeID,

@@ -4,6 +4,7 @@
 //
 
 import Foundation
+import Synchronization
 import Testing
 @testable import BookmarkBridge
 
@@ -86,6 +87,129 @@ struct SafariBookmarkMutatorTests {
             for: createdID,
             sourceID: MutatorTestSupport.sourceID
         ) == nil)
+    }
+
+    @Test("A dependency-ordered plan creates a three-level Safari tree")
+    func dependencyOrderedNestedCreationPlan() throws {
+        let setup = try MutatorTestSupport.setup()
+        let parent = try MutatorTestSupport.logicalFolder(
+            id: 90,
+            parent: MutatorTestSupport.folderAID,
+            position: 0
+        )
+        let child = try MutatorTestSupport.logicalFolder(id: 80, parent: parent.logicalNodeID)
+        let grandchild = try MutatorTestSupport.logicalFolder(id: 70, parent: child.logicalNodeID)
+        let bookmark = try MutatorTestSupport.logicalBookmark(
+            id: 60,
+            parent: grandchild.logicalNodeID
+        )
+        let before = [try MutatorTestSupport.logicalFolder(
+            id: 10,
+            parent: nil,
+            position: 0
+        )]
+        let plan = try MutatorTestSupport.plan(
+            before: before,
+            after: before + [parent, child, grandchild, bookmark]
+        )
+        let nativeIDs = [
+            NativeNodeIdentifier("00000000-0000-0000-0000-000000000090"),
+            NativeNodeIdentifier("00000000-0000-0000-0000-000000000080"),
+            NativeNodeIdentifier("00000000-0000-0000-0000-000000000070"),
+            NativeNodeIdentifier("00000000-0000-0000-0000-000000000060"),
+        ]
+        let mutator = setup.mutator(provider: SequenceNativeIdentifierProvider(nativeIDs))
+        var document = setup.document
+
+        for operation in plan.phases[0].operations {
+            let result = try mutator.apply(operation, to: document)
+            document = result.document
+            MutatorTestSupport.apply(
+                result.nativeIdentityChanges,
+                to: setup.repository
+            )
+        }
+
+        #expect(plan.phases[0].operations.map(\.logicalNodeID) == [
+            parent.logicalNodeID,
+            child.logicalNodeID,
+            grandchild.logicalNodeID,
+            bookmark.logicalNodeID,
+        ])
+        let root = try MutatorTestSupport.root(of: document)
+        let parentNode = try #require(MutatorTestSupport.node(nativeIDs[0].rawValue, in: root))
+        let childNode = try #require(MutatorTestSupport.node(nativeIDs[1].rawValue, in: root))
+        let grandchildNode = try #require(MutatorTestSupport.node(nativeIDs[2].rawValue, in: root))
+        #expect(try MutatorTestSupport.childUUIDs(of: parentNode) == [nativeIDs[1].rawValue])
+        #expect(try MutatorTestSupport.childUUIDs(of: childNode) == [nativeIDs[2].rawValue])
+        #expect(try MutatorTestSupport.childUUIDs(of: grandchildNode) == [nativeIDs[3].rawValue])
+    }
+
+    @Test("A position-dependent Safari plan moves before creating")
+    func positionDependentMoveThenCreatePlan() throws {
+        let setup = try MutatorTestSupport.setup()
+        let folderA = try MutatorTestSupport.logicalFolder(
+            id: 10,
+            parent: nil
+        )
+        let destination = try MutatorTestSupport.logicalFolder(
+            id: 13,
+            parent: MutatorTestSupport.folderAID,
+            position: 2
+        )
+        let origin = try MutatorTestSupport.logicalFolder(
+            id: 20,
+            parent: nil,
+            position: 1
+        )
+        let movedBefore = try MutatorTestSupport.logicalBookmark(
+            id: 21,
+            parent: origin.logicalNodeID
+        )
+        let movedAfter = try MutatorTestSupport.logicalBookmark(
+            id: 21,
+            parent: destination.logicalNodeID
+        )
+        let created = try MutatorTestSupport.logicalBookmark(
+            id: 30,
+            parent: destination.logicalNodeID,
+            position: 1
+        )
+        let before = [folderA, destination, origin, movedBefore]
+        let plan = try MutatorTestSupport.plan(
+            before: before,
+            after: [folderA, destination, origin, movedAfter, created]
+        )
+        let createdNativeID = NativeNodeIdentifier(
+            "00000000-0000-0000-0000-000000000030"
+        )
+        let mutator = setup.mutator(
+            provider: FixedNativeIdentifierProvider(createdNativeID)
+        )
+        var document = setup.document
+
+        for operation in plan.operations {
+            let result = try mutator.apply(operation, to: document)
+            document = result.document
+            MutatorTestSupport.apply(
+                result.nativeIdentityChanges,
+                to: setup.repository
+            )
+        }
+
+        #expect(plan.operations.map(\.logicalNodeID) == [
+            movedBefore.logicalNodeID,
+            created.logicalNodeID,
+        ])
+        let root = try MutatorTestSupport.root(of: document)
+        let destinationNode = try #require(MutatorTestSupport.node(
+            MutatorTestSupport.emptyFolderUUID,
+            in: root
+        ))
+        #expect(try MutatorTestSupport.childUUIDs(of: destinationNode) == [
+            MutatorTestSupport.bookmarkCUUID,
+            createdNativeID.rawValue,
+        ])
     }
 
     @Test("Delete returns its deferred native identity removal")
@@ -505,6 +629,27 @@ private nonisolated struct FixedNativeIdentifierProvider: NativeIdentifierProvid
     func makeIdentifier() -> NativeNodeIdentifier { identifier }
 }
 
+private nonisolated final class SequenceNativeIdentifierProvider: NativeIdentifierProviding {
+    private let identifiers: Mutex<[NativeNodeIdentifier]>
+
+    init(_ identifiers: [NativeNodeIdentifier]) {
+        self.identifiers = Mutex(identifiers)
+    }
+
+    func makeIdentifier() throws -> NativeNodeIdentifier {
+        try identifiers.withLock { identifiers in
+            guard !identifiers.isEmpty else {
+                throw SequenceNativeIdentifierProviderError.exhausted
+            }
+            return identifiers.removeFirst()
+        }
+    }
+}
+
+private nonisolated enum SequenceNativeIdentifierProviderError: Error {
+    case exhausted
+}
+
 private nonisolated enum MutatorTestSupport {
     static let sourceID = BSESourceID(UUID(900))
     static let rootUUID = "00000000-0000-0000-0000-000000000001"
@@ -545,6 +690,93 @@ private nonisolated enum MutatorTestSupport {
             document: try document ?? self.document(propertyList()),
             repository: InMemoryNativeIdentityRepository(mappings: mappings)
         )
+    }
+
+    static func logicalFolder(
+        id: Int,
+        parent: LogicalNodeID?,
+        position: Int = 0
+    ) throws -> LogicalNodeState {
+        try LogicalNodeState(
+            logicalNodeID: logicalID(id),
+            kind: .folder,
+            title: "Folder \(id)",
+            url: nil,
+            parentID: parent,
+            position: position,
+            lifecycle: .unregistered,
+            observations: []
+        )
+    }
+
+    static func logicalBookmark(
+        id: Int,
+        parent: LogicalNodeID,
+        position: Int = 0
+    ) throws -> LogicalNodeState {
+        try LogicalNodeState(
+            logicalNodeID: logicalID(id),
+            kind: .bookmark,
+            title: "Bookmark \(id)",
+            url: URL(string: "https://nested.example/\(id)"),
+            parentID: parent,
+            position: position,
+            lifecycle: .unregistered,
+            observations: []
+        )
+    }
+
+    static func plan(
+        before: [LogicalNodeState],
+        after: [LogicalNodeState]
+    ) throws -> SynchronizationPlan {
+        let report = LogicalStateBuildingReport(
+            baselineIdentityCount: 0,
+            snapshotCount: 0,
+            snapshotNodeCount: 0,
+            logicalNodeCount: 0,
+            structurallyAvailableNodeCount: 0,
+            baselineOnlyNodeCount: 0,
+            unregisteredNodeCount: 0,
+            observationCount: 0
+        )
+        let beforeGraph = try LogicalStateGraph(nodes: before, report: report)
+        let afterGraph = try LogicalStateGraph(nodes: after, report: report)
+        let diff = try LogicalDiffEngine().diff(request: LogicalDiffRequest(
+            before: beforeGraph,
+            after: afterGraph
+        ))
+        return try SynchronizationPlanner().plan(
+            request: SynchronizationPlanningRequest(
+                before: beforeGraph,
+                logicalDiff: diff,
+                policy: .allChanges(direction: .oneWay(
+                    source: BSESourceID(UUID(901)),
+                    target: sourceID
+                ))
+            )
+        )
+    }
+
+    static func apply(
+        _ changes: [NativeIdentityChange],
+        to repository: InMemoryNativeIdentityRepository
+    ) {
+        for change in changes {
+            switch change {
+            case .register(let logicalNodeID, let sourceID, let nativeIdentifier):
+                repository.register(NativeIdentityMapping(
+                    logicalNodeID: logicalNodeID,
+                    sourceID: sourceID,
+                    nativeIdentifier: nativeIdentifier
+                ))
+            case .remove(let logicalNodeID, let sourceID):
+                repository.remove(
+                    logicalNodeID: logicalNodeID,
+                    sourceID: sourceID
+                )
+            }
+        }
     }
 
     static var mappings: [NativeIdentityMapping] {

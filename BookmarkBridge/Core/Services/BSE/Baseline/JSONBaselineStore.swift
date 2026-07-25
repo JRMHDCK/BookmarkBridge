@@ -6,7 +6,7 @@
 import Foundation
 
 /// First file-backed baseline persistence. JSON never crosses the store boundary.
-actor JSONBaselineStore: BaselineStore {
+actor JSONBaselineStore: BaselineTransactionStore {
     private let fileURL: URL
 
     init(fileURL: URL) {
@@ -37,6 +37,31 @@ actor JSONBaselineStore: BaselineStore {
             throw BaselineError.storeFailure
         }
         do {
+            try data.write(to: fileURL, options: .atomic)
+        } catch {
+            throw BaselineError.storeFailure
+        }
+    }
+
+    func restoreTransactionSnapshot(_ baseline: Baseline?) async throws {
+        guard let baseline else {
+            guard FileManager.default.fileExists(
+                atPath: fileURL.path(percentEncoded: false)
+            ) else {
+                return
+            }
+            do {
+                try FileManager.default.removeItem(at: fileURL)
+            } catch {
+                throw BaselineError.storeFailure
+            }
+            return
+        }
+
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
+        do {
+            let data = try encoder.encode(baseline)
             try data.write(to: fileURL, options: .atomic)
         } catch {
             throw BaselineError.storeFailure

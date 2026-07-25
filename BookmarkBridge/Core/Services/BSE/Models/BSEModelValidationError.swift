@@ -10,6 +10,7 @@ import Foundation
 nonisolated enum BSEModelValidationError: Error, Equatable, Sendable {
     case bookmarkRequiresURL(LogicalNodeID)
     case folderMustNotHaveURL(LogicalNodeID)
+    case invalidPermanentRoot(LogicalNodeID)
     case negativePosition(nodeID: LogicalNodeID, position: Int)
     case duplicateLogicalNodeID(LogicalNodeID)
     case parentNotFound(nodeID: LogicalNodeID, parentID: LogicalNodeID)

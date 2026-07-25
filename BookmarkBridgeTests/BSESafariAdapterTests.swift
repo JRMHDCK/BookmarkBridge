@@ -41,6 +41,7 @@ struct BSESafariAdapterTests {
 
     private func folder(
         id: String? = "folder-1",
+        permanentRootRole: PermanentRootRole? = nil,
         title: String? = "Folder",
         position: Int = 0,
         path: SafariRecordPath = SafariRecordPath([0]),
@@ -48,6 +49,7 @@ struct BSESafariAdapterTests {
     ) -> SafariRecord {
         .folder(SafariFolderRecord(
             nativeIdentifier: id,
+            permanentRootRole: permanentRootRole,
             title: title,
             position: position,
             path: path,
@@ -115,6 +117,85 @@ struct BSESafariAdapterTests {
         #expect(child.kind == .bookmark)
         #expect(child.title == "Bookmark")
         #expect(child.url == URL(string: "https://example.com"))
+    }
+
+    @Test("Safari transformation preserves only explicitly declared permanent-root roles")
+    func permanentRootRoles() async throws {
+        let source = extraction(records: [
+            folder(
+                id: "bar",
+                permanentRootRole: .primaryBookmarks,
+                title: "Favorites",
+                position: 0,
+                path: path(0)
+            ),
+            folder(
+                id: "menu",
+                permanentRootRole: .secondaryBookmarks,
+                title: "Bookmarks Menu",
+                position: 1,
+                path: path(1)
+            ),
+            folder(
+                id: "reading",
+                permanentRootRole: .readingList,
+                title: "Reading List",
+                position: 2,
+                path: path(2)
+            ),
+            folder(
+                id: "ordinary",
+                title: "User Folder",
+                position: 3,
+                path: path(3)
+            ),
+        ])
+
+        let snapshot = try await adapter(extraction: source).0.readSnapshot()
+
+        #expect(snapshot.tree.roots.map(\.node.permanentRootRole) == [
+            .primaryBookmarks, .secondaryBookmarks, .readingList, nil,
+        ])
+    }
+
+    @Test("One coherent Safari read carries one ordered native observation per node")
+    func nativeIdentityObservations() async throws {
+        let expectedSourceID = try sourceID()
+        let (adapter, dataSource) = try adapter(
+            extraction: simpleExtraction(),
+            adapterSourceID: expectedSourceID
+        )
+
+        let result = try await adapter.read()
+
+        #expect(await dataSource.extractionCount() == 1)
+        #expect(result.nativeIdentityObservations.count == result.snapshot.tree.count)
+        #expect(result.nativeIdentityObservations.map(\.provisionalLogicalNodeID)
+            == result.snapshot.tree.nodes.map(\.logicalID))
+        #expect(result.nativeIdentityObservations.map(\.nativeIdentifier) == [
+            NativeNodeIdentifier("folder-1"),
+            NativeNodeIdentifier("bookmark-1"),
+        ])
+        #expect(result.nativeIdentityObservations.allSatisfy {
+            $0.sourceID == expectedSourceID
+        })
+    }
+
+    @Test("Empty and repeated Safari transformations preserve snapshot behavior")
+    func nativeIdentityObservationDeterminism() async throws {
+        let empty = try adapter(extraction: extraction(records: [])).0
+        let first = try adapter(extraction: simpleExtraction()).0
+        let second = try adapter(extraction: simpleExtraction()).0
+
+        let emptyResult = try await empty.read()
+        let firstResult = try await first.read()
+        let secondResult = try await second.read()
+
+        #expect(emptyResult.snapshot.tree.isEmpty)
+        #expect(emptyResult.nativeIdentityObservations.isEmpty)
+        #expect(firstResult.snapshot == secondResult.snapshot)
+        #expect(firstResult.nativeIdentityObservations
+            == secondResult.nativeIdentityObservations)
     }
 
     @Test("Preserves multiple folders and their source order")
@@ -437,6 +518,7 @@ struct BSESafariAdapterTests {
             folderDictionary(
                 id: "native-folder",
                 title: "Folder",
+                nativeRoleIdentifier: "BookmarksBar",
                 children: [bookmarkDictionary(id: "native-bookmark")]
             ),
             ["WebBookmarkType": "FutureNode"],
@@ -462,6 +544,8 @@ struct BSESafariAdapterTests {
             sourceID: sourceID()
         )
         #expect(transformed.snapshot.tree.count == 2)
+        #expect(transformed.snapshot.tree.roots.first?.node.permanentRootRole
+            == .primaryBookmarks)
     }
 
     @Test("Default data source detects a source changing during read")
@@ -616,14 +700,17 @@ struct BSESafariAdapterTests {
     private func folderDictionary(
         id: String,
         title: String,
+        nativeRoleIdentifier: String? = nil,
         children: [[String: Any]]
     ) -> [String: Any] {
-        [
+        var dictionary: [String: Any] = [
             "WebBookmarkType": "WebBookmarkTypeList",
             "WebBookmarkUUID": id,
             "Title": title,
             "Children": children,
         ]
+        dictionary["WebBookmarkIdentifier"] = nativeRoleIdentifier
+        return dictionary
     }
 
     private func bookmarkDictionary(

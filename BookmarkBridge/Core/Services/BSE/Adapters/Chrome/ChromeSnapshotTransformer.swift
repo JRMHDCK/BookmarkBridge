@@ -41,6 +41,10 @@ nonisolated struct ChromeSnapshotTransformer: Sendable {
                 capturedAt: extraction.capturedAt,
                 tree: tree
             ),
+            nativeIdentityObservations: try orderedObservations(
+                state.nativeIdentityObservations,
+                tree: tree
+            ),
             issues: state.issues,
             foldersRead: state.foldersRead,
             bookmarksRead: state.bookmarksRead
@@ -65,8 +69,9 @@ nonisolated struct ChromeSnapshotTransformer: Sendable {
         parentID: LogicalNodeID?,
         to state: inout TransformationState
     ) throws {
-        guard let provisionalLogicalID = provisionalLogicalID(
-            for: folder.nativeIdentifier,
+        guard let identity = provisionalIdentity(
+            chromeID: folder.chromeID,
+            chromeGUID: folder.chromeGUID,
             path: folder.path,
             state: &state
         ) else { return }
@@ -74,8 +79,11 @@ nonisolated struct ChromeSnapshotTransformer: Sendable {
         let title = title(folder.title, path: folder.path, issues: &state.issues)
         do {
             state.nodes.append(try BSENode(
-                logicalID: provisionalLogicalID,
+                logicalID: identity.logicalNodeID,
                 kind: .folder,
+                permanentRootRole: folder.path.positions.isEmpty
+                    ? folder.path.root.permanentRootRole
+                    : nil,
                 title: title,
                 parentID: parentID,
                 position: folder.position
@@ -83,10 +91,18 @@ nonisolated struct ChromeSnapshotTransformer: Sendable {
         } catch {
             throw ChromeReadError.snapshotInconsistent
         }
+        state.nativeIdentityObservations.append(NativeIdentityObservation(
+            sourceID: state.sourceID,
+            provisionalLogicalNodeID: identity.logicalNodeID,
+            nativeIdentifier: identity.resolved.nativeIdentifier,
+            nativeIdentityKind: identity.resolved.kind,
+            continuityIdentifier: identity.resolved.continuityIdentifier,
+            continuityIdentityKind: identity.resolved.continuityKind
+        ))
         state.foldersRead += 1
 
         for child in folder.children {
-            try append(child, parentID: provisionalLogicalID, to: &state)
+            try append(child, parentID: identity.logicalNodeID, to: &state)
         }
     }
 
@@ -99,8 +115,9 @@ nonisolated struct ChromeSnapshotTransformer: Sendable {
             state.issues.append(.unsupportedNode(path: bookmark.path))
             return
         }
-        guard let provisionalLogicalID = provisionalLogicalID(
-            for: bookmark.nativeIdentifier,
+        guard let identity = provisionalIdentity(
+            chromeID: bookmark.chromeID,
+            chromeGUID: bookmark.chromeGUID,
             path: bookmark.path,
             state: &state
         ) else { return }
@@ -117,7 +134,7 @@ nonisolated struct ChromeSnapshotTransformer: Sendable {
 
         do {
             state.nodes.append(try BSENode(
-                logicalID: provisionalLogicalID,
+                logicalID: identity.logicalNodeID,
                 kind: .bookmark,
                 title: title,
                 parentID: parentID,
@@ -127,26 +144,48 @@ nonisolated struct ChromeSnapshotTransformer: Sendable {
         } catch {
             throw ChromeReadError.snapshotInconsistent
         }
+        state.nativeIdentityObservations.append(NativeIdentityObservation(
+            sourceID: state.sourceID,
+            provisionalLogicalNodeID: identity.logicalNodeID,
+            nativeIdentifier: identity.resolved.nativeIdentifier,
+            nativeIdentityKind: identity.resolved.kind,
+            continuityIdentifier: identity.resolved.continuityIdentifier,
+            continuityIdentityKind: identity.resolved.continuityKind
+        ))
         state.bookmarksRead += 1
     }
 
     /// Derives a deterministic Chrome-read-only key for the current snapshot.
     /// This key is neither durable BSE identity nor an inter-browser match key.
-    private func provisionalLogicalID(
-        for nativeIdentifier: String?,
+    private func provisionalIdentity(
+        chromeID: String?,
+        chromeGUID: String?,
         path: ChromeRecordPath,
         state: inout TransformationState
-    ) -> LogicalNodeID? {
-        guard let nativeIdentifier, !nativeIdentifier.isEmpty else {
+    ) -> ProvisionalNativeIdentity? {
+        let resolved: ChromeNativeIdentifier
+        do {
+            resolved = try ChromeNativeIdentifierResolver().resolve(
+                chromeID: chromeID,
+                chromeGUID: chromeGUID
+            )
+        } catch let error as ChromeNativeIdentifierError {
+            state.issues.append(.invalidNativeIdentifier(path: path, reason: error))
+            return nil
+        } catch {
             state.issues.append(.missingNativeIdentifier(path: path))
             return nil
         }
-        guard state.nativeIdentifiers.insert(nativeIdentifier).inserted else {
+        guard state.nativeIdentifiers.insert(
+            resolved.nativeIdentifier.rawValue
+        ).inserted else {
             state.issues.append(.duplicateNativeIdentifier(path: path))
             return nil
         }
 
-        let material = "\(state.sourceID.rawValue.uuidString)\u{0}\(nativeIdentifier)"
+        let material = state.sourceID.rawValue.uuidString
+            + "\u{0}"
+            + resolved.nativeIdentifier.rawValue
         var bytes = Array(SHA256.hash(data: Data(material.utf8)).prefix(16))
         bytes[6] = (bytes[6] & 0x0F) | 0x50
         bytes[8] = (bytes[8] & 0x3F) | 0x80
@@ -156,7 +195,29 @@ nonisolated struct ChromeSnapshotTransformer: Sendable {
             bytes[8], bytes[9], bytes[10], bytes[11],
             bytes[12], bytes[13], bytes[14], bytes[15]
         ))
-        return LogicalNodeID(uuid)
+        return ProvisionalNativeIdentity(
+            logicalNodeID: LogicalNodeID(uuid),
+            resolved: resolved
+        )
+    }
+
+    private func orderedObservations(
+        _ observations: [NativeIdentityObservation],
+        tree: BSETree
+    ) throws -> [NativeIdentityObservation] {
+        let byLogicalID = Dictionary(
+            observations.map { ($0.provisionalLogicalNodeID, $0) },
+            uniquingKeysWith: { first, _ in first }
+        )
+        guard byLogicalID.count == tree.nodes.count else {
+            throw ChromeReadError.snapshotInconsistent
+        }
+        return try tree.nodes.map { node in
+            guard let observation = byLogicalID[node.logicalID] else {
+                throw ChromeReadError.snapshotInconsistent
+            }
+            return observation
+        }
     }
 
     private func title(
@@ -174,6 +235,7 @@ nonisolated struct ChromeSnapshotTransformer: Sendable {
 
 nonisolated struct ChromeTransformationResult: Hashable, Sendable {
     let snapshot: BSESnapshot
+    let nativeIdentityObservations: [NativeIdentityObservation]
     let issues: [ChromeReadIssue]
     let foldersRead: Int
     let bookmarksRead: Int
@@ -182,8 +244,14 @@ nonisolated struct ChromeTransformationResult: Hashable, Sendable {
 nonisolated private struct TransformationState {
     let sourceID: BSESourceID
     var nodes: [BSENode] = []
+    var nativeIdentityObservations: [NativeIdentityObservation] = []
     var issues: [ChromeReadIssue]
     var nativeIdentifiers: Set<String> = []
     var foldersRead = 0
     var bookmarksRead = 0
+}
+
+nonisolated private struct ProvisionalNativeIdentity {
+    let logicalNodeID: LogicalNodeID
+    let resolved: ChromeNativeIdentifier
 }

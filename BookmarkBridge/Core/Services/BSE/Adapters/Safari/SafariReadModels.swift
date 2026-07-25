@@ -59,14 +59,17 @@ nonisolated struct SafariReadResult: Hashable, Sendable {
     let snapshot: BSESnapshot
     let report: SafariReadReport
     let issues: [SafariReadIssue]
+    let nativeIdentityObservations: [NativeIdentityObservation]
 
     init(
         snapshot: BSESnapshot,
         report: SafariReadReport,
-        issues: [SafariReadIssue]
+        issues: [SafariReadIssue],
+        nativeIdentityObservations: [NativeIdentityObservation]
     ) {
         self.snapshot = snapshot
         self.report = report
         self.issues = issues
+        self.nativeIdentityObservations = nativeIdentityObservations
     }
 }

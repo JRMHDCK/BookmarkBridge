@@ -45,4 +45,5 @@ nonisolated enum BaselineError: Error, Hashable, Sendable {
     )
     case corruptedData
     case storeFailure
+    case transactionUnsupported
 }

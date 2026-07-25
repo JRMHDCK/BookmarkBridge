@@ -49,7 +49,7 @@ struct SynchronizationPlannerTests {
             parent: 1,
             title: "Created bookmark",
             url: "https://created.test",
-            position: 3
+            position: 0
         )
         let plan = try PlanningTestSupport.plan(
             before: [root],
@@ -62,8 +62,78 @@ struct SynchronizationPlannerTests {
             title: "Created bookmark",
             url: bookmark.url,
             parentID: root.logicalNodeID,
-            position: 3
+            position: 0
         ))])
+    }
+
+    @Test("Created ancestors precede descendants despite inverse lexical identities")
+    func nestedCreationDependencyOrder() throws {
+        let root = try PlanningTestSupport.folder(id: 100)
+        let parent = try PlanningTestSupport.folder(id: 30, parent: 100)
+        let child = try PlanningTestSupport.folder(id: 20, parent: 30)
+        let bookmark = try PlanningTestSupport.bookmark(id: 10, parent: 20)
+
+        let plan = try PlanningTestSupport.plan(
+            before: [root],
+            after: [root, parent, child, bookmark]
+        )
+
+        #expect(plan.phases[0].operations.map(\.logicalNodeID) == [
+            parent.logicalNodeID,
+            child.logicalNodeID,
+            bookmark.logicalNodeID,
+        ])
+    }
+
+    @Test("Independent creation trees retain a stable deterministic order")
+    func independentCreationTrees() throws {
+        let root = try PlanningTestSupport.folder(id: 100)
+        let firstParent = try PlanningTestSupport.folder(id: 40, parent: 100)
+        let firstChild = try PlanningTestSupport.folder(id: 10, parent: 40)
+        let secondParent = try PlanningTestSupport.folder(id: 30, parent: 100)
+        let secondChild = try PlanningTestSupport.bookmark(id: 20, parent: 30)
+        let after = [root, firstParent, firstChild, secondParent, secondChild]
+        let diff = try PlanningTestSupport.diff(before: [root], after: after)
+        let reversed = LogicalDiffResult(
+            changes: Array(diff.changes.reversed()),
+            report: diff.report
+        )
+
+        let first = try PlanningTestSupport.plan(diff: diff, before: [root])
+        let second = try PlanningTestSupport.plan(diff: reversed, before: [root])
+
+        #expect(first == second)
+        #expect(first.phases[0].operations.map(\.logicalNodeID) == [
+            secondParent.logicalNodeID,
+            secondChild.logicalNodeID,
+            firstParent.logicalNodeID,
+            firstChild.logicalNodeID,
+        ])
+    }
+
+    @Test("An existing parent introduces no artificial creation dependency")
+    func creationUnderExistingParent() throws {
+        let root = try PlanningTestSupport.folder(id: 100)
+        let higherIDAtFirstPosition = try PlanningTestSupport.folder(
+            id: 20,
+            position: 0,
+            parent: 100
+        )
+        let lowerIDAtSecondPosition = try PlanningTestSupport.folder(
+            id: 10,
+            position: 1,
+            parent: 100
+        )
+
+        let plan = try PlanningTestSupport.plan(
+            before: [root],
+            after: [root, higherIDAtFirstPosition, lowerIDAtSecondPosition]
+        )
+
+        #expect(plan.phases[0].operations.map(\.logicalNodeID) == [
+            higherIDAtFirstPosition.logicalNodeID,
+            lowerIDAtSecondPosition.logicalNodeID,
+        ])
     }
 
     @Test("Deletion is planned in cleanup")
@@ -74,6 +144,46 @@ struct SynchronizationPlannerTests {
         #expect(plan.phases[3].operations == [.delete(DeleteNodeOperation(
             logicalNodeID: deleted.logicalNodeID
         ))])
+    }
+
+    @Test("Permanent-root creation and deletion are rejected explicitly")
+    func permanentRootPopulationChangesAreRejected() throws {
+        let root = try PlanningTestSupport.folder(
+            id: 1,
+            permanentRootRole: .primaryBookmarks
+        )
+
+        #expect(throws: SynchronizationPlanningError
+            .invalidPermanentRootMutation(root.logicalNodeID)) {
+            _ = try PlanningTestSupport.plan(before: [], after: [root])
+        }
+        #expect(throws: SynchronizationPlanningError
+            .invalidPermanentRootMutation(root.logicalNodeID)) {
+            _ = try PlanningTestSupport.plan(before: [root], after: [])
+        }
+    }
+
+    @Test("Permanent-root structural and content mutations are rejected explicitly")
+    func permanentRootMutationsAreRejected() throws {
+        let before = try PlanningTestSupport.folder(
+            id: 1,
+            title: "Native title",
+            permanentRootRole: .primaryBookmarks
+        )
+        let after = try PlanningTestSupport.folder(
+            id: 1,
+            title: "Changed title",
+            position: 1,
+            permanentRootRole: .primaryBookmarks
+        )
+
+        #expect(throws: SynchronizationPlanningError
+            .invalidPermanentRootMutation(before.logicalNodeID)) {
+            _ = try PlanningTestSupport.plan(
+                before: [before],
+                after: [after]
+            )
+        }
     }
 
     @Test("A single bookmark deletion is planned without deleting its parent")
@@ -258,18 +368,23 @@ struct SynchronizationPlannerTests {
     func structuralChanges() throws {
         let firstParent = try PlanningTestSupport.folder(id: 1)
         let secondParent = try PlanningTestSupport.folder(id: 2)
+        let existingChild = try PlanningTestSupport.bookmark(
+            id: 4,
+            parent: 2,
+            position: 0
+        )
         let before = try PlanningTestSupport.bookmark(id: 3, parent: 1, position: 0)
-        let after = try PlanningTestSupport.bookmark(id: 3, parent: 2, position: 4)
+        let after = try PlanningTestSupport.bookmark(id: 3, parent: 2, position: 1)
         let plan = try PlanningTestSupport.plan(
-            before: [firstParent, secondParent, before],
-            after: [firstParent, secondParent, after]
+            before: [firstParent, secondParent, before, existingChild],
+            after: [firstParent, secondParent, after, existingChild]
         )
 
         #expect(plan.phases[1].operations == [
             .move(MoveNodeOperation(
                 logicalNodeID: before.logicalNodeID,
                 parentID: secondParent.logicalNodeID,
-                position: 4
+                position: 1
             )),
         ])
         #expect(plan.report.inputChangeCount == 2)
@@ -277,12 +392,413 @@ struct SynchronizationPlannerTests {
         #expect(plan.report.skippedChangeCount == 0)
     }
 
+    @Test("A move into a newly created parent follows that creation phase")
+    func moveToCreatedParent() throws {
+        let root = try PlanningTestSupport.folder(id: 100)
+        let createdParent = try PlanningTestSupport.folder(id: 20, parent: 100)
+        let before = try PlanningTestSupport.bookmark(id: 10, parent: 100)
+        let after = try PlanningTestSupport.bookmark(id: 10, parent: 20)
+
+        let plan = try PlanningTestSupport.plan(
+            before: [root, before],
+            after: [root, createdParent, after]
+        )
+
+        #expect(plan.phases[0].operations.map(\.logicalNodeID) == [
+            createdParent.logicalNodeID,
+        ])
+        #expect(plan.phases[1].operations == [.move(MoveNodeOperation(
+            logicalNodeID: before.logicalNodeID,
+            parentID: createdParent.logicalNodeID,
+            position: 0
+        ))])
+    }
+
+    @Test("A move establishes the position required by a later creation")
+    func moveBeforePositionDependentCreation() throws {
+        let root = try PlanningTestSupport.folder(id: 100)
+        let destination = try PlanningTestSupport.folder(
+            id: 10,
+            position: 0,
+            parent: 100
+        )
+        let origin = try PlanningTestSupport.folder(
+            id: 20,
+            position: 1,
+            parent: 100
+        )
+        let movedBefore = try PlanningTestSupport.bookmark(
+            id: 30,
+            parent: 20,
+            position: 0
+        )
+        let movedAfter = try PlanningTestSupport.bookmark(
+            id: 30,
+            parent: 10,
+            position: 0
+        )
+        let created = try PlanningTestSupport.bookmark(
+            id: 40,
+            parent: 10,
+            position: 1
+        )
+
+        let plan = try PlanningTestSupport.plan(
+            before: [root, destination, origin, movedBefore],
+            after: [root, destination, origin, movedAfter, created]
+        )
+
+        #expect(plan.phases[0].operations.isEmpty)
+        #expect(plan.phases[1].operations == [
+            .move(MoveNodeOperation(
+                logicalNodeID: movedBefore.logicalNodeID,
+                parentID: destination.logicalNodeID,
+                position: 0
+            )),
+            .create(CreateNodeOperation(
+                logicalNodeID: created.logicalNodeID,
+                kind: .bookmark,
+                title: "Bookmark",
+                url: created.url,
+                parentID: destination.logicalNodeID,
+                position: 1
+            )),
+        ])
+    }
+
+    @Test("Two moves establish an ordered prefix before a creation")
+    func twoMovesBeforePositionDependentCreation() throws {
+        let root = try PlanningTestSupport.folder(id: 100)
+        let destination = try PlanningTestSupport.folder(id: 10, parent: 100)
+        let firstOrigin = try PlanningTestSupport.folder(id: 20, parent: 100)
+        let secondOrigin = try PlanningTestSupport.folder(id: 21, parent: 100)
+        let firstBefore = try PlanningTestSupport.bookmark(id: 30, parent: 20)
+        let secondBefore = try PlanningTestSupport.bookmark(id: 31, parent: 21)
+        let firstAfter = try PlanningTestSupport.bookmark(
+            id: 30,
+            parent: 10,
+            position: 0
+        )
+        let secondAfter = try PlanningTestSupport.bookmark(
+            id: 31,
+            parent: 10,
+            position: 1
+        )
+        let created = try PlanningTestSupport.bookmark(
+            id: 40,
+            parent: 10,
+            position: 2
+        )
+
+        let plan = try PlanningTestSupport.plan(
+            before: [
+                root,
+                destination,
+                firstOrigin,
+                secondOrigin,
+                firstBefore,
+                secondBefore,
+            ],
+            after: [
+                root,
+                destination,
+                firstOrigin,
+                secondOrigin,
+                firstAfter,
+                secondAfter,
+                created,
+            ]
+        )
+
+        #expect(plan.phases[0].operations.isEmpty)
+        #expect(plan.phases[1].operations.map(\.logicalNodeID) == [
+            firstBefore.logicalNodeID,
+            secondBefore.logicalNodeID,
+            created.logicalNodeID,
+        ])
+    }
+
+    @Test("Several creations wait for the moves that make their positions valid")
+    func severalCreationsDependOnMoves() throws {
+        let root = try PlanningTestSupport.folder(id: 100)
+        let destination = try PlanningTestSupport.folder(id: 10, parent: 100)
+        let origin = try PlanningTestSupport.folder(id: 20, parent: 100)
+        let movedBefore = try PlanningTestSupport.bookmark(id: 30, parent: 20)
+        let movedAfter = try PlanningTestSupport.bookmark(
+            id: 30,
+            parent: 10,
+            position: 0
+        )
+        let firstCreated = try PlanningTestSupport.bookmark(
+            id: 40,
+            parent: 10,
+            position: 1
+        )
+        let secondCreated = try PlanningTestSupport.bookmark(
+            id: 50,
+            parent: 10,
+            position: 2
+        )
+
+        let plan = try PlanningTestSupport.plan(
+            before: [root, destination, origin, movedBefore],
+            after: [
+                root,
+                destination,
+                origin,
+                movedAfter,
+                firstCreated,
+                secondCreated,
+            ]
+        )
+
+        #expect(plan.phases[0].operations.isEmpty)
+        #expect(plan.phases[1].operations.map(\.logicalNodeID) == [
+            movedBefore.logicalNodeID,
+            firstCreated.logicalNodeID,
+            secondCreated.logicalNodeID,
+        ])
+    }
+
+    @Test("A later ready move can unlock a blocked created destination")
+    func positionSchedulingSkipsBlockedStructuralHead() throws {
+        let root = try PlanningTestSupport.folder(id: 100)
+        let destination = try PlanningTestSupport.folder(id: 20, parent: 100)
+        let firstOrigin = try PlanningTestSupport.folder(id: 30, parent: 100)
+        let secondOrigin = try PlanningTestSupport.folder(id: 40, parent: 100)
+        let movedToCreatedParentBefore = try PlanningTestSupport.bookmark(
+            id: 10,
+            parent: 40
+        )
+        let positionProviderBefore = try PlanningTestSupport.bookmark(
+            id: 90,
+            parent: 30
+        )
+        let createdParent = try PlanningTestSupport.folder(
+            id: 50,
+            position: 1,
+            parent: 20
+        )
+        let positionProviderAfter = try PlanningTestSupport.bookmark(
+            id: 90,
+            parent: 20,
+            position: 0
+        )
+        let movedToCreatedParentAfter = try PlanningTestSupport.bookmark(
+            id: 10,
+            parent: 50,
+            position: 0
+        )
+
+        let plan = try PlanningTestSupport.plan(
+            before: [
+                root,
+                destination,
+                firstOrigin,
+                secondOrigin,
+                movedToCreatedParentBefore,
+                positionProviderBefore,
+            ],
+            after: [
+                root,
+                destination,
+                firstOrigin,
+                secondOrigin,
+                positionProviderAfter,
+                createdParent,
+                movedToCreatedParentAfter,
+            ]
+        )
+
+        #expect(plan.phases[0].operations.isEmpty)
+        #expect(plan.phases[1].operations.map(\.logicalNodeID) == [
+            positionProviderBefore.logicalNodeID,
+            createdParent.logicalNodeID,
+            movedToCreatedParentBefore.logicalNodeID,
+        ])
+    }
+
+    @Test("An unreachable insertion position fails without a partial plan")
+    func impossiblePositionDependency() throws {
+        let root = try PlanningTestSupport.folder(id: 100)
+        let destination = try PlanningTestSupport.folder(id: 10, parent: 100)
+        let created = try PlanningTestSupport.bookmark(
+            id: 20,
+            parent: 10,
+            position: 1
+        )
+
+        #expect(throws: SynchronizationPlanningError
+            .unresolvablePositionDependency([created.logicalNodeID])) {
+            _ = try PlanningTestSupport.plan(
+                before: [root, destination],
+                after: [root, destination, created]
+            )
+        }
+    }
+
+    @Test("Position dependency ordering is independent of diff iteration order")
+    func deterministicPositionDependencyOrder() throws {
+        let root = try PlanningTestSupport.folder(id: 100)
+        let destination = try PlanningTestSupport.folder(id: 10, parent: 100)
+        let origin = try PlanningTestSupport.folder(id: 20, parent: 100)
+        let movedBefore = try PlanningTestSupport.bookmark(id: 30, parent: 20)
+        let movedAfter = try PlanningTestSupport.bookmark(
+            id: 30,
+            parent: 10,
+            position: 0
+        )
+        let created = try PlanningTestSupport.bookmark(
+            id: 40,
+            parent: 10,
+            position: 1
+        )
+        let before = [root, destination, origin, movedBefore]
+        let diff = try PlanningTestSupport.diff(
+            before: before,
+            after: [root, destination, origin, movedAfter, created]
+        )
+        let reversed = LogicalDiffResult(
+            changes: Array(diff.changes.reversed()),
+            report: diff.report
+        )
+
+        let first = try PlanningTestSupport.plan(diff: diff, before: before)
+        let second = try PlanningTestSupport.plan(diff: reversed, before: before)
+
+        #expect(first == second)
+    }
+
+    @Test("A former descendant detaches before becoming its parent's destination")
+    func parentAndDescendantMoveOrder() throws {
+        let root = try PlanningTestSupport.folder(id: 100)
+        let parentBefore = try PlanningTestSupport.folder(id: 10, parent: 100)
+        let childBefore = try PlanningTestSupport.folder(id: 90, parent: 10)
+        let parentAfter = try PlanningTestSupport.folder(id: 10, parent: 90)
+        let childAfter = try PlanningTestSupport.folder(id: 90, parent: 100)
+
+        let plan = try PlanningTestSupport.plan(
+            before: [root, parentBefore, childBefore],
+            after: [root, parentAfter, childAfter]
+        )
+
+        #expect(plan.phases[1].operations.map(\.logicalNodeID) == [
+            childBefore.logicalNodeID,
+            parentBefore.logicalNodeID,
+        ])
+    }
+
+    @Test("A three-move dependency chain is ordered destination ancestors first")
+    func chainedMoveDependencies() throws {
+        let root = try PlanningTestSupport.folder(id: 100)
+        let firstBefore = try PlanningTestSupport.folder(id: 10, parent: 100)
+        let secondBefore = try PlanningTestSupport.folder(id: 20, parent: 10)
+        let thirdBefore = try PlanningTestSupport.folder(id: 30, parent: 20)
+        let firstAfter = try PlanningTestSupport.folder(id: 10, parent: 20)
+        let secondAfter = try PlanningTestSupport.folder(id: 20, parent: 30)
+        let thirdAfter = try PlanningTestSupport.folder(id: 30, parent: 100)
+
+        let before = [root, firstBefore, secondBefore, thirdBefore]
+        let diff = try PlanningTestSupport.diff(
+            before: before,
+            after: [root, firstAfter, secondAfter, thirdAfter]
+        )
+        let reversed = LogicalDiffResult(
+            changes: Array(diff.changes.reversed()),
+            report: diff.report
+        )
+        let plan = try PlanningTestSupport.plan(diff: diff, before: before)
+        let repeated = try PlanningTestSupport.plan(
+            diff: reversed,
+            before: before
+        )
+
+        #expect(plan.phases[1].operations.map(\.logicalNodeID) == [
+            thirdBefore.logicalNodeID,
+            secondBefore.logicalNodeID,
+            firstBefore.logicalNodeID,
+        ])
+        #expect(plan == repeated)
+    }
+
+    @Test("Independent moves preserve the prior LogicalNodeID ordering")
+    func independentMovesKeepStableOrder() throws {
+        let root = try PlanningTestSupport.folder(id: 100)
+        let destination = try PlanningTestSupport.folder(id: 90, parent: 100)
+        let firstBefore = try PlanningTestSupport.bookmark(id: 20, parent: 100)
+        let secondBefore = try PlanningTestSupport.bookmark(id: 10, parent: 100)
+        let firstAfter = try PlanningTestSupport.bookmark(
+            id: 20,
+            parent: 90,
+            position: 1
+        )
+        let secondAfter = try PlanningTestSupport.bookmark(
+            id: 10,
+            parent: 90,
+            position: 0
+        )
+
+        let plan = try PlanningTestSupport.plan(
+            before: [root, destination, firstBefore, secondBefore],
+            after: [root, destination, firstAfter, secondAfter]
+        )
+
+        #expect(plan.phases[1].operations.map(\.logicalNodeID) == [
+            secondBefore.logicalNodeID,
+            firstBefore.logicalNodeID,
+        ])
+    }
+
+    @Test("A cyclic move dependency is rejected without a partial plan")
+    func impossibleMoveDependency() throws {
+        let root = try PlanningTestSupport.folder(id: 100)
+        let first = try PlanningTestSupport.folder(id: 10, parent: 100)
+        let second = try PlanningTestSupport.folder(id: 20, parent: 100)
+        let diff = LogicalDiffResult(
+            changes: [
+                .moved(MovedChange(
+                    logicalNodeID: first.logicalNodeID,
+                    before: root.logicalNodeID,
+                    after: second.logicalNodeID
+                )),
+                .moved(MovedChange(
+                    logicalNodeID: second.logicalNodeID,
+                    before: root.logicalNodeID,
+                    after: first.logicalNodeID
+                )),
+            ],
+            report: LogicalDiffReport(
+                beforeNodeCount: 3,
+                afterNodeCount: 3,
+                unchangedNodeCount: 1,
+                createdCount: 0,
+                deletedCount: 0,
+                renamedCount: 0,
+                urlChangedCount: 0,
+                movedCount: 2,
+                reorderedCount: 0,
+                lifecycleChangedCount: 0
+            )
+        )
+
+        #expect(throws: SynchronizationPlanningError
+            .unresolvableOperationDependency([
+                first.logicalNodeID,
+                second.logicalNodeID,
+            ])) {
+            _ = try PlanningTestSupport.plan(
+                diff: diff,
+                before: [root, first, second]
+            )
+        }
+    }
+
     @Test("A move without reorder retains the exact unchanged position")
     func moveWithUnchangedPosition() throws {
         let firstParent = try PlanningTestSupport.folder(id: 1)
         let secondParent = try PlanningTestSupport.folder(id: 2)
-        let before = try PlanningTestSupport.bookmark(id: 3, parent: 1, position: 2)
-        let after = try PlanningTestSupport.bookmark(id: 3, parent: 2, position: 2)
+        let before = try PlanningTestSupport.bookmark(id: 3, parent: 1, position: 0)
+        let after = try PlanningTestSupport.bookmark(id: 3, parent: 2, position: 0)
         let plan = try PlanningTestSupport.plan(
             before: [firstParent, secondParent, before],
             after: [firstParent, secondParent, after]
@@ -291,7 +807,7 @@ struct SynchronizationPlannerTests {
         #expect(plan.phases[1].operations == [.move(MoveNodeOperation(
             logicalNodeID: before.logicalNodeID,
             parentID: secondParent.logicalNodeID,
-            position: 2
+            position: 0
         ))])
     }
 
@@ -299,10 +815,13 @@ struct SynchronizationPlannerTests {
     func reorderWithoutMove() throws {
         let parent = try PlanningTestSupport.folder(id: 1)
         let before = try PlanningTestSupport.bookmark(id: 2, parent: 1, position: 0)
+        let sibling1 = try PlanningTestSupport.bookmark(id: 3, parent: 1, position: 1)
+        let sibling2 = try PlanningTestSupport.bookmark(id: 4, parent: 1, position: 2)
+        let sibling3 = try PlanningTestSupport.bookmark(id: 5, parent: 1, position: 3)
         let after = try PlanningTestSupport.bookmark(id: 2, parent: 1, position: 3)
         let plan = try PlanningTestSupport.plan(
-            before: [parent, before],
-            after: [parent, after]
+            before: [parent, before, sibling1, sibling2, sibling3],
+            after: [parent, after, sibling1, sibling2, sibling3]
         )
 
         #expect(plan.phases[1].operations == [.reorder(ReorderNodeOperation(
@@ -316,7 +835,7 @@ struct SynchronizationPlannerTests {
         let firstParent = try PlanningTestSupport.folder(id: 1)
         let secondParent = try PlanningTestSupport.folder(id: 2)
         let before = try PlanningTestSupport.bookmark(id: 3, parent: 1, position: 0)
-        let after = try PlanningTestSupport.bookmark(id: 3, parent: 2, position: 4)
+        let after = try PlanningTestSupport.bookmark(id: 3, parent: 2, position: 0)
         let beforeNodes = [firstParent, secondParent, before]
         let diff = try PlanningTestSupport.diff(
             before: beforeNodes,
@@ -395,6 +914,7 @@ struct SynchronizationPlannerTests {
             diff: diff,
             before: [before],
             policy: SynchronizationPolicy(
+                direction: PlanningTestSupport.direction,
                 changeSelection: .allChanges,
                 deletedLifecycleHandling: .delete
             )
@@ -403,6 +923,7 @@ struct SynchronizationPlannerTests {
             diff: diff,
             before: [before],
             policy: SynchronizationPolicy(
+                direction: PlanningTestSupport.direction,
                 changeSelection: .allChanges,
                 deletedLifecycleHandling: .archive
             )
@@ -422,6 +943,7 @@ struct SynchronizationPlannerTests {
                 diff: diff,
                 before: [before],
                 policy: SynchronizationPolicy(
+                    direction: PlanningTestSupport.direction,
                     changeSelection: .allChanges,
                     deletedLifecycleHandling: .reject
                 )
@@ -466,9 +988,18 @@ struct SynchronizationPlannerTests {
             after: [renamed, created]
         )
 
-        let all = try PlanningTestSupport.plan(diff: diff, policy: .allChanges)
-        let additions = try PlanningTestSupport.plan(diff: diff, policy: .additionsOnly)
-        let content = try PlanningTestSupport.plan(diff: diff, policy: .contentOnly)
+        let all = try PlanningTestSupport.plan(
+            diff: diff,
+            policy: .allChanges(direction: PlanningTestSupport.direction)
+        )
+        let additions = try PlanningTestSupport.plan(
+            diff: diff,
+            policy: .additionsOnly(direction: PlanningTestSupport.direction)
+        )
+        let content = try PlanningTestSupport.plan(
+            diff: diff,
+            policy: .contentOnly(direction: PlanningTestSupport.direction)
+        )
 
         #expect(all.operations.count == 2)
         #expect(additions.operations.count == 1)
@@ -566,7 +1097,7 @@ struct SynchronizationPlannerTests {
         let request = SynchronizationPlanningRequest(
             before: before,
             logicalDiff: diff,
-            policy: .allChanges
+            policy: .allChanges(direction: PlanningTestSupport.direction)
         )
         let plan = try SynchronizationPlanner().plan(request: request)
 
@@ -581,6 +1112,10 @@ struct SynchronizationPlannerTests {
 }
 
 private enum PlanningTestSupport {
+    static var direction: SynchronizationDirection {
+        .oneWay(source: sourceID(900), target: sourceID(901))
+    }
+
     static let emptyGraphReport = LogicalStateBuildingReport(
         baselineIdentityCount: 0,
         snapshotCount: 0,
@@ -595,7 +1130,7 @@ private enum PlanningTestSupport {
     static func plan(
         before: [LogicalNodeState],
         after: [LogicalNodeState],
-        policy: SynchronizationPolicy = .allChanges
+        policy: SynchronizationPolicy = .allChanges(direction: direction)
     ) throws -> SynchronizationPlan {
         let beforeGraph = try graph(nodes: before)
         let afterGraph = try graph(nodes: after)
@@ -615,7 +1150,7 @@ private enum PlanningTestSupport {
     static func plan(
         diff: LogicalDiffResult,
         before: [LogicalNodeState] = [],
-        policy: SynchronizationPolicy = .allChanges
+        policy: SynchronizationPolicy = .allChanges(direction: direction)
     ) throws -> SynchronizationPlan {
         try SynchronizationPlanner().plan(request: SynchronizationPlanningRequest(
             before: graph(nodes: before),
@@ -663,11 +1198,13 @@ private enum PlanningTestSupport {
         title: String = "Folder",
         position: Int = 0,
         parent: Int? = nil,
+        permanentRootRole: PermanentRootRole? = nil,
         lifecycle: LogicalNodeLifecycle = .unregistered
     ) throws -> LogicalNodeState {
         try LogicalNodeState(
             logicalNodeID: logicalID(id),
             kind: .folder,
+            permanentRootRole: permanentRootRole,
             title: title,
             url: nil,
             parentID: parent.map(logicalID),
@@ -699,6 +1236,13 @@ private enum PlanningTestSupport {
     static func logicalID(_ value: Int) -> LogicalNodeID {
         LogicalNodeID(UUID(uuidString: String(
             format: "00000000-0000-0000-0000-%012d",
+            value
+        ))!)
+    }
+
+    static func sourceID(_ value: Int) -> BSESourceID {
+        BSESourceID(UUID(uuidString: String(
+            format: "10000000-0000-0000-0000-%012d",
             value
         ))!)
     }

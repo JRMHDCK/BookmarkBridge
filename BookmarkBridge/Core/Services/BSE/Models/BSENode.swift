@@ -29,6 +29,7 @@ nonisolated struct BSEBookmarkPayload: Hashable, Codable, Sendable {
 nonisolated struct BSENode: Hashable, Codable, Sendable, Identifiable {
     let logicalID: LogicalNodeID
     let kind: NodeKind
+    let permanentRootRole: PermanentRootRole?
     let title: String
     let parentID: LogicalNodeID?
     let position: Int
@@ -40,6 +41,7 @@ nonisolated struct BSENode: Hashable, Codable, Sendable, Identifiable {
     init(
         logicalID: LogicalNodeID,
         kind: NodeKind,
+        permanentRootRole: PermanentRootRole? = nil,
         title: String,
         parentID: LogicalNodeID? = nil,
         position: Int,
@@ -62,9 +64,14 @@ nonisolated struct BSENode: Hashable, Codable, Sendable, Identifiable {
             }
             payload = BSEBookmarkPayload(url: url)
         }
+        guard permanentRootRole == nil
+                || kind == .folder && parentID == nil else {
+            throw BSEModelValidationError.invalidPermanentRoot(logicalID)
+        }
 
         self.logicalID = logicalID
         self.kind = kind
+        self.permanentRootRole = permanentRootRole
         self.title = title
         self.parentID = parentID
         self.position = position
@@ -74,6 +81,7 @@ nonisolated struct BSENode: Hashable, Codable, Sendable, Identifiable {
     private enum CodingKeys: String, CodingKey {
         case logicalID
         case kind
+        case permanentRootRole
         case title
         case parentID
         case position
@@ -85,6 +93,10 @@ nonisolated struct BSENode: Hashable, Codable, Sendable, Identifiable {
         try self.init(
             logicalID: container.decode(LogicalNodeID.self, forKey: .logicalID),
             kind: container.decode(NodeKind.self, forKey: .kind),
+            permanentRootRole: container.decodeIfPresent(
+                PermanentRootRole.self,
+                forKey: .permanentRootRole
+            ),
             title: container.decode(String.self, forKey: .title),
             parentID: container.decodeIfPresent(LogicalNodeID.self, forKey: .parentID),
             position: container.decode(Int.self, forKey: .position),
@@ -96,6 +108,10 @@ nonisolated struct BSENode: Hashable, Codable, Sendable, Identifiable {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(logicalID, forKey: .logicalID)
         try container.encode(kind, forKey: .kind)
+        try container.encodeIfPresent(
+            permanentRootRole,
+            forKey: .permanentRootRole
+        )
         try container.encode(title, forKey: .title)
         try container.encodeIfPresent(parentID, forKey: .parentID)
         try container.encode(position, forKey: .position)

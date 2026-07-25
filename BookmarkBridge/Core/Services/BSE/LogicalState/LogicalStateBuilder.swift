@@ -134,6 +134,7 @@ nonisolated struct LogicalStateBuilder: Sendable {
         return try LogicalNodeState(
             logicalNodeID: logicalNodeID,
             kind: structure?.kind,
+            permanentRootRole: structure?.permanentRootRole,
             title: structure?.title,
             url: structure?.url,
             parentID: structure?.parentID,
@@ -159,6 +160,7 @@ private nonisolated struct SnapshotOccurrence: Hashable, Sendable {
 
 private nonisolated struct LogicalStructure: Hashable, Sendable {
     let kind: NodeKind
+    let permanentRootRole: PermanentRootRole?
     let title: String
     let url: URL?
     let parentID: LogicalNodeID?
@@ -166,6 +168,7 @@ private nonisolated struct LogicalStructure: Hashable, Sendable {
 
     init(node: BSENode) {
         kind = node.kind
+        permanentRootRole = node.permanentRootRole
         title = node.title
         url = node.url
         parentID = node.parentID

@@ -35,6 +35,20 @@ nonisolated struct BaselineRepository: Sendable {
         try await store.save(baseline, expectedRevision: expectedRevision)
     }
 
+    /// Captures the exact persisted Baseline used by the global transaction.
+    func transactionSnapshot() async throws -> Baseline? {
+        try await store.load()
+    }
+
+    /// Restores a previously captured value without applying business
+    /// commands or monotonic revision validation.
+    func restoreTransactionSnapshot(_ baseline: Baseline?) async throws {
+        guard let transactionStore = store as? any BaselineTransactionStore else {
+            throw BaselineError.transactionUnsupported
+        }
+        try await transactionStore.restoreTransactionSnapshot(baseline)
+    }
+
     /// Applies and persists one command batch with optimistic revision control.
     func apply(
         commands: [BaselineCommand],

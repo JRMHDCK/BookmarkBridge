@@ -42,6 +42,10 @@ nonisolated struct SafariSnapshotTransformer: Sendable {
                 capturedAt: extraction.capturedAt,
                 tree: tree
             ),
+            nativeIdentityObservations: try orderedObservations(
+                state.nativeIdentityObservations,
+                tree: tree
+            ),
             issues: state.issues,
             foldersRead: state.foldersRead,
             bookmarksRead: state.bookmarksRead
@@ -66,7 +70,7 @@ nonisolated struct SafariSnapshotTransformer: Sendable {
         parentID: LogicalNodeID?,
         to state: inout TransformationState
     ) throws {
-        guard let provisionalLogicalID = provisionalLogicalID(
+        guard let identity = provisionalIdentity(
             for: folder.nativeIdentifier,
             path: folder.path,
             state: &state
@@ -75,8 +79,9 @@ nonisolated struct SafariSnapshotTransformer: Sendable {
         let title = title(folder.title, path: folder.path, issues: &state.issues)
         do {
             state.nodes.append(try BSENode(
-                logicalID: provisionalLogicalID,
+                logicalID: identity.logicalNodeID,
                 kind: .folder,
+                permanentRootRole: folder.permanentRootRole,
                 title: title,
                 parentID: parentID,
                 position: folder.position
@@ -84,10 +89,15 @@ nonisolated struct SafariSnapshotTransformer: Sendable {
         } catch {
             throw SafariReadError.snapshotInconsistent
         }
+        state.nativeIdentityObservations.append(NativeIdentityObservation(
+            sourceID: state.sourceID,
+            provisionalLogicalNodeID: identity.logicalNodeID,
+            nativeIdentifier: identity.nativeIdentifier
+        ))
         state.foldersRead += 1
 
         for child in folder.children {
-            try append(child, parentID: provisionalLogicalID, to: &state)
+            try append(child, parentID: identity.logicalNodeID, to: &state)
         }
     }
 
@@ -100,7 +110,7 @@ nonisolated struct SafariSnapshotTransformer: Sendable {
             state.issues.append(.unsupportedNode(path: bookmark.path))
             return
         }
-        guard let provisionalLogicalID = provisionalLogicalID(
+        guard let identity = provisionalIdentity(
             for: bookmark.nativeIdentifier,
             path: bookmark.path,
             state: &state
@@ -118,7 +128,7 @@ nonisolated struct SafariSnapshotTransformer: Sendable {
 
         do {
             state.nodes.append(try BSENode(
-                logicalID: provisionalLogicalID,
+                logicalID: identity.logicalNodeID,
                 kind: .bookmark,
                 title: title,
                 parentID: parentID,
@@ -128,16 +138,21 @@ nonisolated struct SafariSnapshotTransformer: Sendable {
         } catch {
             throw SafariReadError.snapshotInconsistent
         }
+        state.nativeIdentityObservations.append(NativeIdentityObservation(
+            sourceID: state.sourceID,
+            provisionalLogicalNodeID: identity.logicalNodeID,
+            nativeIdentifier: identity.nativeIdentifier
+        ))
         state.bookmarksRead += 1
     }
 
     /// Derives a deterministic, Safari-read-only key for the current snapshot.
     /// This key is neither durable BSE identity nor an inter-browser match key.
-    private func provisionalLogicalID(
+    private func provisionalIdentity(
         for nativeIdentifier: String?,
         path: SafariRecordPath,
         state: inout TransformationState
-    ) -> LogicalNodeID? {
+    ) -> ProvisionalNativeIdentity? {
         guard let nativeIdentifier, !nativeIdentifier.isEmpty else {
             state.issues.append(.missingNativeIdentifier(path: path))
             return nil
@@ -157,7 +172,29 @@ nonisolated struct SafariSnapshotTransformer: Sendable {
             bytes[8], bytes[9], bytes[10], bytes[11],
             bytes[12], bytes[13], bytes[14], bytes[15]
         ))
-        return LogicalNodeID(uuid)
+        return ProvisionalNativeIdentity(
+            logicalNodeID: LogicalNodeID(uuid),
+            nativeIdentifier: NativeNodeIdentifier(nativeIdentifier)
+        )
+    }
+
+    private func orderedObservations(
+        _ observations: [NativeIdentityObservation],
+        tree: BSETree
+    ) throws -> [NativeIdentityObservation] {
+        let byLogicalID = Dictionary(
+            observations.map { ($0.provisionalLogicalNodeID, $0) },
+            uniquingKeysWith: { first, _ in first }
+        )
+        guard byLogicalID.count == tree.nodes.count else {
+            throw SafariReadError.snapshotInconsistent
+        }
+        return try tree.nodes.map { node in
+            guard let observation = byLogicalID[node.logicalID] else {
+                throw SafariReadError.snapshotInconsistent
+            }
+            return observation
+        }
     }
 
     private func title(
@@ -175,6 +212,7 @@ nonisolated struct SafariSnapshotTransformer: Sendable {
 
 nonisolated struct SafariTransformationResult: Hashable, Sendable {
     let snapshot: BSESnapshot
+    let nativeIdentityObservations: [NativeIdentityObservation]
     let issues: [SafariReadIssue]
     let foldersRead: Int
     let bookmarksRead: Int
@@ -183,8 +221,14 @@ nonisolated struct SafariTransformationResult: Hashable, Sendable {
 nonisolated private struct TransformationState {
     let sourceID: BSESourceID
     var nodes: [BSENode] = []
+    var nativeIdentityObservations: [NativeIdentityObservation] = []
     var issues: [SafariReadIssue]
     var nativeIdentifiers: Set<String> = []
     var foldersRead = 0
     var bookmarksRead = 0
+}
+
+nonisolated private struct ProvisionalNativeIdentity {
+    let logicalNodeID: LogicalNodeID
+    let nativeIdentifier: NativeNodeIdentifier
 }

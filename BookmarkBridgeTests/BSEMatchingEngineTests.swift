@@ -16,8 +16,18 @@ struct BSEMatchingEngineTests {
         return LogicalNodeID(try #require(UUID(uuidString: string)))
     }
 
-    private func folder(_ id: LogicalNodeID, title: String = "Folder") throws -> BSENode {
-        try BSENode(logicalID: id, kind: .folder, title: title, position: 0)
+    private func folder(
+        _ id: LogicalNodeID,
+        title: String = "Folder",
+        permanentRootRole: PermanentRootRole? = nil
+    ) throws -> BSENode {
+        try BSENode(
+            logicalID: id,
+            kind: .folder,
+            permanentRootRole: permanentRootRole,
+            title: title,
+            position: 0
+        )
     }
 
     private func bookmark(
@@ -88,6 +98,48 @@ struct BSEMatchingEngineTests {
         )
 
         #expect(result == .noMatch(reason: .differentLogicalID))
+    }
+
+    @Test("Permanent roots match only through an equal declared role")
+    func matchesPermanentRootRole() throws {
+        let candidateID = try logicalID(2)
+        let result = engine.match(
+            try folder(
+                logicalID(1),
+                title: "Source native title",
+                permanentRootRole: .primaryBookmarks
+            ),
+            with: try folder(
+                candidateID,
+                title: "Target native title",
+                permanentRootRole: .primaryBookmarks
+            )
+        )
+
+        #expect(result == .match(
+            candidateID: candidateID,
+            reason: .samePermanentRootRole
+        ))
+    }
+
+    @Test("Distinct or missing permanent-root roles never match")
+    func rejectsNonHomologousPermanentRoots() throws {
+        let primary = try folder(
+            logicalID(1),
+            permanentRootRole: .primaryBookmarks
+        )
+
+        #expect(engine.match(
+            primary,
+            with: try folder(
+                logicalID(2),
+                permanentRootRole: .mobileBookmarks
+            )
+        ) == .noMatch(reason: .differentPermanentRootRole))
+        #expect(engine.match(
+            primary,
+            with: try folder(logicalID(3))
+        ) == .noMatch(reason: .differentPermanentRootRole))
     }
 
     @Test("Reports every valid candidate as ambiguous")

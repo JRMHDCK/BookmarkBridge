@@ -52,6 +52,17 @@ nonisolated enum ChromeRootKind: String, CaseIterable, Hashable, Codable, Sendab
     case bookmarksBar
     case otherBookmarks
     case mobileBookmarks
+
+    var permanentRootRole: PermanentRootRole {
+        switch self {
+        case .bookmarksBar:
+            .primaryBookmarks
+        case .otherBookmarks:
+            .secondaryBookmarks
+        case .mobileBookmarks:
+            .mobileBookmarks
+        }
+    }
 }
 
 /// Deterministic snapshot-local location within one extracted profile.
@@ -66,7 +77,8 @@ nonisolated struct ChromeRecordPath: Hashable, Codable, Sendable {
 }
 
 nonisolated struct ChromeBookmarkRecord: Hashable, Sendable {
-    let nativeIdentifier: String?
+    let chromeID: String?
+    let chromeGUID: String?
     let title: String?
     let urlString: String?
     let position: Int
@@ -74,7 +86,8 @@ nonisolated struct ChromeBookmarkRecord: Hashable, Sendable {
 }
 
 nonisolated struct ChromeFolderRecord: Hashable, Sendable {
-    let nativeIdentifier: String?
+    let chromeID: String?
+    let chromeGUID: String?
     let title: String?
     let position: Int
     let path: ChromeRecordPath

@@ -164,7 +164,7 @@ struct ChromeBookmarkDocumentTests {
         }
     }
 
-    @Test("Every node requires a native id")
+    @Test("Every node requires at least one valid native identity")
     func missingIdentifier() throws {
         var child = ChromePersistenceTestSupport.bookmark(
             id: "2",
@@ -173,6 +173,7 @@ struct ChromeBookmarkDocumentTests {
             URL: "https://example.test"
         )
         child.removeValue(forKey: "id")
+        child.removeValue(forKey: "guid")
         let document = try nestedDocument(child)
 
         #expect(throws: ChromePersistenceError.invalidStructure(
@@ -180,6 +181,37 @@ struct ChromeBookmarkDocumentTests {
         )) {
             try validator.validate(document)
         }
+    }
+
+    @Test("A valid Chrome id is accepted when the GUID is absent or invalid")
+    func validIDFallback() throws {
+        for GUID: Any? in [nil, "", " ", "guid:already-canonical"] {
+            var child = ChromePersistenceTestSupport.bookmark(
+                id: "2",
+                GUID: "guid-2",
+                name: "Fallback",
+                URL: "https://example.test"
+            )
+            if let GUID {
+                child["guid"] = GUID
+            } else {
+                child.removeValue(forKey: "guid")
+            }
+            try validator.validate(try nestedDocument(child))
+        }
+    }
+
+    @Test("A valid GUID is sufficient when the Chrome id is absent")
+    func GUIDWithoutID() throws {
+        var child = ChromePersistenceTestSupport.bookmark(
+            id: "2",
+            GUID: "guid-2",
+            name: "GUID only",
+            URL: "https://example.test"
+        )
+        child.removeValue(forKey: "id")
+
+        try validator.validate(try nestedDocument(child))
     }
 
     @Test("Native ids must be unique across all roots")

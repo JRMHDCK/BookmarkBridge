@@ -323,6 +323,11 @@ nonisolated struct DefaultSafariDataSource: SafariDataSource {
             }
             return .folder(SafariFolderRecord(
                 nativeIdentifier: dictionary["WebBookmarkUUID"] as? String,
+                permanentRootRole: path.positions.count == 1
+                    ? permanentRootRole(
+                        for: dictionary["WebBookmarkIdentifier"] as? String
+                    )
+                    : nil,
                 title: dictionary["Title"] as? String,
                 position: position,
                 path: path,
@@ -331,6 +336,21 @@ nonisolated struct DefaultSafariDataSource: SafariDataSource {
         case .some, .none:
             issues.append(.unknownNodeType(path: path))
             return nil
+        }
+    }
+
+    private static func permanentRootRole(
+        for nativeIdentifier: String?
+    ) -> PermanentRootRole? {
+        switch nativeIdentifier {
+        case "BookmarksBar":
+            .primaryBookmarks
+        case "BookmarksMenu":
+            .secondaryBookmarks
+        case "com.apple.ReadingList":
+            .readingList
+        default:
+            nil
         }
     }
 
