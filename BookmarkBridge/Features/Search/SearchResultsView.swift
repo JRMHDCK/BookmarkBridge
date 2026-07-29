@@ -29,6 +29,7 @@ struct SearchResultsView: View {
                                 SearchResultRow(result: result)
                             }
                             .buttonStyle(.plain)
+                            .contentShape(Rectangle())
                             .accessibilityHint("Ouvre l'emplacement dans l'explorateur")
                         }
                     } header: {
@@ -36,17 +37,13 @@ struct SearchResultsView: View {
                     }
                 }
             }
-            .listStyle(.inset)
-            .animation(
-                Theme.Motion.quick,
-                value: model.results.map(\.id)
-            )
+            .listStyle(.inset(alternatesRowBackgrounds: true))
         }
     }
 }
 
-/// One search hit: type icon, title, its host/URL, and the full folder path.
-/// Read-only display; navigation to the item is wired in a later palier.
+/// One search hit: type icon, title, complete URL, and full folder path.
+/// Activation remains delegated to the dashboard's explorer navigation.
 private struct SearchResultRow: View {
     let result: BookmarkSearchResult
 
@@ -55,28 +52,28 @@ private struct SearchResultRow: View {
             Image(systemName: result.isFolder ? "folder" : "bookmark")
                 .symbolRenderingMode(.hierarchical)
                 .foregroundStyle(.secondary)
-                .frame(width: Theme.Size.minimumInteractive)
+                .frame(width: Theme.Size.explorerIconWidth)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
                 Text(displayTitle)
                     .lineLimit(1)
-                HStack(spacing: Theme.Spacing.xs) {
-                    if let subtitle {
-                        Text(subtitle)
-                            .truncationMode(.middle)
-                        Text("·")
-                            .accessibilityHidden(true)
-                    }
-                    Text(pathText)
-                        .truncationMode(.head)
+                if let subtitle {
+                    Text(subtitle)
+                        .font(Theme.Typography.metadata)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
                 }
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
+                Text(pathText)
+                    .font(Theme.Typography.metadata)
+                    .foregroundStyle(.tertiary)
+                    .lineLimit(1)
+                    .truncationMode(.head)
             }
             Spacer(minLength: 0)
         }
-        .padding(.vertical, Theme.Spacing.xs)
+        .frame(minHeight: Theme.Size.explorerRowMinimumHeight)
+        .help(subtitle ?? pathText)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilityLabel)
     }
@@ -85,11 +82,11 @@ private struct SearchResultRow: View {
         result.title.isEmpty ? "(Sans titre)" : result.title
     }
 
-    /// Bookmarks show their host (falling back to the full URL); folders have no
-    /// subtitle.
+    /// Bookmarks expose the complete URL, truncated in the middle by the row.
+    /// Folders have no URL subtitle.
     private var subtitle: String? {
         guard !result.isFolder else { return nil }
-        return result.host ?? result.url?.absoluteString
+        return result.url?.absoluteString
     }
 
     /// The full path: the source, then each ancestor folder with its friendly

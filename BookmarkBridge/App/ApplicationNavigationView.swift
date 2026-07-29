@@ -35,7 +35,10 @@ struct ApplicationNavigationView: View {
             destination(for: model.selection)
         }
         .navigationSplitViewStyle(.balanced)
-        .frame(minWidth: 680, minHeight: 460)
+        .frame(
+            minWidth: Theme.Size.windowMinimumWidth,
+            minHeight: Theme.Size.windowMinimumHeight
+        )
         .task {
             await model.loadIfNeeded()
         }

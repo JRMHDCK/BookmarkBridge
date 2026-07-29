@@ -68,5 +68,10 @@ struct BookmarkBridgeApp: App {
         WindowGroup {
             ApplicationNavigationView(model: applicationViewModel)
         }
+        .defaultSize(
+            width: Theme.Size.windowIdealWidth,
+            height: Theme.Size.windowIdealHeight
+        )
+        .windowResizability(.contentMinSize)
     }
 }

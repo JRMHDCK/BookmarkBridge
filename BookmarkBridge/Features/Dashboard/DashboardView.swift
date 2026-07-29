@@ -61,41 +61,30 @@ struct DashboardView: View {
                 }
                 .navigationTitle("Accueil")
                 .toolbar {
-                    ToolbarItem {
-                        ControlGroup {
-                            Button {
-                                onShowSynchronization?()
-                            } label: {
-                                Image(
-                                    systemName:
-                                        "arrow.triangle.2.circlepath"
-                                )
-                            }
-                            .disabled(onShowSynchronization == nil)
-                            .help("Ouvrir la synchronisation")
-
-                            Menu {
-                                Button {
-                                    Task { await reloadDashboard() }
-                                } label: {
-                                    Label(
-                                        "Actualiser",
-                                        systemImage: "arrow.clockwise"
-                                    )
-                                }
-                                .disabled(viewModel.isLoading)
-                            } label: {
-                                Image(systemName: "ellipsis.circle")
-                            }
-                            .help("Plus d’actions")
+                    ToolbarItemGroup(placement: .primaryAction) {
+                        Button {
+                            Task { await reloadDashboard() }
                         } label: {
                             Label(
-                                "Actions",
-                                systemImage: "ellipsis.circle"
+                                "Actualiser",
+                                systemImage: "arrow.clockwise"
                             )
                         }
+                        .disabled(viewModel.isLoading)
+                        .help("Actualiser les favoris")
+
+                        Button {
+                            onShowSynchronization?()
+                        } label: {
+                            Label(
+                                "Synchronisation",
+                                systemImage:
+                                    "arrow.triangle.2.circlepath"
+                            )
+                        }
+                        .disabled(onShowSynchronization == nil)
+                        .help("Ouvrir la synchronisation")
                     }
-                    ToolbarSpacer(.fixed)
                 }
                 .searchable(
                     text: $searchModel.query,
@@ -134,15 +123,11 @@ struct DashboardView: View {
     private var dashboard: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
-                VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
-                    Text("Vue d’ensemble")
-                        .font(.largeTitle)
-                    Text(
-                        "Retrouvez l’état de vos favoris Safari et Chrome."
-                    )
-                    .font(.body)
-                    .foregroundStyle(.secondary)
-                }
+                ScreenHeader(
+                    "Vue d’ensemble",
+                    subtitle:
+                        "État de vos favoris Safari et Chrome."
+                )
 
                 DashboardSynchronizationCard(
                     summary: synchronizationSummary,
@@ -159,11 +144,7 @@ struct DashboardView: View {
                 }
 
                 VStack(alignment: .leading, spacing: Theme.Spacing.s) {
-                    SectionHeader(
-                        "Sources",
-                        subtitle:
-                            "Favoris disponibles sur cet appareil."
-                    )
+                    SectionHeader("Sources")
 
                     if viewModel.sources.isEmpty {
                         EmptyStateView(
@@ -172,7 +153,10 @@ struct DashboardView: View {
                                 "Aucune source de favoris n'est disponible.",
                             systemImage: "bookmark.slash"
                         )
-                        .frame(maxWidth: .infinity, minHeight: 180)
+                        .frame(
+                            maxWidth: .infinity,
+                            minHeight: Theme.Size.emptyStateMinimumHeight
+                        )
                     } else {
                         VStack(spacing: Theme.Spacing.zero) {
                             ForEach(
@@ -198,10 +182,6 @@ struct DashboardView: View {
                                 }
                             }
                         }
-                        .animation(
-                            Theme.Motion.quick,
-                            value: viewModel.sources
-                        )
                     }
                 }
             }
@@ -259,21 +239,13 @@ private struct ApplicationAuthorizationCard: View {
     var body: some View {
         Group {
             if model.state.status == .complete && !model.isLoading {
-                Label(
-                    "Accès Safari et Chrome autorisés",
-                    systemImage: "checkmark.circle"
-                )
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .symbolRenderingMode(.hierarchical)
+                EmptyView()
             } else {
                 PermissionCard(statusSymbol: statusSymbol) {
                     if model.isLoading {
-                        HStack(spacing: Theme.Spacing.s) {
-                            ProgressView().controlSize(.small)
-                            Text("Vérification des autorisations…")
-                                .foregroundStyle(.secondary)
-                        }
+                        LoadingStateView(
+                            message: "Vérification des autorisations…"
+                        )
                     } else {
                         Text(statusMessage)
                             .foregroundStyle(statusColor)
@@ -378,19 +350,20 @@ private struct DashboardSynchronizationCard: View {
 
     var body: some View {
         SynchronizationSummaryCard("État de la synchronisation") {
-            Text("Safari ↔ Chrome")
-                .font(.caption)
+            Text("Safari → Chrome")
+                .font(Theme.Typography.metadata)
                 .foregroundStyle(.secondary)
             summaryContent
             if let onShowSynchronization {
                 PrimaryActionButton(
-                    "Voir la prévisualisation",
+                    "Examiner les changements",
                     systemImage: "arrow.right",
                     action: onShowSynchronization
                 )
                 .accessibilityHint(
                     "Ouvre le détail de la synchronisation"
                 )
+                .frame(maxWidth: .infinity, alignment: .trailing)
             }
         }
         .contentTransition(.opacity)
@@ -407,11 +380,9 @@ private struct DashboardSynchronizationCard: View {
             )
             .foregroundStyle(.secondary)
         case .loading:
-            HStack(spacing: Theme.Spacing.s) {
-                ProgressView().controlSize(.small)
-                Text("Calcul de la prévisualisation…")
-                    .foregroundStyle(.secondary)
-            }
+            LoadingStateView(
+                message: "Calcul de la prévisualisation…"
+            )
             .accessibilityLabel(
                 "Calcul de la prévisualisation en cours"
             )
@@ -461,11 +432,7 @@ private struct SourceRow: View {
     private var content: some View {
         switch entry.status {
         case .loading:
-            HStack(spacing: Theme.Spacing.s) {
-                ProgressView().controlSize(.small)
-                Text("Lecture des favoris…")
-                    .foregroundStyle(.secondary)
-            }
+            LoadingStateView(message: "Lecture des favoris…")
             .accessibilityLabel("Lecture des favoris en cours")
         case .loaded(let summary):
             loadedState(summary)
@@ -484,7 +451,7 @@ private struct SourceRow: View {
     ) -> some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.m) {
             Text(
-                "\(summary.bookmarkCount) favoris · \(summary.folderCount) dossiers · \(summary.nodeCount) éléments"
+                "\(summary.bookmarkCount) favoris · \(summary.folderCount) dossiers"
             )
             .font(.callout)
             Text(

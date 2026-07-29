@@ -16,7 +16,7 @@ struct AboutView: View {
                         .foregroundStyle(.tint)
                         .accessibilityHidden(true)
                     Text("BookmarkBridge")
-                        .font(.largeTitle)
+                        .font(Theme.Typography.screenTitle)
                     Text(versionDescription)
                         .font(.callout)
                         .foregroundStyle(.secondary)

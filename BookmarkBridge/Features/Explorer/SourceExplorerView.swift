@@ -50,25 +50,33 @@ struct FolderContentsView: View {
 }
 
 /// Renders one folder level. Folders are navigation links (drill-down);
-/// bookmarks are read-only leaves showing their title and host/URL.
+/// bookmarks are selectable, read-only leaves showing their title and URL.
 struct FolderListView: View {
     let presentation: FolderPresentation
+    @State private var selection: BookmarkID?
 
     var body: some View {
-        List(presentation.items) { item in
-            switch item {
-            case .folder(_, let title, let itemCount, let destination):
-                NavigationLink(value: ExplorerStep.folder(destination)) {
-                    folderRow(title: title, itemCount: itemCount)
+        List(presentation.items, selection: $selection) { item in
+            Group {
+                switch item {
+                case .folder(_, let title, let itemCount, let destination):
+                    NavigationLink(value: ExplorerStep.folder(destination)) {
+                        folderRow(title: title, itemCount: itemCount)
+                    }
+                case .bookmark(_, let title, let host, let url):
+                    bookmarkRow(title: title, host: host, url: url)
                 }
-            case .bookmark(_, let title, let host, let url):
-                bookmarkRow(title: title, host: host, url: url)
             }
+            .tag(item.id)
         }
-        .listStyle(.inset)
+        .listStyle(.inset(alternatesRowBackgrounds: true))
         .overlay {
             if presentation.items.isEmpty {
-                ContentUnavailableView("Dossier vide", systemImage: "folder")
+                EmptyStateView(
+                    title: "Dossier vide",
+                    message: "Ce dossier ne contient aucun favori.",
+                    systemImage: "folder"
+                )
             }
         }
     }
@@ -86,9 +94,9 @@ struct FolderListView: View {
             Image(systemName: "folder")
                 .symbolRenderingMode(.hierarchical)
                 .foregroundStyle(.secondary)
-                .frame(width: Theme.Size.minimumInteractive)
+                .frame(width: Theme.Size.explorerIconWidth)
         }
-        .padding(.vertical, Theme.Spacing.xs)
+        .frame(minHeight: Theme.Size.explorerRowMinimumHeight)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Dossier \(title.isEmpty ? "sans nom" : title), \(itemCount) élément(s)")
     }
@@ -96,7 +104,7 @@ struct FolderListView: View {
     /// A read-only bookmark leaf: a neutral outline glyph keeps it visually
     /// quieter than the navigable folders.
     private func bookmarkRow(title: String, host: String?, url: URL) -> some View {
-        let subtitle = host ?? url.absoluteString
+        let subtitle = url.absoluteString
         let displayTitle = title.isEmpty ? "(Sans titre)" : title
         return Label {
             VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
@@ -113,11 +121,14 @@ struct FolderListView: View {
             Image(systemName: "bookmark")
                 .symbolRenderingMode(.hierarchical)
                 .foregroundStyle(.secondary)
-                .frame(width: Theme.Size.minimumInteractive)
+                .frame(width: Theme.Size.explorerIconWidth)
         }
-        .padding(.vertical, Theme.Spacing.xs)
+        .frame(minHeight: Theme.Size.explorerRowMinimumHeight)
+        .help(subtitle)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Favori \(displayTitle), \(subtitle)")
+        .accessibilityLabel(
+            "Favori \(displayTitle), \(host ?? subtitle)"
+        )
     }
 }
 

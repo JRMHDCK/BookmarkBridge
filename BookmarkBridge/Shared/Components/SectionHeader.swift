@@ -5,6 +5,26 @@
 
 import SwiftUI
 
+struct ScreenHeader: View {
+    let title: String
+    let subtitle: String
+
+    init(_ title: String, subtitle: String) {
+        self.title = title
+        self.subtitle = subtitle
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
+            Text(title)
+                .font(Theme.Typography.screenTitle)
+            Text(subtitle)
+                .foregroundStyle(.secondary)
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
+
 struct SectionHeader: View {
     let title: String
     let systemImage: String?

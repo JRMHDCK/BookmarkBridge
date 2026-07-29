@@ -31,6 +31,9 @@ struct BreadcrumbView: View {
             .padding(.vertical, Theme.Spacing.s)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Theme.Materials.bar)
+            .overlay(alignment: .bottom) {
+                Divider()
+            }
         }
     }
 
@@ -51,19 +54,40 @@ struct BreadcrumbView: View {
             if item.isCurrent {
                 Text(item.title)
                     .fontWeight(.semibold)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                    .frame(
+                        maxWidth:
+                            Theme.Size.breadcrumbItemMaximumWidth
+                    )
+                    .help(item.title)
                     .accessibilityLabel("\(item.title), niveau courant")
             } else {
-                Button(item.title) { path = item.path }
-                    .buttonStyle(.link)
-                    .accessibilityLabel("Revenir à \(item.title)")
+                Button {
+                    path = item.path
+                } label: {
+                    Text(item.title)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                        .frame(
+                            maxWidth:
+                                Theme.Size.breadcrumbItemMaximumWidth
+                        )
+                }
+                .buttonStyle(.link)
+                .help(item.title)
+                .accessibilityLabel("Revenir à \(item.title)")
             }
         case .ellipsis(let hidden):
-            Menu("…") {
+            Menu {
                 ForEach(hidden) { item in
                     Button(item.title) { path = item.path }
                 }
+            } label: {
+                Image(systemName: "ellipsis")
             }
             .menuStyle(.button)
+            .help("Afficher les niveaux intermédiaires")
             .fixedSize()
             .accessibilityLabel("Niveaux intermédiaires")
         }

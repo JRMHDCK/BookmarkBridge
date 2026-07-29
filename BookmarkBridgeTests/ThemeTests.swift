@@ -51,6 +51,26 @@ struct ThemeTests {
             Theme.Size.contentMaxWidth
                 > Theme.Size.sidebarIdealWidth
         )
+        #expect(
+            Theme.Size.windowMinimumWidth
+                > Theme.Size.sidebarMaximumWidth
+        )
+        #expect(
+            Theme.Size.windowIdealWidth
+                > Theme.Size.windowMinimumWidth
+        )
+        #expect(
+            Theme.Size.windowIdealHeight
+                > Theme.Size.windowMinimumHeight
+        )
+        #expect(
+            Theme.Size.explorerRowMinimumHeight
+                >= Theme.Size.minimumInteractive
+        )
+        #expect(
+            Theme.Size.breadcrumbItemMaximumWidth
+                <= Theme.Size.contentMaxWidth
+        )
     }
 
     #if canImport(AppKit)

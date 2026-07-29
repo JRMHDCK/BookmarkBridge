@@ -2,14 +2,12 @@
 //  ReadOnlyBadge.swift
 //  BookmarkBridge
 //
-//  The shared "Lecture seule" badge. BookmarkBridge only ever reads bookmarks,
-//  so every source advertises its read-only nature with this green capsule.
+//  The shared "Lecture seule" badge for browser sources that cannot be edited.
 //
 
 import SwiftUI
 
-/// A small green capsule reading "Lecture seule", used on source cards to make
-/// the app's read-only guarantee visible.
+/// A neutral capsule used where a browser source remains read-only.
 struct ReadOnlyBadge: View {
     var body: some View {
         Label("Lecture seule", systemImage: "lock")

@@ -16,15 +16,11 @@ struct SynchronizationPreviewScreen: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
-                VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
-                    Text("Synchronisation")
-                        .font(.largeTitle)
-                    Text(
+                ScreenHeader(
+                    "Synchronisation",
+                    subtitle:
                         "Vérifiez chaque changement avant de l’appliquer."
-                    )
-                    .font(.body)
-                    .foregroundStyle(.secondary)
-                }
+                )
                 SynchronizationSummaryCard("Résumé") {
                     executionStatus
                     previewContent
@@ -45,30 +41,18 @@ struct SynchronizationPreviewScreen: View {
         }
         .navigationTitle("Synchronisation")
         .toolbar {
-            ToolbarItem {
-                ControlGroup {
-                    Menu {
-                        Button {
-                            Task { await onReload() }
-                        } label: {
-                            Label(
-                                "Actualiser la prévisualisation",
-                                systemImage: "arrow.clockwise"
-                            )
-                        }
-                        .disabled(model.isSynchronizing)
-                    } label: {
-                        Image(systemName: "ellipsis.circle")
-                    }
-                    .help("Plus d’actions")
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    Task { await onReload() }
                 } label: {
                     Label(
-                        "Actions",
-                        systemImage: "ellipsis.circle"
+                        "Actualiser la prévisualisation",
+                        systemImage: "arrow.clockwise"
                     )
                 }
+                .disabled(model.isSynchronizing)
+                .help("Actualiser la prévisualisation")
             }
-            ToolbarSpacer(.fixed)
         }
     }
 
@@ -80,11 +64,15 @@ struct SynchronizationPreviewScreen: View {
         case .completed:
             SuccessStateView(message: "Synchronisation terminée")
         case .preparing:
-            progressLabel("Préparation de la synchronisation…")
+            LoadingStateView(
+                message: "Préparation de la synchronisation…"
+            )
         case .writing:
-            progressLabel("Synchronisation en cours…")
+            LoadingStateView(message: "Synchronisation en cours…")
         case .validating:
-            progressLabel("Validation de la synchronisation…")
+            LoadingStateView(
+                message: "Validation de la synchronisation…"
+            )
         case .failed(let message):
             ErrorStateView(message: message, onRetry: nil)
         }
@@ -99,9 +87,11 @@ struct SynchronizationPreviewScreen: View {
                 message: "Chargez Safari et Chrome pour préparer la synchronisation.",
                 systemImage: "bookmark.slash"
             )
-            .frame(minHeight: 180)
+            .frame(minHeight: Theme.Size.emptyStateMinimumHeight)
         case .loading:
-            progressLabel("Calcul de la prévisualisation…")
+            LoadingStateView(
+                message: "Calcul de la prévisualisation…"
+            )
                 .accessibilityLabel(
                     "Calcul de la prévisualisation en cours"
                 )
@@ -150,6 +140,7 @@ struct SynchronizationPreviewScreen: View {
                 .accessibilityHint(
                     "Applique uniquement la prévisualisation affichée"
                 )
+                .help(synchronizationHelp)
                 .frame(maxWidth: .infinity, alignment: .trailing)
             }
         }
@@ -197,11 +188,14 @@ struct SynchronizationPreviewScreen: View {
         .accessibilityElement(children: .combine)
     }
 
-    private func progressLabel(_ title: String) -> some View {
-        HStack(spacing: Theme.Spacing.s) {
-            ProgressView().controlSize(.small)
-            Text(title).foregroundStyle(.secondary)
+    private var synchronizationHelp: String {
+        if !isAuthorized {
+            return "Autorisez Safari et Chrome avant de synchroniser"
         }
+        if model.isSynchronizing {
+            return "Une synchronisation est déjà en cours"
+        }
+        return "Appliquer exactement les changements prévisualisés"
     }
 }
 

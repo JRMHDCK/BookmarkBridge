@@ -5,27 +5,26 @@
 
 import SwiftUI
 
-/// Reserved settings destination. No preference is invented before a product
-/// requirement defines its behavior and persistence.
+/// Explains the absence of configurable preferences without implying that the
+/// application is incomplete.
 struct SettingsView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
-                VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
-                    Text("Réglages")
-                        .font(.largeTitle)
-                    Text(
-                        "Les préférences de BookmarkBridge apparaîtront ici."
-                    )
-                    .font(.body)
-                    .foregroundStyle(.secondary)
-                }
-                EmptyStateView(
-                    title: "Aucun réglage disponible",
-                    message: "Le comportement sûr de la synchronisation reste inchangé.",
-                    systemImage: "gearshape"
+                ScreenHeader(
+                    "Réglages",
+                    subtitle:
+                        "BookmarkBridge privilégie des réglages sûrs et prévisibles."
                 )
-                .frame(minHeight: 180)
+                EmptyStateView(
+                    title: "Aucun réglage nécessaire",
+                    message: "La synchronisation utilise automatiquement les options recommandées.",
+                    systemImage: "checkmark.circle"
+                )
+                .frame(
+                    minHeight:
+                        Theme.Size.emptyStateMinimumHeight
+                )
             }
             .frame(
                 maxWidth: Theme.Size.contentMaxWidth,
