@@ -86,6 +86,7 @@ struct FolderListView: View {
             Image(systemName: "folder")
                 .symbolRenderingMode(.hierarchical)
                 .foregroundStyle(.secondary)
+                .frame(width: Theme.Size.minimumInteractive)
         }
         .padding(.vertical, Theme.Spacing.xs)
         .accessibilityElement(children: .ignore)
@@ -100,15 +101,19 @@ struct FolderListView: View {
         return Label {
             VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
                 Text(displayTitle)
+                    .lineLimit(1)
                 Text(subtitle)
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
                     .textSelection(.enabled)
             }
         } icon: {
             Image(systemName: "bookmark")
                 .symbolRenderingMode(.hierarchical)
                 .foregroundStyle(.secondary)
+                .frame(width: Theme.Size.minimumInteractive)
         }
         .padding(.vertical, Theme.Spacing.xs)
         .accessibilityElement(children: .ignore)

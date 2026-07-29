@@ -37,3 +37,14 @@ struct ErrorStateView: View {
         .accessibilityElement(children: .contain)
     }
 }
+
+struct SuccessStateView: View {
+    let message: LocalizedStringKey
+
+    var body: some View {
+        Label(message, systemImage: "checkmark.circle")
+            .foregroundStyle(Theme.Palette.green)
+            .symbolRenderingMode(.hierarchical)
+            .accessibilityElement(children: .combine)
+    }
+}

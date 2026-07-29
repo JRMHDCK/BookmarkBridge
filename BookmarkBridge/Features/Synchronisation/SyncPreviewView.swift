@@ -54,6 +54,7 @@ struct SyncPreviewView: View {
         .task(id: model.selectedChromeID) {
             await model.refreshAvailableBackup()
         }
+        .animation(Theme.Motion.stateChange, value: model.applyState)
     }
 
     /// Lets the user choose the target Chrome profile when several are available.
@@ -260,21 +261,25 @@ private struct AdditionRow: View {
         HStack(spacing: Theme.Spacing.m) {
             Image(systemName: "bookmark")
                 .foregroundStyle(.secondary)
+                .frame(width: Theme.Size.minimumInteractive)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
                 Text(addition.title)
-                if let subtitle = addition.subtitle {
-                    Text(subtitle)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                }
-                Text(addition.originPath)
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
                     .lineLimit(1)
-                    .truncationMode(.head)
+                HStack(spacing: Theme.Spacing.xs) {
+                    if let subtitle = addition.subtitle {
+                        Text(subtitle)
+                            .truncationMode(.middle)
+                        Text("·")
+                            .accessibilityHidden(true)
+                    }
+                    Text(addition.originPath)
+                        .foregroundStyle(.tertiary)
+                        .truncationMode(.head)
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
             }
             Spacer(minLength: 0)
         }

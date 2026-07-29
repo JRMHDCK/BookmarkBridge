@@ -25,10 +25,16 @@ struct SynchronizationPreviewScreen: View {
                     .font(.body)
                     .foregroundStyle(.secondary)
                 }
-                SynchronizationSummaryCard {
+                SynchronizationSummaryCard("Résumé") {
                     executionStatus
                     previewContent
                 }
+                .contentTransition(.opacity)
+                .animation(Theme.Motion.stateChange, value: model.state)
+                .animation(
+                    Theme.Motion.stateChange,
+                    value: model.executionState
+                )
             }
             .frame(
                 maxWidth: Theme.Size.contentMaxWidth,
@@ -69,8 +75,10 @@ struct SynchronizationPreviewScreen: View {
     @ViewBuilder
     private var executionStatus: some View {
         switch model.executionState {
-        case .idle, .completed:
+        case .idle:
             EmptyView()
+        case .completed:
+            SuccessStateView(message: "Synchronisation terminée")
         case .preparing:
             progressLabel("Préparation de la synchronisation…")
         case .writing:
@@ -114,55 +122,22 @@ struct SynchronizationPreviewScreen: View {
         isEmpty: Bool
     ) -> some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.l) {
-            HStack(spacing: Theme.Spacing.s) {
-                browserSummary(preview.source, role: "Source")
-                Image(systemName: "arrow.right")
-                    .foregroundStyle(.secondary)
-                    .accessibilityHidden(true)
-                browserSummary(preview.target, role: "Cible")
-            }
+            browserRelationship(preview)
 
-            if isEmpty {
-                Label(
-                    "Les navigateurs sont synchronisés",
-                    systemImage: "checkmark.circle"
+            if isEmpty && model.executionState != .completed {
+                SuccessStateView(
+                    message: "Les navigateurs sont synchronisés"
                 )
-                .foregroundStyle(Theme.Palette.green)
-                .symbolRenderingMode(.hierarchical)
             } else {
-                Text(
-                    "\(preview.totalOperationCount) changement\(preview.totalOperationCount == 1 ? "" : "s") détecté\(preview.totalOperationCount == 1 ? "" : "s")"
-                )
-                .font(.callout.weight(.medium))
+                if !isEmpty {
+                    Text(
+                        "\(preview.totalOperationCount) changement\(preview.totalOperationCount == 1 ? "" : "s") détecté\(preview.totalOperationCount == 1 ? "" : "s")"
+                    )
+                    .font(.callout.weight(.medium))
+                }
             }
 
-            HStack(alignment: .top, spacing: Theme.Spacing.s) {
-                StatisticCard(
-                    value: preview.creationCount,
-                    label: "Créations",
-                    prominent: false
-                )
-                StatisticCard(
-                    value: preview.deletionCount,
-                    label: "Suppressions",
-                    prominent: false
-                )
-                StatisticCard(
-                    value: preview.moveCount,
-                    label: "Déplacements",
-                    prominent: false
-                )
-                StatisticCard(
-                    value: preview.renameCount,
-                    label: "Renommages",
-                    prominent: false
-                )
-                StatisticCard(
-                    value: preview.urlModificationCount,
-                    label: "URLs",
-                    prominent: false
-                )
-            }
+            SynchronizationStatistics(preview: preview)
 
             if !isEmpty {
                 PrimaryActionButton(
@@ -175,6 +150,29 @@ struct SynchronizationPreviewScreen: View {
                 .accessibilityHint(
                     "Applique uniquement la prévisualisation affichée"
                 )
+                .frame(maxWidth: .infinity, alignment: .trailing)
+            }
+        }
+    }
+
+    private func browserRelationship(
+        _ preview: SynchronizationPreviewPresentation
+    ) -> some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: Theme.Spacing.s) {
+                browserSummary(preview.source, role: "Source")
+                Image(systemName: "arrow.right")
+                    .foregroundStyle(.secondary)
+                    .accessibilityHidden(true)
+                browserSummary(preview.target, role: "Cible")
+            }
+
+            VStack(alignment: .leading, spacing: Theme.Spacing.s) {
+                browserSummary(preview.source, role: "Source")
+                Image(systemName: "arrow.down")
+                    .foregroundStyle(.secondary)
+                    .accessibilityHidden(true)
+                browserSummary(preview.target, role: "Cible")
             }
         }
     }
@@ -204,5 +202,99 @@ struct SynchronizationPreviewScreen: View {
             ProgressView().controlSize(.small)
             Text(title).foregroundStyle(.secondary)
         }
+    }
+}
+
+private struct SynchronizationStatistics: View {
+    let preview: SynchronizationPreviewPresentation
+
+    var body: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .top, spacing: Theme.Spacing.s) {
+                creation
+                deletion
+                move
+                rename
+                update
+            }
+            .fixedSize(horizontal: true, vertical: false)
+
+            Grid(
+                alignment: .leading,
+                horizontalSpacing: Theme.Spacing.l,
+                verticalSpacing: Theme.Spacing.m
+            ) {
+                GridRow {
+                    creation
+                    deletion
+                }
+                GridRow {
+                    move
+                    rename
+                }
+                GridRow {
+                    update
+                    Color.clear
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private var creation: some View {
+        statistic(
+            value: preview.creationCount,
+            label: "Créations",
+            systemImage: "plus"
+        )
+    }
+
+    private var deletion: some View {
+        statistic(
+            value: preview.deletionCount,
+            label: "Suppressions",
+            systemImage: "trash"
+        )
+    }
+
+    private var move: some View {
+        statistic(
+            value: preview.moveCount,
+            label: "Déplacements",
+            systemImage: "arrow.right"
+        )
+    }
+
+    private var rename: some View {
+        statistic(
+            value: preview.renameCount,
+            label: "Renommages",
+            systemImage: "pencil"
+        )
+    }
+
+    private var update: some View {
+        statistic(
+            value: preview.urlModificationCount,
+            label: "Mises à jour",
+            systemImage: "link"
+        )
+    }
+
+    private func statistic(
+        value: Int,
+        label: String,
+        systemImage: String
+    ) -> some View {
+        StatisticCard(
+            value: value,
+            label: label,
+            systemImage: systemImage,
+            prominent: false
+        )
+        .frame(
+            minWidth: Theme.Size.statisticMinimumWidth,
+            alignment: .leading
+        )
     }
 }

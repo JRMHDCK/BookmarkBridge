@@ -27,7 +27,9 @@ struct ApplicationNavigationView: View {
             .listStyle(.sidebar)
             .navigationTitle("BookmarkBridge")
             .navigationSplitViewColumnWidth(
-                ideal: Theme.Size.sidebarIdealWidth
+                min: Theme.Size.sidebarMinimumWidth,
+                ideal: Theme.Size.sidebarIdealWidth,
+                max: Theme.Size.sidebarMaximumWidth
             )
         } detail: {
             destination(for: model.selection)

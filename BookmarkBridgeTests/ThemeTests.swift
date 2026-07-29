@@ -38,7 +38,15 @@ struct ThemeTests {
     @Test("Interactive and layout metrics remain usable")
     func layoutMetricsAreUsable() {
         #expect(Theme.Size.minimumInteractive >= 28)
-        #expect(Theme.Size.sidebarIdealWidth > 0)
+        #expect(
+            Theme.Size.sidebarMinimumWidth
+                < Theme.Size.sidebarIdealWidth
+        )
+        #expect(
+            Theme.Size.sidebarIdealWidth
+                < Theme.Size.sidebarMaximumWidth
+        )
+        #expect(Theme.Size.statisticMinimumWidth > 0)
         #expect(
             Theme.Size.contentMaxWidth
                 > Theme.Size.sidebarIdealWidth

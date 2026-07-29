@@ -37,6 +37,10 @@ struct SearchResultsView: View {
                 }
             }
             .listStyle(.inset)
+            .animation(
+                Theme.Motion.quick,
+                value: model.results.map(\.id)
+            )
         }
     }
 }
@@ -51,21 +55,24 @@ private struct SearchResultRow: View {
             Image(systemName: result.isFolder ? "folder" : "bookmark")
                 .symbolRenderingMode(.hierarchical)
                 .foregroundStyle(.secondary)
+                .frame(width: Theme.Size.minimumInteractive)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
                 Text(displayTitle)
-                if let subtitle {
-                    Text(subtitle)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                }
-                Text(pathText)
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
                     .lineLimit(1)
-                    .truncationMode(.head)
+                HStack(spacing: Theme.Spacing.xs) {
+                    if let subtitle {
+                        Text(subtitle)
+                            .truncationMode(.middle)
+                        Text("·")
+                            .accessibilityHidden(true)
+                    }
+                    Text(pathText)
+                        .truncationMode(.head)
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
             }
             Spacer(minLength: 0)
         }

@@ -8,6 +8,7 @@ import SwiftUI
 struct StatisticCard: View {
     let value: Int
     let label: String
+    var systemImage: String? = nil
     var prominent = true
 
     var body: some View {
@@ -15,9 +16,19 @@ struct StatisticCard: View {
             Text(value, format: .number)
                 .font(prominent ? Theme.Typography.statNumber : .callout.weight(.semibold))
                 .foregroundStyle(.primary)
-            Text(label)
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                .monospacedDigit()
+            if let systemImage {
+                Label(label, systemImage: systemImage)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .symbolRenderingMode(.hierarchical)
+                    .lineLimit(1)
+            } else {
+                Text(label)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(

@@ -24,7 +24,10 @@ extension Theme {
     nonisolated enum Size {
         /// A comfortable minimum target for pointer and accessibility use.
         static let minimumInteractive: CGFloat = 28
+        static let sidebarMinimumWidth: CGFloat = 168
         static let sidebarIdealWidth: CGFloat = 184
+        static let sidebarMaximumWidth: CGFloat = 220
+        static let statisticMinimumWidth: CGFloat = 104
         static let contentMaxWidth: CGFloat = 780
     }
 }

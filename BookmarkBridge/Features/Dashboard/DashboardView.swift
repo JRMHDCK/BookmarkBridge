@@ -117,11 +117,18 @@ struct DashboardView: View {
 
     @ViewBuilder
     private var content: some View {
-        if searchModel.hasQuery {
-            SearchResultsView(model: searchModel, onSelect: openResult)
-        } else {
-            dashboard
+        Group {
+            if searchModel.hasQuery {
+                SearchResultsView(model: searchModel, onSelect: openResult)
+            } else {
+                dashboard
+            }
         }
+        .contentTransition(.opacity)
+        .animation(
+            Theme.Motion.quick,
+            value: searchModel.hasQuery
+        )
     }
 
     private var dashboard: some View {
@@ -191,6 +198,10 @@ struct DashboardView: View {
                                 }
                             }
                         }
+                        .animation(
+                            Theme.Motion.quick,
+                            value: viewModel.sources
+                        )
                     }
                 }
             }
@@ -246,30 +257,35 @@ private struct ApplicationAuthorizationCard: View {
     let onAuthorize: (Browser) -> Void
 
     var body: some View {
-        if model.state.status == .complete && !model.isLoading {
-            Label(
-                "Accès Safari et Chrome autorisés",
-                systemImage: "checkmark.circle"
-            )
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            .symbolRenderingMode(.hierarchical)
-        } else {
-            PermissionCard(statusSymbol: statusSymbol) {
-                if model.isLoading {
-                    HStack(spacing: Theme.Spacing.s) {
-                        ProgressView().controlSize(.small)
-                        Text("Vérification des autorisations…")
-                            .foregroundStyle(.secondary)
+        Group {
+            if model.state.status == .complete && !model.isLoading {
+                Label(
+                    "Accès Safari et Chrome autorisés",
+                    systemImage: "checkmark.circle"
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .symbolRenderingMode(.hierarchical)
+            } else {
+                PermissionCard(statusSymbol: statusSymbol) {
+                    if model.isLoading {
+                        HStack(spacing: Theme.Spacing.s) {
+                            ProgressView().controlSize(.small)
+                            Text("Vérification des autorisations…")
+                                .foregroundStyle(.secondary)
+                        }
+                    } else {
+                        Text(statusMessage)
+                            .foregroundStyle(statusColor)
+                        browserRow(.safari)
+                        browserRow(.chrome)
                     }
-                } else {
-                    Text(statusMessage)
-                        .foregroundStyle(statusColor)
-                    browserRow(.safari)
-                    browserRow(.chrome)
                 }
             }
         }
+        .contentTransition(.opacity)
+        .animation(Theme.Motion.stateChange, value: model.state.status)
+        .animation(Theme.Motion.quick, value: model.isLoading)
     }
 
     private var statusSymbol: String {
@@ -314,7 +330,7 @@ private struct ApplicationAuthorizationCard: View {
             Text(browser.displayName)
             Spacer()
             if state != .valid {
-                PrimaryActionButton(buttonTitle(for: browser)) {
+                SecondaryActionButton(buttonTitle(for: browser)) {
                     onAuthorize(browser)
                 }
                 .disabled(model.isLoading)
@@ -361,7 +377,10 @@ private struct DashboardSynchronizationCard: View {
     let onShowSynchronization: (() -> Void)?
 
     var body: some View {
-        SynchronizationSummaryCard {
+        SynchronizationSummaryCard("État de la synchronisation") {
+            Text("Safari ↔ Chrome")
+                .font(.caption)
+                .foregroundStyle(.secondary)
             summaryContent
             if let onShowSynchronization {
                 PrimaryActionButton(
@@ -374,6 +393,8 @@ private struct DashboardSynchronizationCard: View {
                 )
             }
         }
+        .contentTransition(.opacity)
+        .animation(Theme.Motion.stateChange, value: summary)
     }
 
     @ViewBuilder
@@ -432,6 +453,8 @@ private struct SourceRow: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.vertical, Theme.Spacing.m)
+        .contentTransition(.opacity)
+        .animation(Theme.Motion.quick, value: entry.status)
     }
 
     @ViewBuilder
