@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "name": "Extreme",
+  "bookmark_count_per_browser": 7500,
+  "shared_ratio": 0.7,
+  "folder_count": 250,
+  "maximum_depth": 10,
+  "seed": "bookmarkbridge-qa-extreme",
+  "pathological": false
+}

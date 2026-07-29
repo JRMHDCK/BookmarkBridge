@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "name": "Large",
+  "bookmark_count_per_browser": 2000,
+  "shared_ratio": 0.7,
+  "folder_count": 80,
+  "maximum_depth": 7,
+  "seed": "bookmarkbridge-qa-large",
+  "pathological": false
+}

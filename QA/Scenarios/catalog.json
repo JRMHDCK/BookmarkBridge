@@ -1,0 +1,327 @@
+{
+  "schema_version": 1,
+  "scenarios": [
+    {
+      "id": "first-synchronization",
+      "name": "Première synchronisation",
+      "objective": "Vérifier qu'une cible vide reçoit l'état complet de la source.",
+      "dataset": "Small",
+      "preparation": [
+        "Charger le dataset Small.",
+        "Vider l'état Chrome.",
+        "Exécuter une synchronisation miroir Safari vers Chrome."
+      ],
+      "steps": [
+        {"action": "clear", "browser": "chrome"},
+        {"action": "sync", "source": "safari", "target": "chrome", "mode": "mirror"}
+      ],
+      "expected": {
+        "browsers_equal": true,
+        "last_sync_changes_minimum": 1
+      }
+    },
+    {
+      "id": "second-synchronization",
+      "name": "Deuxième synchronisation",
+      "objective": "Vérifier l'idempotence d'une synchronisation rejouée sans changement.",
+      "dataset": "Small",
+      "preparation": [
+        "Vider Chrome.",
+        "Synchroniser Safari vers Chrome deux fois."
+      ],
+      "steps": [
+        {"action": "clear", "browser": "chrome"},
+        {"action": "sync", "source": "safari", "target": "chrome", "mode": "mirror"},
+        {"action": "sync", "source": "safari", "target": "chrome", "mode": "mirror"}
+      ],
+      "expected": {
+        "browsers_equal": true,
+        "sync_changes_sequence_minimum": [1, 0],
+        "last_sync_changes": 0
+      }
+    },
+    {
+      "id": "safari-only-change",
+      "name": "Modification Safari uniquement",
+      "objective": "Propager un renommage réalisé uniquement dans Safari.",
+      "dataset": "Medium",
+      "preparation": [
+        "Établir un état commun.",
+        "Renommer un favori Safari.",
+        "Synchroniser Safari vers Chrome."
+      ],
+      "steps": [
+        {"action": "sync", "source": "safari", "target": "chrome", "mode": "mirror"},
+        {"action": "checkpoint"},
+        {"action": "rename_bookmark", "browser": "safari", "index": 0, "suffix": " — Safari"},
+        {"action": "sync", "source": "safari", "target": "chrome", "mode": "mirror"}
+      ],
+      "expected": {
+        "browsers_equal": true,
+        "last_sync_changes_minimum": 1
+      }
+    },
+    {
+      "id": "chrome-only-change",
+      "name": "Modification Chrome uniquement",
+      "objective": "Propager une modification réalisée uniquement dans Chrome.",
+      "dataset": "Medium",
+      "preparation": [
+        "Établir un état commun.",
+        "Renommer un favori Chrome.",
+        "Synchroniser Chrome vers Safari."
+      ],
+      "steps": [
+        {"action": "sync", "source": "safari", "target": "chrome", "mode": "mirror"},
+        {"action": "checkpoint"},
+        {"action": "rename_bookmark", "browser": "chrome", "index": 1, "suffix": " — Chrome"},
+        {"action": "sync", "source": "chrome", "target": "safari", "mode": "mirror"}
+      ],
+      "expected": {
+        "browsers_equal": true,
+        "last_sync_changes_minimum": 1
+      }
+    },
+    {
+      "id": "both-sides-change",
+      "name": "Modification des deux côtés",
+      "objective": "Fusionner deux modifications indépendantes sans en perdre une.",
+      "dataset": "Medium",
+      "preparation": [
+        "Établir un état commun.",
+        "Modifier deux favoris distincts, un dans chaque navigateur.",
+        "Fusionner selon les révisions déterministes."
+      ],
+      "steps": [
+        {"action": "sync", "source": "safari", "target": "chrome", "mode": "mirror"},
+        {"action": "checkpoint"},
+        {"action": "rename_bookmark", "browser": "safari", "index": 2, "suffix": " — S"},
+        {"action": "rename_bookmark", "browser": "chrome", "index": 3, "suffix": " — C"},
+        {"action": "merge"}
+      ],
+      "expected": {
+        "browsers_equal": true,
+        "merge_changes_minimum": 2
+      }
+    },
+    {
+      "id": "rename",
+      "name": "Renommage",
+      "objective": "Détecter et propager le renommage d'un favori.",
+      "dataset": "Small",
+      "preparation": [
+        "Établir un état commun.",
+        "Renommer un favori puis synchroniser."
+      ],
+      "steps": [
+        {"action": "sync", "source": "safari", "target": "chrome", "mode": "mirror"},
+        {"action": "checkpoint"},
+        {"action": "rename_bookmark", "browser": "safari", "index": 4, "suffix": " renommé"},
+        {"action": "sync", "source": "safari", "target": "chrome", "mode": "mirror"}
+      ],
+      "expected": {
+        "browsers_equal": true,
+        "last_sync_changes_minimum": 1
+      }
+    },
+    {
+      "id": "move",
+      "name": "Déplacement",
+      "objective": "Détecter et propager le déplacement d'un favori.",
+      "dataset": "Small",
+      "preparation": [
+        "Établir un état commun.",
+        "Déplacer un favori dans un autre dossier."
+      ],
+      "steps": [
+        {"action": "sync", "source": "safari", "target": "chrome", "mode": "mirror"},
+        {"action": "checkpoint"},
+        {"action": "move_bookmark", "browser": "safari", "index": 5, "folder_index": 2},
+        {"action": "sync", "source": "safari", "target": "chrome", "mode": "mirror"}
+      ],
+      "expected": {
+        "browsers_equal": true,
+        "last_sync_changes_minimum": 1
+      }
+    },
+    {
+      "id": "deletion",
+      "name": "Suppression",
+      "objective": "Détecter et propager la suppression d'un favori.",
+      "dataset": "Small",
+      "preparation": [
+        "Établir un état commun.",
+        "Supprimer un favori de la source."
+      ],
+      "steps": [
+        {"action": "sync", "source": "safari", "target": "chrome", "mode": "mirror"},
+        {"action": "checkpoint"},
+        {"action": "delete_bookmark", "browser": "safari", "index": 6},
+        {"action": "sync", "source": "safari", "target": "chrome", "mode": "mirror"}
+      ],
+      "expected": {
+        "browsers_equal": true,
+        "last_sync_changes_minimum": 1
+      }
+    },
+    {
+      "id": "creation",
+      "name": "Création",
+      "objective": "Détecter et propager la création d'un favori.",
+      "dataset": "Small",
+      "preparation": [
+        "Établir un état commun.",
+        "Créer un favori anonymisé dans Safari."
+      ],
+      "steps": [
+        {"action": "sync", "source": "safari", "target": "chrome", "mode": "mirror"},
+        {"action": "checkpoint"},
+        {
+          "action": "create_bookmark",
+          "browser": "safari",
+          "title": "Nouveau favori QA",
+          "url": "https://created.qa.invalid/item",
+          "folder_index": 1
+        },
+        {"action": "sync", "source": "safari", "target": "chrome", "mode": "mirror"}
+      ],
+      "expected": {
+        "browsers_equal": true,
+        "last_sync_changes_minimum": 1
+      }
+    },
+    {
+      "id": "parent-folder-move",
+      "name": "Déplacement d'un dossier parent",
+      "objective": "Propager le déplacement d'un dossier et de tout son sous-arbre.",
+      "dataset": "Large",
+      "preparation": [
+        "Établir un état commun.",
+        "Déplacer un dossier parent sous un autre dossier."
+      ],
+      "steps": [
+        {"action": "sync", "source": "safari", "target": "chrome", "mode": "mirror"},
+        {"action": "checkpoint"},
+        {"action": "move_folder", "browser": "safari", "index": 1, "target_index": 3},
+        {"action": "sync", "source": "safari", "target": "chrome", "mode": "mirror"}
+      ],
+      "expected": {
+        "browsers_equal": true,
+        "last_sync_changes_minimum": 1
+      }
+    },
+    {
+      "id": "subtree-deletion",
+      "name": "Suppression d'un sous-arbre complet",
+      "objective": "Propager la suppression atomique d'un dossier et de ses descendants.",
+      "dataset": "Large",
+      "preparation": [
+        "Établir un état commun.",
+        "Supprimer un dossier non vide de Safari."
+      ],
+      "steps": [
+        {"action": "sync", "source": "safari", "target": "chrome", "mode": "mirror"},
+        {"action": "checkpoint"},
+        {"action": "delete_folder", "browser": "safari", "index": 1},
+        {"action": "sync", "source": "safari", "target": "chrome", "mode": "mirror"}
+      ],
+      "expected": {
+        "browsers_equal": true,
+        "last_sync_changes_minimum": 1
+      }
+    },
+    {
+      "id": "successive-synchronizations",
+      "name": "Synchronisations successives",
+      "objective": "Vérifier la stabilité après plusieurs cycles de création, déplacement et renommage.",
+      "dataset": "Medium",
+      "preparation": [
+        "Établir un état commun.",
+        "Appliquer trois mutations séparées par des synchronisations.",
+        "Rejouer une dernière synchronisation sans changement."
+      ],
+      "steps": [
+        {"action": "sync", "source": "safari", "target": "chrome", "mode": "mirror"},
+        {"action": "checkpoint"},
+        {
+          "action": "create_bookmark",
+          "browser": "safari",
+          "title": "Cycle QA",
+          "url": "https://cycles.qa.invalid/1",
+          "folder_index": 1
+        },
+        {"action": "sync", "source": "safari", "target": "chrome", "mode": "mirror"},
+        {"action": "move_bookmark", "browser": "safari", "index": 7, "folder_index": 4},
+        {"action": "sync", "source": "safari", "target": "chrome", "mode": "mirror"},
+        {"action": "rename_bookmark", "browser": "safari", "index": 8, "suffix": " final"},
+        {"action": "sync", "source": "safari", "target": "chrome", "mode": "mirror"},
+        {"action": "sync", "source": "safari", "target": "chrome", "mode": "mirror"}
+      ],
+      "expected": {
+        "browsers_equal": true,
+        "last_sync_changes": 0,
+        "nonzero_sync_count_minimum": 3
+      }
+    },
+    {
+      "id": "simulated-interruption",
+      "name": "Interruption simulée",
+      "objective": "Vérifier qu'une interruption avant commit ne modifie pas la cible.",
+      "dataset": "Medium",
+      "preparation": [
+        "Établir un état commun.",
+        "Modifier Safari.",
+        "Préparer une synchronisation puis l'interrompre avant commit."
+      ],
+      "steps": [
+        {"action": "sync", "source": "safari", "target": "chrome", "mode": "mirror"},
+        {"action": "rename_bookmark", "browser": "safari", "index": 9, "suffix": " interrompu"},
+        {"action": "interrupt_sync", "source": "safari", "target": "chrome"}
+      ],
+      "expected": {
+        "interruption_preserved_target": true,
+        "browsers_equal": false
+      }
+    },
+    {
+      "id": "rollback",
+      "name": "Rollback",
+      "objective": "Vérifier qu'une restauration retrouve exactement l'état sauvegardé.",
+      "dataset": "Medium",
+      "preparation": [
+        "Établir un état commun.",
+        "Sauvegarder Chrome.",
+        "Modifier Chrome puis restaurer la sauvegarde."
+      ],
+      "steps": [
+        {"action": "sync", "source": "safari", "target": "chrome", "mode": "mirror"},
+        {"action": "snapshot", "browser": "chrome", "name": "before"},
+        {"action": "delete_bookmark", "browser": "chrome", "index": 10},
+        {"action": "rename_bookmark", "browser": "chrome", "index": 11, "suffix": " temporaire"},
+        {"action": "restore", "browser": "chrome", "name": "before"}
+      ],
+      "expected": {
+        "rollback_restored": true,
+        "browsers_equal": true
+      }
+    },
+    {
+      "id": "pathological-formats",
+      "name": "Formats pathologiques",
+      "objective": "Valider les homonymes, profondeur, longues URL, Unicode, emojis, doublons et dossiers vides.",
+      "dataset": "Pathological",
+      "preparation": [
+        "Générer le dataset Pathological.",
+        "Sérialiser en plist Safari et JSON Chrome.",
+        "Relire et comparer chaque représentation à l'état canonique."
+      ],
+      "steps": [
+        {"action": "validate_dataset"}
+      ],
+      "expected": {
+        "dataset_roundtrip_valid": true,
+        "pathological_coverage": true
+      }
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "name": "Medium",
+  "bookmark_count_per_browser": 500,
+  "shared_ratio": 0.7,
+  "folder_count": 30,
+  "maximum_depth": 5,
+  "seed": "bookmarkbridge-qa-medium",
+  "pathological": false
+}
