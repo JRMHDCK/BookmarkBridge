@@ -4,11 +4,11 @@ Toutes les évolutions notables de BookmarkBridge sont documentées dans ce fich
 Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le
 projet utilise le versionnement sémantique.
 
-## [Non publié]
+## Non publié
 
 Aucun changement fonctionnel depuis le gel du moteur V1.
 
-## [1.0.0] - 2026-07-17
+## 0.9.0-beta1 - 2026-07-29
 
 ### Ajouté
 
@@ -60,6 +60,3 @@ Aucun changement fonctionnel depuis le gel du moteur V1.
 - Les profils avec deux stockages non vides restent en lecture seule.
 - Les ajouts Chrome sont placés dans « Autres favoris » sans reconstruire les
   dossiers d'origine.
-
-[Non publié]: https://github.com/JRMHDCK/BookmarkBridge/compare/v1.0.0...HEAD
-[1.0.0]: https://github.com/JRMHDCK/BookmarkBridge/releases/tag/v1.0.0

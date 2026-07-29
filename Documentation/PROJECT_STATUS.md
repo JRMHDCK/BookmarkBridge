@@ -61,7 +61,7 @@ Utiliser `git log --oneline` pour l'historique complet et les commits de détail
 
 ## État actuel
 
-- Version configurée : `1.0` (build `1`).
+- Version configurée : `0.9.0` (build `1`), première bêta `0.9.0-beta1`.
 - Cible : macOS 26.5+, Swift 6, concurrence stricte.
 - Configurations Xcode : Debug et Release ; Release compile en whole-module,
   génère un dSYM, retire les symboles du produit installé et élimine le code mort.

@@ -37,6 +37,17 @@ struct AboutView: View {
                     .font(.body)
                     .foregroundStyle(.secondary)
                 }
+
+                Divider()
+
+                VStack(alignment: .leading, spacing: Theme.Spacing.s) {
+                    LabeledContent("Auteur", value: "Jérôme Hudecek")
+                    LabeledContent("Moteur de synchronisation", value: "BSE v1.0")
+                    Text("Copyright © 2026 Jérôme Hudecek")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: 460)
             }
             .frame(
                 maxWidth: Theme.Size.contentMaxWidth,
@@ -52,6 +63,12 @@ struct AboutView: View {
         let version = Bundle.main.object(
             forInfoDictionaryKey: "CFBundleShortVersionString"
         ) as? String
-        return version.map { "Version \($0)" } ?? "Application macOS"
+        let build = Bundle.main.object(
+            forInfoDictionaryKey: "CFBundleVersion"
+        ) as? String
+
+        guard let version else { return "Application macOS" }
+        guard let build else { return "Version \(version)" }
+        return "Version \(version) (Build \(build))"
     }
 }

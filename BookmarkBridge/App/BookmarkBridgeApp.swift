@@ -2,7 +2,7 @@
 //  BookmarkBridgeApp.swift
 //  BookmarkBridge
 //
-//  Created by Jerome on 15/07/2026.
+//  Created by Jérôme Hudecek on 15/07/2026.
 //
 
 import SwiftUI

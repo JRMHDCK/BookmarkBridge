@@ -1,7 +1,7 @@
 # BookmarkBridge QA Report
 
 - Date : `2026-07-29T10:00:00+02:00`
-- Version : `1.0` (build `1`)
+- Version : `0.9.0` (build `1`)
 - Commit : `0123456789abcdef0123456789abcdef01234567`
 - Branche : `feat/ui-integration`
 - Scénarios : `15`

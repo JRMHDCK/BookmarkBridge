@@ -13,8 +13,8 @@ idempotence, sauvegarde, restauration et rafraîchissement automatique.
 Le moteur de synchronisation V1 est gelé. La V1 n'écrit jamais dans Safari et ne
 modifie pas les fichiers `AccountBookmarks` des profils Chrome connectés.
 
-Version applicative préparée : **1.0 (build 1)**. Le tag Git proposé pour la
-publication est `v1.0.0`.
+Version bêta préparée : **0.9.0 (build 1)**, identifiée comme
+**0.9.0-beta1** dans la documentation de livraison.
 
 ## Fonctionnalités V1
 
