@@ -9,28 +9,11 @@ import SwiftUI
 
 @main
 struct BookmarkBridgeApp: App {
-    /// Assembled once at launch and injected into the feature ViewModels.
-    private let dependencies = AppDependencies.bootstrap()
+    private let applicationViewModel: ApplicationViewModel
 
-    var body: some Scene {
-        WindowGroup {
-            DashboardView(
-                viewModel: makeDashboardViewModel(),
-                chromeApplier: ChromeBookmarkApplier(
-                    detector: SystemRunningBrowserDetector(),
-                    backup: dependencies.backup
-                ),
-                backup: dependencies.backup,
-                browserDetector: SystemRunningBrowserDetector()
-            )
-        }
-    }
+    init() {
+        let dependencies = AppDependencies.bootstrap()
 
-    /// Builds the dashboard ViewModel, injecting the real per-browser
-    /// authorization flows on macOS. The coordinators (which present NSOpenPanel)
-    /// and their AppKit adapters live only here, in the app layer.
-    private func makeDashboardViewModel() -> DashboardViewModel {
-        #if os(macOS)
         let safariCoordinator = BrowserAccessCoordinator(
             browser: .safari,
             expectedPathSuffix: BrowserAccessCoordinator.safariPathSuffix,
@@ -46,12 +29,44 @@ struct BookmarkBridgeApp: App {
             store: dependencies.bookmarkStore
         )
         let requester = CompositeAuthorizationRequester([
-            .safari: BrowserAuthorizationRequester(browser: .safari, coordinator: safariCoordinator),
-            .chrome: BrowserAuthorizationRequester(browser: .chrome, coordinator: chromeCoordinator),
+            .safari: BrowserAuthorizationRequester(
+                browser: .safari,
+                coordinator: safariCoordinator
+            ),
+            .chrome: BrowserAuthorizationRequester(
+                browser: .chrome,
+                coordinator: chromeCoordinator
+            ),
         ])
-        return DashboardViewModel(providers: dependencies.providers, authorizer: requester)
-        #else
-        return DashboardViewModel(providers: dependencies.providers)
-        #endif
+        let authorizationService = ApplicationAuthorizationService(
+            store: dependencies.bookmarkStore,
+            resolver: SystemSecurityScopedBookmarkResolver(),
+            creator: dependencies.bookmarkCreator,
+            fileController: SystemSecurityScopedFileController(),
+            requester: requester
+        )
+        applicationViewModel = ApplicationViewModel(
+            dashboard: DashboardViewModel(
+                providers: dependencies.providers,
+                authorizer: authorizationService
+            ),
+            authorization: ApplicationAuthorizationViewModel(
+                service: authorizationService
+            ),
+            synchronization: SynchronizationViewModel(
+                previewService:
+                    dependencies.synchronizationPreviewService,
+                requestProvider:
+                    dependencies.synchronizationPreviewRequestProvider,
+                executionService:
+                    dependencies.synchronizationExecutionService
+            )
+        )
+    }
+
+    var body: some Scene {
+        WindowGroup {
+            ApplicationNavigationView(model: applicationViewModel)
+        }
     }
 }

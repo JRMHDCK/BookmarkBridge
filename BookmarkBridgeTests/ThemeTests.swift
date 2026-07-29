@@ -35,6 +35,16 @@ struct ThemeTests {
         #expect(Theme.Radius.card > Theme.Radius.control)
     }
 
+    @Test("Interactive and layout metrics remain usable")
+    func layoutMetricsAreUsable() {
+        #expect(Theme.Size.minimumInteractive >= 28)
+        #expect(Theme.Size.sidebarIdealWidth > 0)
+        #expect(
+            Theme.Size.contentMaxWidth
+                > Theme.Size.sidebarIdealWidth
+        )
+    }
+
     #if canImport(AppKit)
     @Test("Every brand color token resolves to an Asset Catalog color")
     @MainActor
