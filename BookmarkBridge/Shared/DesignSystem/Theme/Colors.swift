@@ -12,7 +12,6 @@ extension Theme {
         static let green = Color.green
         static let warning = Color.orange
         static let error = Color.red
-        static let cardSurface = Color(nsColor: .controlBackgroundColor)
     }
 
     nonisolated enum Materials {

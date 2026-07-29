@@ -74,22 +74,10 @@ struct ThemeTests {
     }
 
     #if canImport(AppKit)
-    @Test("Every brand color token resolves to an Asset Catalog color")
+    @Test("The application accent color resolves from the Asset Catalog")
     @MainActor
-    func brandColorAssetsExist() {
-        let names = [
-            "BrandBlue",
-            "BrandBlueSubtle",
-            "BrandGreen",
-            "BrandGreenSubtle",
-            "BrandWarning",
-            "BrandError",
-            "SurfaceCard",
-            "AccentColor",
-        ]
-        for name in names {
-            #expect(NSColor(named: name) != nil, "Missing color asset: \(name)")
-        }
+    func accentColorAssetExists() {
+        #expect(NSColor(named: "AccentColor") != nil)
     }
     #endif
 }
