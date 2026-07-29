@@ -30,7 +30,7 @@ struct SyncPreviewView: View {
             if model.isEmpty {
                 ContentUnavailableView(
                     "Les deux profils sont déjà synchronisés",
-                    systemImage: "checkmark.circle.fill"
+                    systemImage: "checkmark.circle"
                 )
             } else {
                 List {
@@ -78,7 +78,7 @@ struct SyncPreviewView: View {
             .padding(.horizontal, Theme.Spacing.l)
             .padding(.vertical, Theme.Spacing.s)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(.bar)
+            .background(Theme.Materials.bar)
         }
     }
 
@@ -101,7 +101,7 @@ struct SyncPreviewView: View {
     /// silently hiding the button).
     private var readOnlyBar: some View {
         HStack(spacing: Theme.Spacing.m) {
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
                 Label("Ce profil est en lecture seule.", systemImage: "exclamationmark.triangle.fill")
                     .font(.callout).fontWeight(.medium)
                     .foregroundStyle(Theme.Palette.warning)
@@ -116,7 +116,7 @@ struct SyncPreviewView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, Theme.Spacing.l)
         .padding(.vertical, Theme.Spacing.s)
-        .background(.bar)
+        .background(Theme.Materials.bar)
     }
 
     /// Read-only case: no writable Chrome target (or nothing to add).
@@ -127,7 +127,7 @@ struct SyncPreviewView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, Theme.Spacing.l)
             .padding(.vertical, Theme.Spacing.s)
-            .background(.bar)
+            .background(Theme.Materials.bar)
     }
 
     /// Safari → Chrome apply action, reflecting the apply state.
@@ -138,7 +138,7 @@ struct SyncPreviewView: View {
             switch model.applyState {
             case .idle:
                 HStack(spacing: Theme.Spacing.m) {
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
                         if model.canApplyToChrome {
                             Text("Ajouter \(model.chromeAdditionsCount) \(favoriteWord(model.chromeAdditionsCount)) à \(name)")
                                 .font(.callout).fontWeight(.medium)
@@ -158,6 +158,8 @@ struct SyncPreviewView: View {
                     if model.canApplyToChrome {
                         Button("Appliquer") { confirmingApply = true }
                             .buttonStyle(.borderedProminent)
+                            .controlSize(.large)
+                            .tint(.accentColor)
                     }
                 }
             case .applying:
@@ -167,7 +169,7 @@ struct SyncPreviewView: View {
                 }
             case .applied(let count):
                 HStack(spacing: Theme.Spacing.m) {
-                    Label("\(count) \(favoriteWord(count)) \(count == 1 ? "ajouté" : "ajoutés") à \(name).", systemImage: "checkmark.circle.fill")
+                    Label("\(count) \(favoriteWord(count)) \(count == 1 ? "ajouté" : "ajoutés") à \(name).", systemImage: "checkmark.circle")
                         .foregroundStyle(Theme.Palette.green)
                     Spacer(minLength: 0)
                     if model.canRestore {
@@ -180,7 +182,7 @@ struct SyncPreviewView: View {
                     Text("Restauration en cours…").foregroundStyle(.secondary)
                 }
             case .restored:
-                Label("Restauration terminée.", systemImage: "checkmark.circle.fill")
+                Label("Restauration terminée.", systemImage: "checkmark.circle")
                     .foregroundStyle(Theme.Palette.green)
             case .failed(let message):
                 HStack(spacing: Theme.Spacing.m) {
@@ -201,7 +203,7 @@ struct SyncPreviewView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, Theme.Spacing.l)
         .padding(.vertical, Theme.Spacing.s)
-        .background(.bar)
+        .background(Theme.Materials.bar)
         .confirmationDialog(
             "Ajouter \(model.chromeAdditionsCount) \(favoriteWord(model.chromeAdditionsCount)) à \(name) ?",
             isPresented: $confirmingApply,
@@ -269,7 +271,7 @@ private struct AdditionRow: View {
                         .truncationMode(.middle)
                 }
                 Text(addition.originPath)
-                    .font(.caption2)
+                    .font(.caption)
                     .foregroundStyle(.tertiary)
                     .lineLimit(1)
                     .truncationMode(.head)

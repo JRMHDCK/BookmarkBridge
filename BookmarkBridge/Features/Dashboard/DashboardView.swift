@@ -62,33 +62,40 @@ struct DashboardView: View {
                 .navigationTitle("Accueil")
                 .toolbar {
                     ToolbarItem {
-                        Button {
-                            onShowSynchronization?()
+                        ControlGroup {
+                            Button {
+                                onShowSynchronization?()
+                            } label: {
+                                Image(
+                                    systemName:
+                                        "arrow.triangle.2.circlepath"
+                                )
+                            }
+                            .disabled(onShowSynchronization == nil)
+                            .help("Ouvrir la synchronisation")
+
+                            Menu {
+                                Button {
+                                    Task { await reloadDashboard() }
+                                } label: {
+                                    Label(
+                                        "Actualiser",
+                                        systemImage: "arrow.clockwise"
+                                    )
+                                }
+                                .disabled(viewModel.isLoading)
+                            } label: {
+                                Image(systemName: "ellipsis.circle")
+                            }
+                            .help("Plus d’actions")
                         } label: {
                             Label(
-                                "Synchronisation",
-                                systemImage: "arrow.triangle.2.circlepath"
+                                "Actions",
+                                systemImage: "ellipsis.circle"
                             )
                         }
-                        .disabled(onShowSynchronization == nil)
-                        .accessibilityLabel(
-                            "Ouvrir la prévisualisation de la synchronisation"
-                        )
                     }
-                    ToolbarItem {
-                        Button {
-                            Task { await reloadDashboard() }
-                        } label: {
-                            Label(
-                                "Actualiser",
-                                systemImage: "arrow.clockwise"
-                            )
-                        }
-                        .disabled(viewModel.isLoading)
-                        .accessibilityLabel(
-                            "Actualiser tous les navigateurs"
-                        )
-                    }
+                    ToolbarSpacer(.fixed)
                 }
                 .searchable(
                     text: $searchModel.query,
@@ -119,7 +126,22 @@ struct DashboardView: View {
 
     private var dashboard: some View {
         ScrollView {
-            VStack(spacing: Theme.Spacing.l) {
+            VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
+                VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
+                    Text("Vue d’ensemble")
+                        .font(.largeTitle)
+                    Text(
+                        "Retrouvez l’état de vos favoris Safari et Chrome."
+                    )
+                    .font(.body)
+                    .foregroundStyle(.secondary)
+                }
+
+                DashboardSynchronizationCard(
+                    summary: synchronizationSummary,
+                    onShowSynchronization: onShowSynchronization
+                )
+
                 if let authorizationViewModel {
                     ApplicationAuthorizationCard(
                         model: authorizationViewModel,
@@ -129,36 +151,48 @@ struct DashboardView: View {
                     )
                 }
 
-                if viewModel.sources.isEmpty {
-                    EmptyStateView(
-                        title: "Aucun navigateur configuré",
-                        message: "Aucune source de favoris n'est disponible.",
-                        systemImage: "bookmark.slash"
+                VStack(alignment: .leading, spacing: Theme.Spacing.s) {
+                    SectionHeader(
+                        "Sources",
+                        subtitle:
+                            "Favoris disponibles sur cet appareil."
                     )
-                    .frame(maxWidth: .infinity, minHeight: 240)
-                } else {
-                    ForEach(viewModel.sources) { entry in
-                        SourceCard(
-                            entry: entry,
-                            tree: viewModel.tree(for: entry.id),
-                            onAuthorize: {
-                                Task {
-                                    await authorize(
-                                        entry.source.browser
-                                    )
-                                }
-                            },
-                            onRetry: {
-                                Task { await retry(entry.id) }
-                            }
+
+                    if viewModel.sources.isEmpty {
+                        EmptyStateView(
+                            title: "Aucun navigateur configuré",
+                            message:
+                                "Aucune source de favoris n'est disponible.",
+                            systemImage: "bookmark.slash"
                         )
+                        .frame(maxWidth: .infinity, minHeight: 180)
+                    } else {
+                        VStack(spacing: Theme.Spacing.zero) {
+                            ForEach(
+                                Array(viewModel.sources.enumerated()),
+                                id: \.element.id
+                            ) { index, entry in
+                                SourceRow(
+                                    entry: entry,
+                                    tree: viewModel.tree(for: entry.id),
+                                    onAuthorize: {
+                                        Task {
+                                            await authorize(
+                                                entry.source.browser
+                                            )
+                                        }
+                                    },
+                                    onRetry: {
+                                        Task { await retry(entry.id) }
+                                    }
+                                )
+                                if index < viewModel.sources.count - 1 {
+                                    Divider()
+                                }
+                            }
+                        }
                     }
                 }
-
-                DashboardSynchronizationCard(
-                    summary: synchronizationSummary,
-                    onShowSynchronization: onShowSynchronization
-                )
             }
             .frame(
                 maxWidth: Theme.Size.contentMaxWidth,
@@ -212,25 +246,35 @@ private struct ApplicationAuthorizationCard: View {
     let onAuthorize: (Browser) -> Void
 
     var body: some View {
-        PermissionCard(statusSymbol: statusSymbol) {
-            if model.isLoading {
-                HStack(spacing: Theme.Spacing.s) {
-                    ProgressView().controlSize(.small)
-                    Text("Vérification des autorisations…")
-                        .foregroundStyle(.secondary)
+        if model.state.status == .complete && !model.isLoading {
+            Label(
+                "Accès Safari et Chrome autorisés",
+                systemImage: "checkmark.circle"
+            )
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .symbolRenderingMode(.hierarchical)
+        } else {
+            PermissionCard(statusSymbol: statusSymbol) {
+                if model.isLoading {
+                    HStack(spacing: Theme.Spacing.s) {
+                        ProgressView().controlSize(.small)
+                        Text("Vérification des autorisations…")
+                            .foregroundStyle(.secondary)
+                    }
+                } else {
+                    Text(statusMessage)
+                        .foregroundStyle(statusColor)
+                    browserRow(.safari)
+                    browserRow(.chrome)
                 }
-            } else {
-                Text(statusMessage)
-                    .foregroundStyle(statusColor)
-                browserRow(.safari)
-                browserRow(.chrome)
             }
         }
     }
 
     private var statusSymbol: String {
         switch model.state.status {
-        case .complete: "checkmark.shield.fill"
+        case .complete: "checkmark.shield"
         case .absent, .partial: "lock"
         case .invalidBookmark, .accessError:
             "exclamationmark.triangle.fill"
@@ -254,7 +298,7 @@ private struct ApplicationAuthorizationCard: View {
 
     private var statusColor: Color {
         switch model.state.status {
-        case .complete: Theme.Palette.green
+        case .complete: .secondary
         case .invalidBookmark, .accessError: Theme.Palette.error
         case .absent, .partial: .secondary
         }
@@ -277,7 +321,7 @@ private struct ApplicationAuthorizationCard: View {
             } else {
                 Text("Autorisé")
                     .font(.callout)
-                    .foregroundStyle(Theme.Palette.green)
+                    .foregroundStyle(.secondary)
             }
         }
         .accessibilityElement(children: .contain)
@@ -294,7 +338,7 @@ private struct ApplicationAuthorizationCard: View {
         for state: BrowserAuthorizationState
     ) -> String {
         switch state {
-        case .valid: "checkmark.circle.fill"
+        case .valid: "checkmark.circle"
         case .missing: "circle.dashed"
         case .invalidBookmark, .accessError:
             "exclamationmark.circle.fill"
@@ -305,7 +349,7 @@ private struct ApplicationAuthorizationCard: View {
         for state: BrowserAuthorizationState
     ) -> Color {
         switch state {
-        case .valid: Theme.Palette.green
+        case .valid: .secondary
         case .missing: .secondary
         case .invalidBookmark, .accessError: Theme.Palette.error
         }
@@ -320,9 +364,9 @@ private struct DashboardSynchronizationCard: View {
         SynchronizationSummaryCard {
             summaryContent
             if let onShowSynchronization {
-                SecondaryActionButton(
+                PrimaryActionButton(
                     "Voir la prévisualisation",
-                    systemImage: "chevron.forward",
+                    systemImage: "arrow.right",
                     action: onShowSynchronization
                 )
                 .accessibilityHint(
@@ -358,7 +402,7 @@ private struct DashboardSynchronizationCard: View {
         case .upToDate:
             Label(
                 "Les navigateurs sont synchronisés",
-                systemImage: "checkmark.circle.fill"
+                systemImage: "checkmark.circle"
             )
             .foregroundStyle(Theme.Palette.green)
         case .failed(let message):
@@ -367,19 +411,27 @@ private struct DashboardSynchronizationCard: View {
     }
 }
 
-private struct SourceCard: View {
+private struct SourceRow: View {
     let entry: DashboardViewModel.SourceState
     let tree: BookmarkTree?
     let onAuthorize: () -> Void
     let onRetry: () -> Void
 
     var body: some View {
-        StatusCard(
-            entry.source.displayName,
-            systemImage: symbolName
-        ) {
-            content
+        HStack(alignment: .top, spacing: Theme.Spacing.l) {
+            Image(systemName: symbolName)
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(.secondary)
+                .frame(width: Theme.Size.minimumInteractive)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: Theme.Spacing.s) {
+                Text(entry.source.displayName)
+                    .font(.headline)
+                content
+            }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, Theme.Spacing.m)
     }
 
     @ViewBuilder
@@ -408,20 +460,10 @@ private struct SourceCard: View {
         _ summary: BrowserBookmarkSummary
     ) -> some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.m) {
-            HStack(alignment: .top, spacing: Theme.Spacing.s) {
-                StatisticCard(
-                    value: summary.folderCount,
-                    label: "Dossiers"
-                )
-                StatisticCard(
-                    value: summary.bookmarkCount,
-                    label: "Favoris"
-                )
-                StatisticCard(
-                    value: summary.nodeCount,
-                    label: "Nœuds"
-                )
-            }
+            Text(
+                "\(summary.bookmarkCount) favoris · \(summary.folderCount) dossiers · \(summary.nodeCount) éléments"
+            )
+            .font(.callout)
             Text(
                 "Lu le \(summary.capturedAt.formatted(date: .abbreviated, time: .shortened))"
             )
@@ -436,9 +478,9 @@ private struct SourceCard: View {
                 ) {
                     Label(
                         "Explorer les favoris",
-                        systemImage: "chevron.forward"
+                        systemImage: "arrow.right"
                     )
-                    .font(.callout.weight(.medium))
+                    .font(.callout)
                     .frame(
                         minHeight: Theme.Size.minimumInteractive
                     )
@@ -457,7 +499,7 @@ private struct SourceCard: View {
                 systemImage: "lock"
             )
             .foregroundStyle(.secondary)
-            PrimaryActionButton("Autoriser l'accès…") {
+            SecondaryActionButton("Autoriser l'accès…") {
                 onAuthorize()
             }
             .accessibilityLabel(

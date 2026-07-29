@@ -2,16 +2,13 @@
 //  CardStyle.swift
 //  BookmarkBridge
 //
-//  The shared surface for cards: an opaque, rounded panel that lifts off the
-//  window background with a soft shadow (in light) and a hairline border. Apply
-//  with `.cardStyle()` so every card shares one elevation and radius.
+//  A restrained system surface for the few places that require a card.
 //
 
 import SwiftUI
 
-/// A rounded, opaque card surface (see the design system: "surface pleine +
-/// ombre douce"). Content is padded, filled with the card surface color, given
-/// the card corner radius, a hairline border, and a subtle drop shadow.
+/// Uses an opaque system control background. There is deliberately no shadow or
+/// custom glass effect, so the surface follows macOS appearance changes.
 struct CardStyle: ViewModifier {
     func body(content: Content) -> some View {
         content
@@ -24,7 +21,6 @@ struct CardStyle: ViewModifier {
                 RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous)
                     .strokeBorder(.quaternary, lineWidth: 1)
             )
-            .shadow(color: .black.opacity(0.06), radius: 8, x: 0, y: 2)
     }
 }
 

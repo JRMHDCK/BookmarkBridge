@@ -10,18 +10,22 @@ import SwiftUI
 struct SettingsView: View {
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: Theme.Spacing.l) {
-                SectionHeader(
-                    "Réglages",
-                    systemImage: "gearshape",
-                    subtitle: "Les préférences de BookmarkBridge apparaîtront ici."
-                )
+            VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
+                VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
+                    Text("Réglages")
+                        .font(.largeTitle)
+                    Text(
+                        "Les préférences de BookmarkBridge apparaîtront ici."
+                    )
+                    .font(.body)
+                    .foregroundStyle(.secondary)
+                }
                 EmptyStateView(
                     title: "Aucun réglage disponible",
                     message: "Le comportement sûr de la synchronisation reste inchangé.",
                     systemImage: "gearshape"
                 )
-                .frame(minHeight: 240)
+                .frame(minHeight: 180)
             }
             .frame(
                 maxWidth: Theme.Size.contentMaxWidth,

@@ -25,6 +25,8 @@ struct PrimaryActionButton: View {
             buttonLabel
         }
         .buttonStyle(.borderedProminent)
+        .controlSize(.large)
+        .tint(.accentColor)
         .frame(minHeight: Theme.Size.minimumInteractive)
     }
 
@@ -62,6 +64,7 @@ struct SecondaryActionButton: View {
             }
         }
         .buttonStyle(.bordered)
+        .controlSize(.regular)
         .frame(minHeight: Theme.Size.minimumInteractive)
     }
 }

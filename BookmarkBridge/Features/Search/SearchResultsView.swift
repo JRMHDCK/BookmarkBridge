@@ -48,8 +48,9 @@ private struct SearchResultRow: View {
 
     var body: some View {
         HStack(spacing: Theme.Spacing.m) {
-            Image(systemName: result.isFolder ? "folder.fill" : "bookmark")
-                .foregroundStyle(result.isFolder ? Theme.Palette.blue : Color.secondary)
+            Image(systemName: result.isFolder ? "folder" : "bookmark")
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(.secondary)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
                 Text(displayTitle)
@@ -61,7 +62,7 @@ private struct SearchResultRow: View {
                         .truncationMode(.middle)
                 }
                 Text(pathText)
-                    .font(.caption2)
+                    .font(.caption)
                     .foregroundStyle(.tertiary)
                     .lineLimit(1)
                     .truncationMode(.head)

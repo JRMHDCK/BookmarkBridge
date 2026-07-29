@@ -12,13 +12,13 @@ import SwiftUI
 /// the app's read-only guarantee visible.
 struct ReadOnlyBadge: View {
     var body: some View {
-        Label("Lecture seule", systemImage: "lock.fill")
+        Label("Lecture seule", systemImage: "lock")
             .font(.caption)
             .fontWeight(.medium)
-            .foregroundStyle(Theme.Palette.green)
+            .foregroundStyle(.secondary)
             .padding(.horizontal, Theme.Spacing.s)
             .padding(.vertical, Theme.Spacing.xs)
-            .background(Theme.Palette.greenSubtle, in: Capsule())
+            .background(Color.primary.opacity(0.05), in: Capsule())
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("Accès en lecture seule")
     }

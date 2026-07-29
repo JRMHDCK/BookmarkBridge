@@ -25,6 +25,7 @@ struct SectionHeader: View {
             if let systemImage {
                 Label(title, systemImage: systemImage)
                     .font(Theme.Typography.cardTitle)
+                    .symbolRenderingMode(.hierarchical)
             } else {
                 Text(title)
                     .font(Theme.Typography.cardTitle)

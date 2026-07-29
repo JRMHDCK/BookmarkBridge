@@ -22,12 +22,16 @@ struct StatusCard<Content: View>: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Theme.Spacing.m) {
-            SectionHeader(title, systemImage: systemImage)
-            Divider()
-            content
+        GroupBox {
+            VStack(alignment: .leading, spacing: Theme.Spacing.m) {
+                content
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.top, Theme.Spacing.xs)
+        } label: {
+            Label(title, systemImage: systemImage)
+                .font(.headline)
+                .symbolRenderingMode(.hierarchical)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .cardStyle()
     }
 }

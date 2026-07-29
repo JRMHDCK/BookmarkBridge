@@ -19,7 +19,7 @@ struct BreadcrumbView: View {
                     cellView(cell)
                     if index < cells.count - 1 {
                         Image(systemName: "chevron.right")
-                            .font(.caption2)
+                            .font(.caption)
                             .foregroundStyle(.tertiary)
                             .accessibilityHidden(true)
                     }
@@ -30,7 +30,7 @@ struct BreadcrumbView: View {
             .padding(.horizontal, Theme.Spacing.l)
             .padding(.vertical, Theme.Spacing.s)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(.bar)
+            .background(Theme.Materials.bar)
         }
     }
 

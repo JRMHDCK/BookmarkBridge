@@ -15,12 +15,16 @@ struct SynchronizationPreviewScreen: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: Theme.Spacing.l) {
-                SectionHeader(
-                    "Synchronisation",
-                    systemImage: "arrow.triangle.2.circlepath",
-                    subtitle: "Prévisualisez les changements avant toute écriture."
-                )
+            VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
+                VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
+                    Text("Synchronisation")
+                        .font(.largeTitle)
+                    Text(
+                        "Vérifiez chaque changement avant de l’appliquer."
+                    )
+                    .font(.body)
+                    .foregroundStyle(.secondary)
+                }
                 SynchronizationSummaryCard {
                     executionStatus
                     previewContent
@@ -36,16 +40,29 @@ struct SynchronizationPreviewScreen: View {
         .navigationTitle("Synchronisation")
         .toolbar {
             ToolbarItem {
-                Button {
-                    Task { await onReload() }
+                ControlGroup {
+                    Menu {
+                        Button {
+                            Task { await onReload() }
+                        } label: {
+                            Label(
+                                "Actualiser la prévisualisation",
+                                systemImage: "arrow.clockwise"
+                            )
+                        }
+                        .disabled(model.isSynchronizing)
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                    }
+                    .help("Plus d’actions")
                 } label: {
-                    Label("Actualiser", systemImage: "arrow.clockwise")
+                    Label(
+                        "Actions",
+                        systemImage: "ellipsis.circle"
+                    )
                 }
-                .disabled(model.isSynchronizing)
-                .accessibilityLabel(
-                    "Actualiser la prévisualisation de la synchronisation"
-                )
             }
+            ToolbarSpacer(.fixed)
         }
     }
 
@@ -74,7 +91,7 @@ struct SynchronizationPreviewScreen: View {
                 message: "Chargez Safari et Chrome pour préparer la synchronisation.",
                 systemImage: "bookmark.slash"
             )
-            .frame(minHeight: 220)
+            .frame(minHeight: 180)
         case .loading:
             progressLabel("Calcul de la prévisualisation…")
                 .accessibilityLabel(
@@ -108,9 +125,10 @@ struct SynchronizationPreviewScreen: View {
             if isEmpty {
                 Label(
                     "Les navigateurs sont synchronisés",
-                    systemImage: "checkmark.circle.fill"
+                    systemImage: "checkmark.circle"
                 )
                 .foregroundStyle(Theme.Palette.green)
+                .symbolRenderingMode(.hierarchical)
             } else {
                 Text(
                     "\(preview.totalOperationCount) changement\(preview.totalOperationCount == 1 ? "" : "s") détecté\(preview.totalOperationCount == 1 ? "" : "s")"

@@ -12,7 +12,7 @@ import SwiftUI
 @ViewBuilder
 func explorerDestination(for step: ExplorerStep, path: Binding<[ExplorerStep]>) -> some View {
     explorerStepContent(for: step)
-        .safeAreaInset(edge: .top, spacing: 0) {
+        .safeAreaInset(edge: .top, spacing: Theme.Spacing.zero) {
             BreadcrumbView(path: path)
         }
 }
@@ -73,8 +73,7 @@ struct FolderListView: View {
         }
     }
 
-    /// A navigable folder: a filled, brand-blue glyph makes drill-down targets
-    /// stand out from the neutral bookmark leaves.
+    /// Finder-style rows use standard outline symbols and native selection.
     private func folderRow(title: String, itemCount: Int) -> some View {
         Label {
             VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
@@ -84,8 +83,9 @@ struct FolderListView: View {
                     .foregroundStyle(.secondary)
             }
         } icon: {
-            Image(systemName: "folder.fill")
-                .foregroundStyle(Theme.Palette.blue)
+            Image(systemName: "folder")
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(.secondary)
         }
         .padding(.vertical, Theme.Spacing.xs)
         .accessibilityElement(children: .ignore)
@@ -107,6 +107,7 @@ struct FolderListView: View {
             }
         } icon: {
             Image(systemName: "bookmark")
+                .symbolRenderingMode(.hierarchical)
                 .foregroundStyle(.secondary)
         }
         .padding(.vertical, Theme.Spacing.xs)

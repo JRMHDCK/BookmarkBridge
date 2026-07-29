@@ -20,9 +20,11 @@ struct ApplicationNavigationView: View {
             List(ApplicationScreen.allCases, selection: $model.selection) {
                 screen in
                 Label(screen.title, systemImage: screen.systemImage)
+                    .symbolRenderingMode(.hierarchical)
                     .tag(screen)
                     .accessibilityLabel(screen.title)
             }
+            .listStyle(.sidebar)
             .navigationTitle("BookmarkBridge")
             .navigationSplitViewColumnWidth(
                 ideal: Theme.Size.sidebarIdealWidth
@@ -30,6 +32,7 @@ struct ApplicationNavigationView: View {
         } detail: {
             destination(for: model.selection)
         }
+        .navigationSplitViewStyle(.balanced)
         .frame(minWidth: 680, minHeight: 460)
         .task {
             await model.loadIfNeeded()
