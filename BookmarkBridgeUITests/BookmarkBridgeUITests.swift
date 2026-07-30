@@ -95,6 +95,24 @@ final class BookmarkBridgeUITests: XCTestCase {
     }
 
     @MainActor
+    func testAboutShowsApplicationIcon() throws {
+        let app = XCUIApplication()
+        app.launchEnvironment[
+            "BOOKMARKBRIDGE_UI_TEST_SKIP_ONBOARDING"
+        ] = "1"
+        app.launch()
+
+        let appMenu = app.menuBars.menuBarItems["BookmarkBridge"]
+        appMenu.click()
+        appMenu.menus.menuItems["À propos de BookmarkBridge"].click()
+
+        XCTAssertTrue(
+            app.images["Logo BookmarkBridge"]
+                .waitForExistence(timeout: 3)
+        )
+    }
+
+    @MainActor
     func testLaunchPerformance() throws {
         measure(metrics: [XCTApplicationLaunchMetric()]) {
             XCUIApplication().launch()

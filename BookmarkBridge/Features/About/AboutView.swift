@@ -3,6 +3,7 @@
 //  BookmarkBridge
 //
 
+import AppKit
 import SwiftUI
 
 struct AboutView: View {
@@ -13,18 +14,10 @@ struct AboutView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
                 VStack(alignment: .leading, spacing: Theme.Spacing.s) {
-                    Image(systemName: "bookmark.fill")
-                        .font(.system(size: 38))
-                        .symbolRenderingMode(.hierarchical)
-                        .foregroundStyle(.tint)
+                    Image(nsImage: NSApp.applicationIconImage)
+                        .resizable()
+                        .scaledToFit()
                         .frame(width: 76, height: 76)
-                        .background(
-                            Color.accentColor.opacity(0.10),
-                            in: RoundedRectangle(
-                                cornerRadius: Theme.Radius.card,
-                                style: .continuous
-                            )
-                        )
                         .accessibilityLabel(
                             DocumentationText.value("about.logo")
                         )
