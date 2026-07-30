@@ -1,0 +1,42 @@
+name: Feature request
+description: Describe a user problem and a possible solution.
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        BookmarkBridge prioritizes data safety and a focused scope. Explain the problem before proposing implementation details.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What user need is not currently addressed?
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: Describe the outcome you would like.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: What workarounds or other approaches have you considered?
+    validations:
+      required: true
+
+  - type: textarea
+    id: safety
+    attributes:
+      label: Data-safety impact
+      description: Could this affect reading, writing, backing up, or restoring browser bookmark data?
+    validations:
+      required: true

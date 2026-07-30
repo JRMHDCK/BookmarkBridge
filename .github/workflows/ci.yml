@@ -1,0 +1,113 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  repository-hygiene:
+    name: Repository hygiene
+    runs-on: macos-26
+    timeout-minutes: 10
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Audit privacy, secrets, artifacts, links, and workflow syntax
+        run: ruby Tools/audit-public-repository.rb
+
+  build:
+    name: Build (${{ matrix.configuration }})
+    runs-on: macos-26
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        configuration:
+          - Debug
+          - Release
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Build
+        run: |
+          xcodebuild build \
+            -project BookmarkBridge.xcodeproj \
+            -scheme BookmarkBridge \
+            -configuration "${{ matrix.configuration }}" \
+            -destination 'platform=macOS' \
+            -derivedDataPath "$RUNNER_TEMP/DerivedData-${{ matrix.configuration }}" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO
+
+  unit-tests:
+    name: Unit tests
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Run unit and integration tests
+        run: |
+          xcodebuild test \
+            -project BookmarkBridge.xcodeproj \
+            -scheme BookmarkBridge \
+            -destination 'platform=macOS' \
+            -derivedDataPath "$RUNNER_TEMP/DerivedData-UnitTests" \
+            -only-testing:BookmarkBridgeTests \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO
+
+  ui-test-build:
+    name: UI test compilation
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      # XCUI runner applications must be signed before they can bootstrap.
+      # CI remains deliberately unsigned, so the complete suite runs locally.
+      - name: Compile UI tests without signing
+        run: |
+          xcodebuild build-for-testing \
+            -project BookmarkBridge.xcodeproj \
+            -scheme BookmarkBridge \
+            -destination 'platform=macOS' \
+            -derivedDataPath "$RUNNER_TEMP/DerivedData-UITests" \
+            -only-testing:BookmarkBridgeUITests \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO
+
+  qa-scenarios:
+    name: Generated QA scenarios
+    runs-on: macos-26
+    timeout-minutes: 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Run deterministic QA scenarios
+        run: QA/Scripts/run-qa.sh --qa-only

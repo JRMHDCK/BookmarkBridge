@@ -1,113 +1,184 @@
 # BookmarkBridge
 
-BookmarkBridge est une application macOS native, écrite en SwiftUI et Swift 6,
-qui synchronise les favoris de Safari vers Google Chrome de manière additive,
-prévisualisable et réversible.
+BookmarkBridge is a native macOS application for previewing and safely synchronizing bookmarks from Safari to local Google Chrome profiles.
 
-## État du projet
+> [!IMPORTANT]
+> BookmarkBridge 0.9.0-beta1 is beta software. Review every synchronization preview and keep browser backups. The current beta build is distributed without Apple signing or notarization.
 
-La V1 est fonctionnellement finalisée. Elle a été validée manuellement sur les
-parcours critiques : autorisation App Sandbox, synchronisation Safari → Chrome,
-idempotence, sauvegarde, restauration et rafraîchissement automatique.
+## Goals
 
-Le moteur de synchronisation V1 est gelé. La V1 n'écrit jamais dans Safari et ne
-modifie pas les fichiers `AccountBookmarks` des profils Chrome connectés.
+BookmarkBridge is designed around one promise: bookmark data must remain understandable, recoverable, and under the user's control.
 
-Version bêta préparée : **0.9.0 (build 1)**, identifiée comme
-**0.9.0-beta1** dans la documentation de livraison.
+- Read Safari and Chrome bookmark libraries locally.
+- Explain differences before changing anything.
+- Require explicit confirmation before synchronization.
+- Back up Chrome data before every write.
+- Keep synchronization idempotent and reversible.
+- Operate offline without accounts, analytics, or cloud storage.
 
-## Fonctionnalités V1
+## Main features
 
-- Lecture réelle des favoris Safari (`Bookmarks.plist`).
-- Découverte et lecture des profils Chrome (`Bookmarks` et détection
-  d'`AccountBookmarks`).
-- Dashboard avec statistiques par source : favoris, dossiers et nœuds.
-- Exploration hiérarchique avec fil d'Ariane.
-- Recherche globale multi-sources.
-- Aperçu des différences avant toute écriture.
-- Sélection du profil Chrome cible.
-- Synchronisation additive Safari → Chrome uniquement.
-- Déduplication par la même normalisation d'URL lors de l'aperçu et de l'écriture.
-- Sauvegarde horodatée obligatoire et `Bookmarks.bak` avant remplacement atomique.
-- Restauration persistante, associée au profil Chrome exact.
-- Refus de toute écriture ou restauration pendant l'exécution de Chrome.
-- App Sandbox avec autorisations persistantes par security-scoped bookmarks.
+- Native SwiftUI interface for macOS.
+- Safari and multi-profile Chrome library discovery.
+- Hierarchical bookmark explorer with search and breadcrumbs.
+- Read-only scan and comparison workflow.
+- Dry-run synchronization plan before application.
+- Additive Safari-to-Chrome synchronization.
+- Timestamped Chrome backups with restoration support.
+- Synchronization history and audit information.
+- First-launch assistant, contextual help, FAQ, What's New, and offline user guide.
+- Automated quality-assurance, DMG, and GitHub release-kit builders.
 
-## Garanties de sécurité
+## Requirements
 
-Toute écriture Chrome respecte la séquence suivante :
+- macOS 26.5 or later.
+- Xcode 26.5 or later to build from source.
+- Swift 6.
+- Safari and/or Google Chrome for normal use.
 
-1. Chrome doit être fermé.
-2. Le security scope du dossier autorisé doit être ouvert en écriture.
-3. Une sauvegarde privée et restaurable est créée.
-4. Le fichier `Bookmarks` courant est relu depuis le disque.
-5. Seuls les favoris réellement absents sont générés.
-6. `Bookmarks.bak` reçoit l'état précédent.
-7. Chrome est vérifié une seconde fois.
-8. Le fichier est remplacé atomiquement.
+The project uses the macOS App Sandbox and user-selected security-scoped access. Do not disable the sandbox to work around permission issues.
 
-Une seconde application sans changement n'ajoute aucun doublon.
+## Install from the DMG
 
-## Prérequis
+When a release asset is available:
 
-| Outil | Version |
-|---|---|
-| macOS | 26.5 ou version ultérieure |
-| Xcode | Version stable compatible avec le SDK macOS 26.5 |
-| Swift | 6, concurrence stricte |
+1. Open the BookmarkBridge DMG.
+2. Drag `BookmarkBridge.app` onto the `Applications` alias.
+3. Eject the disk image.
+4. Open BookmarkBridge from Applications.
 
-## Compilation et tests
+The beta is not signed or notarized. macOS may therefore require an explicit confirmation before the first launch. Do not disable Gatekeeper globally.
 
-```bash
+## First launch
+
+The onboarding assistant explains how BookmarkBridge works and asks you to select the Safari and Chrome bookmark locations through the standard macOS file picker. BookmarkBridge stores only security-scoped references needed to reopen those locations.
+
+Before the first synchronization:
+
+1. Grant access only to the bookmark libraries you want to use.
+2. Run a scan.
+3. Review the comparison and dry-run plan.
+4. Close Chrome when prompted.
+5. Confirm synchronization only when the preview is correct.
+
+## Build from source
+
+Clone the repository, then open `BookmarkBridge.xcodeproj` in Xcode, or build from Terminal:
+
+```sh
 xcodebuild build \
   -project BookmarkBridge.xcodeproj \
   -scheme BookmarkBridge \
   -configuration Debug \
-  -destination 'platform=macOS' \
-  CODE_SIGNING_ALLOWED=NO
+  -destination 'platform=macOS'
+```
 
+For a Release build:
+
+```sh
+xcodebuild build \
+  -project BookmarkBridge.xcodeproj \
+  -scheme BookmarkBridge \
+  -configuration Release \
+  -destination 'platform=macOS'
+```
+
+No third-party dependency is required.
+
+## Tests and QA
+
+Run the unit-test target:
+
+```sh
 xcodebuild test \
   -project BookmarkBridge.xcodeproj \
   -scheme BookmarkBridge \
   -destination 'platform=macOS' \
-  -only-testing:BookmarkBridgeTests \
-  CODE_SIGNING_ALLOWED=NO
+  -only-testing:BookmarkBridgeTests
 ```
 
-Les tests utilisent exclusivement des fixtures et des dossiers temporaires. Ils
-ne lisent ni n'écrivent les favoris réels de l'utilisateur.
+Run the UI-test target from an active macOS graphical session:
+
+```sh
+xcodebuild test \
+  -project BookmarkBridge.xcodeproj \
+  -scheme BookmarkBridge \
+  -destination 'platform=macOS' \
+  -only-testing:BookmarkBridgeUITests
+```
+
+The public CI compiles the UI-test bundle but does not launch it. XCUI requires its runner application to be signed before it can bootstrap, while this repository's CI is intentionally unsigned and uses no Apple credentials. The complete UI suite remains a required local validation in an active graphical session.
+
+Run the complete reusable QA platform:
+
+```sh
+QA/Scripts/run-qa.sh
+```
+
+Tests use generated fixtures and temporary directories. They never read or write real Safari or Chrome bookmarks. See [QA documentation](QA/Documentation/README.md) for individual scenarios and advanced options.
 
 ## Architecture
 
-Le projet suit une architecture MVVM organisée en quatre zones :
+BookmarkBridge follows MVVM with dependencies directed toward small protocols:
 
-- `App` : point d'entrée, composition et injection des dépendances ;
-- `Core` : modèles, parsing, lecture, diff, sauvegarde, écriture et sécurité ;
-- `Features` : Dashboard, Explorer, Search et Synchronisation ;
-- `Shared` : composants et utilitaires d'interface partagés.
+```text
+SwiftUI Views → ViewModels → Core protocols ← Services and repositories
+```
 
-Voir [Docs/ARCHITECTURE.md](Docs/ARCHITECTURE.md) et les
-[décisions d'architecture](Docs/adr/README.md).
+- `BookmarkBridge/App/` — application entry point and dependency composition.
+- `BookmarkBridge/Core/` — immutable domain models, parsers, synchronization engine, security, and browser access.
+- `BookmarkBridge/Features/` — vertical SwiftUI features and presentation state.
+- `BookmarkBridge/Shared/` — reusable UI components and resources.
+- `BookmarkBridgeTests/` — unit and integration tests using isolated fixtures.
+- `BookmarkBridgeUITests/` — critical user journeys.
+- `QA/` — generated datasets, scenarios, runner, and reports.
+- `Documentation/` and `Docs/` — project status, architecture decisions, and release documentation.
+- `Distribution/` — reusable DMG and GitHub release-kit automation.
 
-## Limites de la V1
+For a detailed technical handover, read [Project Status](Documentation/PROJECT_STATUS.md) and the [architecture decisions](Docs/adr/).
 
-- Synchronisation appliquée uniquement de Safari vers Chrome.
-- Aucune écriture dans Safari.
-- `AccountBookmarks` et les profils Chrome ambigus restent en lecture seule.
-- Les ajouts sont placés dans la racine Chrome « Autres favoris » ; la structure
-  de dossiers d'origine n'est pas reconstruite.
-- Aucune synchronisation cloud ou en arrière-plan.
+## Known limitations
 
-Les évolutions différées sont recensées dans [Docs/TODO-V2.md](Docs/TODO-V2.md).
+- Synchronization is currently one-way and additive: Safari to a selected local Chrome profile.
+- Safari and `AccountBookmarks` remain read-only.
+- Chrome must be closed before BookmarkBridge writes its bookmark file.
+- The beta is not signed or notarized.
+- macOS 26.5 or later is required.
 
-## Documentation du projet
+Only confirmed limitations are tracked in [Known Issues](Documentation/KNOWN_ISSUES.md).
 
-- [AGENTS.md](AGENTS.md) et [CLAUDE.md](CLAUDE.md) : règles de développement ;
-- [CONTRIBUTING.md](CONTRIBUTING.md) : processus de contribution ;
-- [CHANGELOG.md](CHANGELOG.md) : contenu des versions ;
-- [Docs/ARCHITECTURE.md](Docs/ARCHITECTURE.md) : architecture mise en œuvre ;
-- [Docs/adr](Docs/adr/README.md) : décisions structurantes.
+## Documentation
 
-## Licence
+- [Offline User Guide](BookmarkBridge/Documentation/Resources/BookmarkBridge-User-Guide.pdf)
+- [Release Notes for 0.9.0-beta1](Documentation/RELEASE_NOTES_0.9.0-beta1.md)
+- [DMG Builder](Distribution/DMG/README.md)
+- [GitHub Release Kit](Distribution/GitHub/README.md)
+- [QA Platform](QA/Documentation/README.md)
 
-BookmarkBridge est distribué sous licence MIT. Voir [LICENSE](LICENSE).
+The same user documentation is available inside the application from the Help menu.
+
+## Roadmap
+
+The immediate roadmap is deliberately conservative:
+
+1. Validate 0.9.x beta behavior with real-world libraries and fix confirmed defects.
+2. Add Apple Developer signing and notarization when distribution credentials are available.
+3. Prepare 1.0 after beta stability and compatibility criteria are met.
+
+Possible post-1.0 work is documented separately and does not change the safety requirements or the read-only-before-write principle.
+
+## Contributing
+
+Contributions are welcome when they preserve BookmarkBridge's data-safety guarantees. Start with [CONTRIBUTING.md](CONTRIBUTING.md), follow the [Code of Conduct](CODE_OF_CONDUCT.md), and include tests for behavior changes.
+
+The V1 synchronization engine is frozen. Changes to `Core`, services, parsers, repositories, permissions, or BSE require prior maintainer agreement and a documented safety case.
+
+## Security
+
+Do not report vulnerabilities in a public issue. Follow [SECURITY.md](SECURITY.md) to use GitHub's private vulnerability-reporting channel when it is available.
+
+## License
+
+BookmarkBridge is available under the [MIT License](LICENSE).
+
+Copyright (c) 2026 Jérôme Hudeček.

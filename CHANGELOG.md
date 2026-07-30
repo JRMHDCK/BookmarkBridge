@@ -1,62 +1,50 @@
 # Changelog
 
-Toutes les évolutions notables de BookmarkBridge sont documentées dans ce fichier.
-Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le
-projet utilise le versionnement sémantique.
+All notable changes to BookmarkBridge are documented in this file.
 
-## Non publié
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-Aucun changement fonctionnel depuis le gel du moteur V1.
+## [Unreleased]
 
-## 0.9.0-beta1 - 2026-07-29
+### Added
 
-### Ajouté
+- Public-repository governance, contribution, security, and community-health documentation.
+- GitHub issue forms, pull request template, and non-publishing continuous integration.
+- Automated repository privacy, secret-pattern, artifact, workflow, and Markdown-link checks.
 
-- Application macOS native SwiftUI, compilée avec Swift 6 et la concurrence stricte.
-- Lecture réelle des favoris Safari et des profils Google Chrome.
-- Autorisations persistantes App Sandbox par security-scoped bookmarks.
-- Dashboard par source avec statistiques de favoris, dossiers et nœuds.
-- Explorateur hiérarchique, fil d'Ariane et recherche globale multi-sources.
-- Détection additive des favoris absents avec normalisation des URL et suppression
-  des paramètres de suivi connus.
-- Aperçu bidirectionnel des différences avant application.
-- Sélection du profil Chrome cible ; les profils non inscriptibles sont clairement
-  signalés en lecture seule.
-- Application V1 dans le sens Safari → Chrome uniquement.
-- Génération du JSON Chrome et de son checksum compatible `bookmark_codec`.
-- Sauvegarde horodatée obligatoire, persistante et isolée par fichier de profil.
-- Création ou remplacement atomique de `Bookmarks.bak`.
-- Remplacement atomique du fichier `Bookmarks`.
-- Restauration depuis la dernière sauvegarde du profil, y compris après réouverture
-  de la fenêtre ou redémarrage de l'application.
-- Rafraîchissement automatique du Dashboard et de l'aperçu après application ou
-  restauration.
-- États de progression, confirmation explicite et messages utilisateur localisés.
+## [0.9.0-beta1] - 2026-07-29
 
-### Sécurité
+### Added
 
-- App Sandbox maintenu actif avec accès aux fichiers sélectionnés en lecture-écriture.
-- Refus de la synchronisation et de la restauration lorsque Chrome est ouvert.
-- Nouvelle vérification de Chrome immédiatement avant le remplacement final.
-- Relecture du fichier `Bookmarks` courant avant chaque écriture.
-- Filtrage idempotent des ajouts avec la même logique que l'aperçu.
-- Conservation du handle de sauvegarde lorsque la transaction échoue après backup.
-- Échec explicite si le security scope ou la création de `Bookmarks.bak` échoue.
-- Aucun test n'accède aux favoris réels : fixtures et dossiers temporaires uniquement.
+- Native macOS SwiftUI application with Dashboard, synchronization preview, bookmark explorer, history, permissions, and settings.
+- Safari and multi-profile Chrome bookmark readers using persistent security-scoped access.
+- Additive Safari-to-Chrome synchronization with dry-run planning.
+- Mandatory timestamped backup, atomic Chrome bookmark replacement, checksum generation, and persistent restoration.
+- Idempotence safeguards and automatic dashboard refresh after synchronization or restoration.
+- First-launch assistant, searchable offline Help Center, contextual help, FAQ, What's New, About window, and bundled user guide.
+- Generated QA datasets covering small through pathological bookmark libraries.
+- Reusable QA scenarios, complete one-command runner, and Markdown reports.
+- Final BookmarkBridge application icon and native About-window icon presentation.
+- Automated professional DMG builder.
+- Automated GitHub release kit with checksum, notes, changelog, DMG, and user guide.
 
-### Corrigé
+### Changed
 
-- Accès App Sandbox en écriture au dossier Chrome autorisé.
-- Création et remplacement de `Bookmarks.bak` dans le security scope du profil.
-- Absence de doublons lors de deux applications successives.
-- Nombre affiché aligné sur le nombre de favoris réellement écrits.
-- Sauvegarde restaurable après fermeture de la fenêtre de synchronisation.
-- Profil possédant un `AccountBookmarks` vide traité comme un profil local inscriptible.
+- Refined the interface, design system, accessibility labels, responsive layout, and native macOS interactions.
+- Prepared Debug and Release project settings for beta packaging.
+- Set the marketing version to `0.9.0` and build number to `1`.
 
-### Limites connues de la V1
+### Security
 
-- Safari reste strictement en lecture seule.
-- Les fichiers Chrome `AccountBookmarks` ne sont jamais modifiés.
-- Les profils avec deux stockages non vides restent en lecture seule.
-- Les ajouts Chrome sont placés dans « Autres favoris » sans reconstruire les
-  dossiers d'origine.
+- App Sandbox remains enabled with user-selected security-scoped access.
+- Browser writes require an explicit preview and confirmation.
+- Chrome writes require the browser to be closed and a successful backup.
+- Tests and QA scenarios operate only on generated fixtures and temporary directories.
+
+### Known limitations
+
+- Synchronization is one-way and additive from Safari to a selected local Chrome profile.
+- Safari and `AccountBookmarks` are read-only.
+- Chrome must be closed before synchronization.
+- The beta is distributed without Apple signing or notarization.
+- macOS 26.5 or later is required.

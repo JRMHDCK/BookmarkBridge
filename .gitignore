@@ -10,10 +10,12 @@ Icon
 ._*
 .Spotlight-V100
 .Trashes
+.fseventsd
 
 ## Xcode — build & derived data
 build/
 DerivedData/
+*.xcarchive
 *.moved-aside
 *.hmap
 *.ipa
@@ -32,6 +34,7 @@ xcuserdata/
 
 ## Swift Package Manager
 .build/
+.swiftpm/
 .swiftpm/xcode/package.xcworkspace/xcuserdata/
 Package.resolved
 
@@ -53,12 +56,28 @@ coverage/
 
 ## Secrets & local config (never commit)
 *.env
+.env
+.env.*
+!.env.example
 .env.local
 secrets.plist
 *.p12
 *.mobileprovision
+*.cer
+*.crt
+*.der
+*.key
+*.pem
+*.p8
 
 ## Editor / tooling
 .idea/
 *.swp
 *~
+.claude/settings.local.json
+.codex/
+.agents/
+
+## Generated local output
+*.log
+*.dmg

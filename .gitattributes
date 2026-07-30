@@ -1,0 +1,24 @@
+* text=auto
+
+*.swift text eol=lf
+*.sh text eol=lf
+*.rb text eol=lf
+*.py text eol=lf
+*.md text eol=lf
+*.txt text eol=lf
+*.json text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.strings text eol=lf
+*.entitlements text eol=lf
+*.pbxproj text eol=lf
+*.applescript text eol=lf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.icns binary
+*.pdf binary
+*.dmg binary
+*.zip binary
