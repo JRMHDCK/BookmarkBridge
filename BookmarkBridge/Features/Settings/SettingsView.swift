@@ -8,6 +8,9 @@ import SwiftUI
 /// Explains the absence of configurable preferences without implying that the
 /// application is incomplete.
 struct SettingsView: View {
+    @AppStorage(DocumentationPreferences.onboardingCompletedKey)
+    private var hasCompletedOnboarding = false
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
@@ -25,6 +28,32 @@ struct SettingsView: View {
                     minHeight:
                         Theme.Size.emptyStateMinimumHeight
                 )
+
+                SectionHeader(
+                    DocumentationText.value(
+                        "settings.guidance.title"
+                    ),
+                    systemImage: "graduationcap",
+                    subtitle: DocumentationText.value(
+                        "settings.guidance.subtitle"
+                    )
+                )
+
+                SecondaryActionButton(
+                    LocalizedStringKey(
+                        DocumentationText.value(
+                            "settings.guidance.replay"
+                        )
+                    ),
+                    systemImage: "arrow.counterclockwise"
+                ) {
+                    hasCompletedOnboarding = false
+                }
+                .help(
+                    DocumentationText.value(
+                        "settings.guidance.replay.tooltip"
+                    )
+                )
             }
             .frame(
                 maxWidth: Theme.Size.contentMaxWidth,
@@ -34,5 +63,10 @@ struct SettingsView: View {
             .frame(maxWidth: .infinity, alignment: .top)
         }
         .navigationTitle("Réglages")
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                ContextualHelpButton(pageID: .configuration)
+            }
+        }
     }
 }

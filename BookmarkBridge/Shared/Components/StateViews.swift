@@ -42,12 +42,19 @@ struct ErrorStateView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.m) {
-            Label(message, systemImage: "exclamationmark.triangle.fill")
-                .foregroundStyle(Theme.Palette.error)
-                .symbolRenderingMode(.hierarchical)
-                .font(.callout)
+            UserFacingErrorDetails(
+                presentation:
+                    UserFacingErrorPresentation.presentation(
+                        for: message
+                    )
+            )
             if let onRetry {
                 SecondaryActionButton(retryTitle, action: onRetry)
+                    .help(
+                        DocumentationText.value(
+                            "error.retry.tooltip"
+                        )
+                    )
             }
         }
         .accessibilityElement(children: .contain)

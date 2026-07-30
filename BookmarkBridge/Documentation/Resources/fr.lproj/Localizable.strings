@@ -1,0 +1,334 @@
+/* Menus and windows */
+"menu.about" = "À propos de BookmarkBridge";
+"menu.helpCenter" = "Aide BookmarkBridge";
+"menu.userGuide" = "Manuel utilisateur";
+"menu.whatsNew" = "Nouveautés";
+"help.window.title" = "Aide BookmarkBridge";
+"whatsNew.window.title" = "Nouveautés";
+"about.window.title" = "À propos";
+
+/* Help navigation and search */
+"help.search.prompt" = "Rechercher dans l’aide";
+"help.navigation.back" = "Retour";
+"help.navigation.back.tooltip" = "Revient à la dernière rubrique consultée.";
+"help.navigation.contents" = "Sommaire";
+"help.navigation.contents.tooltip" = "Affiche le sommaire de l’aide.";
+"help.navigation.previous" = "Rubrique précédente";
+"help.navigation.previous.tooltip" = "Affiche la rubrique précédente du manuel.";
+"help.navigation.next" = "Rubrique suivante";
+"help.navigation.next.tooltip" = "Affiche la rubrique suivante du manuel.";
+"help.contextual.button" = "Aide";
+"help.contextual.tooltip" = "Ouvre l’aide pour « %@ ».";
+"help.contextual.accessibility" = "Aide contextuelle : %@";
+"help.accessibility.step" = "Étape %ld : %@";
+
+/* Help page titles */
+"help.page.introduction.title" = "Introduction";
+"help.page.introduction.subtitle" = "Comprendre BookmarkBridge en quelques minutes.";
+"help.page.installation.title" = "Installation";
+"help.page.installation.subtitle" = "Installer et ouvrir l’application en toute confiance.";
+"help.page.configuration.title" = "Configuration";
+"help.page.configuration.subtitle" = "Accorder uniquement les accès nécessaires.";
+"help.page.safari.title" = "Safari";
+"help.page.safari.subtitle" = "Autoriser et consulter les favoris Safari.";
+"help.page.chrome.title" = "Chrome";
+"help.page.chrome.subtitle" = "Choisir un profil Chrome et préparer la synchronisation.";
+"help.page.synchronization.title" = "Synchronisation";
+"help.page.synchronization.subtitle" = "Prévisualiser, vérifier et appliquer les changements.";
+"help.page.conflicts.title" = "Résolution des conflits";
+"help.page.conflicts.subtitle" = "Comprendre les situations qui demandent votre attention.";
+"help.page.chromeProfiles.title" = "Profils Chrome";
+"help.page.chromeProfiles.subtitle" = "Identifier le bon profil et son type de stockage.";
+"help.page.history.title" = "Historique";
+"help.page.history.subtitle" = "Retrouver le résultat d’une opération récente.";
+"help.page.backups.title" = "Sauvegardes";
+"help.page.backups.subtitle" = "Restaurer l’état Chrome protégé avant une écriture.";
+"help.page.faq.title" = "FAQ";
+"help.page.faq.subtitle" = "Réponses aux questions les plus fréquentes.";
+"help.page.troubleshooting.title" = "Dépannage";
+"help.page.troubleshooting.subtitle" = "Résoudre les difficultés courantes sans risquer vos favoris.";
+"help.page.glossary.title" = "Glossaire";
+"help.page.glossary.subtitle" = "Les termes utiles, expliqués simplement.";
+
+/* Introduction */
+"help.introduction.overview" = "BookmarkBridge compare les favoris de Safari et de Google Chrome sur votre Mac. Il vous montre toujours les changements avant de les appliquer et conserve une sauvegarde restaurable avant toute écriture dans Chrome.";
+"help.introduction.principles.title" = "Trois principes essentiels";
+"help.introduction.principles.preview" = "Prévisualisation : vous voyez le contenu du plan avant de confirmer.";
+"help.introduction.principles.local" = "Traitement local : vos favoris restent sur votre Mac et aucun compte BookmarkBridge n’est requis.";
+"help.introduction.principles.backup" = "Protection : une sauvegarde est créée avant la modification du fichier Chrome.";
+"help.callout.readonly.title" = "Safari reste en lecture seule";
+"help.callout.readonly.body" = "La version actuelle lit Safari, mais n’y écrit jamais. La synchronisation appliquée ajoute uniquement à un profil Chrome local les favoris Safari qui y sont absents.";
+
+/* Installation */
+"help.installation.requirements" = "BookmarkBridge 0.9.0 nécessite macOS 26.5 ou une version ultérieure. L’application fonctionne sur les Mac Apple Silicon et Intel 64 bits.";
+"help.installation.steps.title" = "Installer BookmarkBridge";
+"help.installation.step.move" = "Placez BookmarkBridge dans le dossier Applications.";
+"help.installation.step.open" = "Ouvrez l’application, puis confirmez son ouverture si macOS le demande.";
+"help.installation.step.permissions" = "Suivez l’assistant de bienvenue. Les accès Safari et Chrome sont demandés séparément et restent sous votre contrôle.";
+"help.installation.compatibility.title" = "Compatibilité";
+"help.installation.compatibility.body" = "Safari est intégré à macOS. Google Chrome doit être installé uniquement si vous souhaitez lire ou mettre à jour ses favoris.";
+
+/* Configuration and privacy */
+"help.configuration.overview" = "BookmarkBridge utilise les réglages de sécurité recommandés. La configuration consiste principalement à sélectionner les emplacements Safari et Chrome que macOS autorise à l’application.";
+"help.configuration.permissions.title" = "Configurer les autorisations";
+"help.configuration.permission.safari" = "Dans Accueil, choisissez les favoris Safari lorsque la carte Autorisations le propose.";
+"help.configuration.permission.chrome" = "Choisissez ensuite le dossier Chrome, puis le profil local voulu.";
+"help.configuration.permission.verify" = "Vérifiez que les deux sources apparaissent comme autorisées avant d’ouvrir Synchronisation.";
+"help.configuration.privacy.title" = "Confidentialité";
+"help.configuration.privacy.body" = "Les autorisations sont stockées sous forme de références sécurisées gérées par macOS. BookmarkBridge ne téléverse pas vos favoris et ne dépend d’aucun service réseau.";
+
+/* Safari */
+"help.safari.overview" = "BookmarkBridge lit la bibliothèque locale de Safari afin d’afficher ses dossiers, ses favoris et les éléments absents de Chrome.";
+"help.safari.authorization.title" = "Autoriser Safari";
+"help.safari.authorization.open" = "Cliquez sur Choisir les favoris Safari.";
+"help.safari.authorization.select" = "Sélectionnez le fichier Bookmarks.plist dans le dossier Safari de votre bibliothèque utilisateur.";
+"help.safari.authorization.confirm" = "Validez la sélection. L’état Safari se recharge automatiquement.";
+"help.safari.readonly.title" = "Aucune écriture dans Safari";
+"help.safari.readonly.body" = "L’autorisation macOS permet l’accès au fichier sélectionné, mais la politique de BookmarkBridge maintient Safari strictement en lecture seule.";
+
+/* Chrome */
+"help.chrome.overview" = "Chrome peut contenir plusieurs profils. BookmarkBridge les découvre dans le dossier Chrome que vous avez explicitement sélectionné.";
+"help.chrome.authorization.title" = "Autoriser Chrome";
+"help.chrome.authorization.open" = "Cliquez sur Choisir le profil Chrome.";
+"help.chrome.authorization.select" = "Sélectionnez le dossier Chrome dans Application Support/Google.";
+"help.chrome.authorization.profile" = "Dans Synchronisation, vérifiez le nom du profil cible avant de confirmer.";
+"help.chrome.closed.title" = "Fermez Chrome avant une écriture";
+"help.chrome.closed.body" = "Chrome doit être fermé pendant la synchronisation et la restauration. Cette précaution évite que Chrome et BookmarkBridge modifient le même fichier en même temps.";
+
+/* Synchronization */
+"help.synchronization.overview" = "La synchronisation suit une séquence contrôlée. Le plan visible reste la référence : aucune opération supplémentaire n’est ajoutée au moment de l’écriture.";
+"help.synchronization.workflow.title" = "Effectuer une première synchronisation";
+"help.synchronization.step.reload" = "Actualisez Accueil pour lire les bibliothèques Safari et Chrome.";
+"help.synchronization.step.review" = "Ouvrez Synchronisation et examinez le résumé ainsi que le nombre de changements.";
+"help.synchronization.step.close" = "Fermez complètement Google Chrome.";
+"help.synchronization.step.confirm" = "Cliquez sur Synchroniser, puis confirmez le plan affiché.";
+"help.synchronization.step.verify" = "Attendez le message de réussite et vérifiez que l’aperçu se recharge.";
+"help.synchronization.additive.title" = "Synchronisation additive";
+"help.synchronization.additive.body" = "La bêta ajoute à Chrome les favoris Safari absents. Elle ne supprime pas les favoris existants de Chrome et ne modifie pas Safari.";
+
+/* Conflicts */
+"help.conflicts.overview" = "Un conflit désigne une situation où BookmarkBridge ne peut pas choisir une action sûre sans information supplémentaire. La bêta privilégie l’absence d’écriture plutôt qu’une décision automatique risquée.";
+"help.conflicts.behavior.title" = "Comportement de sécurité";
+"help.conflicts.behavior.preview" = "Les différences sont présentées avant application.";
+"help.conflicts.behavior.readonly" = "Une source ambiguë reste en lecture seule.";
+"help.conflicts.behavior.choice" = "Si un profil n’est pas inscriptible, choisissez un autre profil local ou conservez-le en consultation.";
+"help.conflicts.safety.title" = "Aucune résolution destructive";
+"help.conflicts.safety.body" = "BookmarkBridge 0.9.0 ne résout pas un conflit en supprimant ou en écrasant silencieusement un favori.";
+
+/* Chrome profiles */
+"help.profiles.overview" = "Chaque profil Chrome possède son propre nom et son propre stockage. Vérifiez toujours le profil affiché dans l’aperçu avant de synchroniser.";
+"help.profiles.selection.title" = "Types de profils";
+"help.profiles.selection.local" = "Profil local : le fichier Bookmarks peut être sélectionné comme cible.";
+"help.profiles.selection.account" = "Profil de compte : AccountBookmarks est lu mais reste en lecture seule.";
+"help.profiles.selection.multiple" = "Plusieurs profils : chacun apparaît comme une source distincte dans BookmarkBridge.";
+"help.profiles.ambiguous.title" = "Deux stockages non vides";
+"help.profiles.ambiguous.body" = "Lorsqu’un profil possède à la fois Bookmarks et AccountBookmarks avec des données, BookmarkBridge le signale et refuse l’écriture afin de ne pas choisir arbitrairement.";
+
+/* History */
+"help.history.overview" = "La bêta affiche l’état et le résultat de l’opération dans la vue Synchronisation. Elle conserve également la dernière sauvegarde restaurable associée au profil cible.";
+"help.history.available.title" = "Informations disponibles";
+"help.history.available.result" = "Le nombre de favoris réellement ajoutés est affiché après l’opération.";
+"help.history.available.backup" = "Le bouton Restaurer apparaît lorsqu’une sauvegarde valide est disponible.";
+"help.history.available.refresh" = "Accueil et l’aperçu sont rechargés après une synchronisation ou une restauration.";
+"help.history.beta.title" = "Historique détaillé";
+"help.history.beta.body" = "Cette version ne propose pas encore de journal chronologique consultable. Elle n’affiche donc pas une liste d’opérations anciennes qui pourrait être incomplète.";
+
+/* Backups */
+"help.backups.overview" = "Avant toute écriture, BookmarkBridge crée une copie privée et horodatée du fichier Chrome d’origine. La sauvegarde est liée au profil exact qui a été modifié.";
+"help.backups.restore.title" = "Restaurer une sauvegarde";
+"help.backups.restore.close" = "Fermez Google Chrome.";
+"help.backups.restore.open" = "Ouvrez Synchronisation et repérez le bouton Restaurer.";
+"help.backups.restore.confirm" = "Lancez la restauration. BookmarkBridge replace atomiquement le fichier sauvegardé.";
+"help.backups.restore.verify" = "Attendez la confirmation, puis ouvrez Chrome pour vérifier vos favoris.";
+"help.backups.scope.title" = "Restauration ciblée";
+"help.backups.scope.body" = "Une sauvegarde ne peut restaurer qu’un fichier correspondant au même profil Chrome. Cette vérification empêche une restauration croisée.";
+
+/* FAQ */
+"help.faq.safari.question" = "Pourquoi Safari demande-t-il une autorisation ?";
+"help.faq.safari.answer" = "Le sandbox macOS interdit à une application d’ouvrir votre bibliothèque Safari sans sélection explicite. L’autorisation reste locale et peut être redemandée si le fichier est déplacé ou si macOS la révoque.";
+"help.faq.chromeEmpty.question" = "Pourquoi Chrome apparaît-il vide ?";
+"help.faq.chromeEmpty.answer" = "Vérifiez le profil sélectionné, puis actualisez Accueil. Un profil différent, un stockage de compte ou une autorisation devenue invalide peut expliquer l’absence de favoris.";
+"help.faq.duplicateFolder.question" = "Pourquoi un dossier semble-t-il dupliqué ?";
+"help.faq.duplicateFolder.answer" = "Deux dossiers peuvent porter le même nom tout en appartenant à des emplacements différents. BookmarkBridge conserve cette distinction et n’essaie pas de les fusionner d’après leur nom seul.";
+"help.faq.sync.question" = "Comment fonctionne la synchronisation ?";
+"help.faq.sync.answer" = "BookmarkBridge lit les deux bibliothèques, calcule un aperçu, attend votre confirmation, crée une sauvegarde puis ajoute à Chrome uniquement les favoris Safari absents.";
+"help.faq.delete.question" = "Que se passe-t-il si je supprime un favori ?";
+"help.faq.delete.answer" = "La bêta n’applique pas les suppressions. Un favori supprimé d’un navigateur n’est donc pas automatiquement supprimé de l’autre.";
+"help.faq.profiles.question" = "Puis-je synchroniser plusieurs profils Chrome ?";
+"help.faq.profiles.answer" = "BookmarkBridge peut lire plusieurs profils, mais chaque synchronisation vise un profil local précis. Vérifiez son nom dans l’aperçu avant de confirmer.";
+"help.faq.restore.question" = "Comment restaurer une sauvegarde ?";
+"help.faq.restore.answer" = "Fermez Chrome, ouvrez Synchronisation et utilisez Restaurer lorsque le bouton est disponible. La sauvegarde correspond au profil précédemment modifié.";
+"help.faq.missing.question" = "Pourquoi certains favoris ne sont-ils pas synchronisés ?";
+"help.faq.missing.answer" = "Les éléments déjà présents après normalisation d’URL ne sont pas ajoutés à nouveau. Les stockages AccountBookmarks et les profils ambigus restent également en lecture seule.";
+
+/* Troubleshooting */
+"help.troubleshooting.permission.title" = "Une autorisation n’est plus valide";
+"help.troubleshooting.permission.body" = "Dans Accueil, utilisez le bouton d’autorisation correspondant et sélectionnez à nouveau le fichier Safari ou le dossier Chrome.";
+"help.troubleshooting.chrome.title" = "La synchronisation demande de fermer Chrome";
+"help.troubleshooting.chrome.body" = "Quittez Chrome avec Commande-Q, attendez quelques secondes, puis réessayez. Fermer uniquement une fenêtre ne quitte pas toujours l’application.";
+"help.troubleshooting.empty.title" = "Aucun favori n’apparaît";
+"help.troubleshooting.empty.body" = "Vérifiez la source et le profil, puis utilisez Actualiser. Si l’accès est signalé comme invalide, accordez-le de nouveau.";
+"help.troubleshooting.retry.title" = "L’aperçu ne se charge pas";
+"help.troubleshooting.retry.body" = "Actualisez les sources depuis Accueil, vérifiez que Safari et Chrome sont autorisés, puis revenez dans Synchronisation.";
+"help.troubleshooting.safe.title" = "Vos données restent protégées";
+"help.troubleshooting.safe.body" = "Un échec avant la confirmation n’écrit rien. Un échec après la création de la sauvegarde conserve celle-ci pour permettre une restauration.";
+
+/* Glossary */
+"help.glossary.preview.term" = "Prévisualisation";
+"help.glossary.preview.definition" = "Liste calculée des changements proposés, affichée avant toute écriture.";
+"help.glossary.profile.term" = "Profil Chrome";
+"help.glossary.profile.definition" = "Espace Chrome séparé contenant ses propres favoris, réglages et données.";
+"help.glossary.backup.term" = "Sauvegarde";
+"help.glossary.backup.definition" = "Copie privée du fichier Chrome original créée avant une modification.";
+"help.glossary.additive.term" = "Synchronisation additive";
+"help.glossary.additive.definition" = "Mode qui ajoute les éléments absents sans supprimer les éléments existants.";
+"help.glossary.securityScope.term" = "Autorisation sécurisée macOS";
+"help.glossary.securityScope.definition" = "Référence persistante qui permet à une application sandboxée de rouvrir un emplacement choisi par l’utilisateur.";
+"help.glossary.bse.term" = "BSE";
+"help.glossary.bse.definition" = "Bookmark Synchronization Engine, le moteur qui compare les bibliothèques et prépare le plan de synchronisation.";
+
+/* Onboarding */
+"onboarding.welcome.title" = "Bienvenue dans BookmarkBridge";
+"onboarding.welcome.body" = "Synchronisez vos favoris Safari vers Chrome avec un aperçu clair, une confirmation explicite et une sauvegarde automatique.";
+"onboarding.overview.title" = "Vos favoris, réunis";
+"onboarding.overview.body" = "BookmarkBridge lit vos bibliothèques, affiche leur état et vous permet d’explorer les dossiers avant toute synchronisation.";
+"onboarding.workflow.title" = "Vous gardez le contrôle";
+"onboarding.workflow.body" = "L’application analyse, compare et prévisualise. Rien n’est écrit tant que vous n’avez pas examiné puis confirmé le plan.";
+"onboarding.privacy.title" = "Vos données restent sur ce Mac";
+"onboarding.privacy.body" = "Aucun compte ni service cloud BookmarkBridge n’est utilisé. Les favoris sont traités localement dans le sandbox macOS.";
+"onboarding.safari.title" = "Autoriser Safari";
+"onboarding.safari.body" = "Après l’assistant, sélectionnez Bookmarks.plist lorsque la carte Autorisations le demande. Safari restera toujours en lecture seule.";
+"onboarding.chrome.title" = "Autoriser Chrome";
+"onboarding.chrome.body" = "Sélectionnez le dossier Chrome pour découvrir vos profils. Seul le profil local confirmé pourra recevoir des ajouts.";
+"onboarding.firstSync.title" = "Votre première synchronisation";
+"onboarding.firstSync.body" = "Actualisez les sources, ouvrez Synchronisation, vérifiez l’aperçu, fermez Chrome puis confirmez. Une sauvegarde sera créée automatiquement.";
+"onboarding.finish.title" = "Tout est prêt";
+"onboarding.finish.body" = "Commencez par accorder les autorisations dans Accueil. Vous pourrez retrouver ce guide depuis Réglages et toute la documentation depuis le menu Aide.";
+"onboarding.previous" = "Précédent";
+"onboarding.next" = "Suivant";
+"onboarding.finish" = "Terminer";
+"onboarding.previous.tooltip" = "Revient à l’étape précédente.";
+"onboarding.next.tooltip" = "Affiche l’étape suivante.";
+"onboarding.finish.tooltip" = "Termine l’assistant de bienvenue.";
+"onboarding.progress" = "Étape %ld sur %ld";
+
+/* Settings documentation controls */
+"settings.guidance.title" = "Guide de bienvenue";
+"settings.guidance.subtitle" = "Réaffichez l’assistant si vous souhaitez revoir les principes et les autorisations.";
+"settings.guidance.replay" = "Réafficher le guide de bienvenue";
+"settings.guidance.replay.tooltip" = "Ouvre à nouveau l’assistant de premier lancement.";
+
+/* About */
+"about.logo" = "Logo BookmarkBridge";
+"about.name" = "BookmarkBridge";
+"about.promise.title" = "Synchronisation sûre";
+"about.promise.body" = "BookmarkBridge prévisualise les changements et protège les données avant toute synchronisation.";
+"about.developer.label" = "Développeur";
+"about.developer.value" = "Jérôme Hudecek";
+"about.engine.label" = "Moteur de synchronisation";
+"about.engine.value" = "BSE v1.0";
+"about.license.label" = "Licence";
+"about.license.value" = "MIT";
+"about.copyright" = "Copyright © 2026 Jérôme Hudecek";
+"about.acknowledgements.title" = "Remerciements";
+"about.acknowledgements.body" = "Merci aux communautés Swift et Chromium, ainsi qu’aux utilisateurs qui contribuent à rendre BookmarkBridge plus fiable.";
+"about.whatsNew.button" = "Voir les nouveautés";
+"about.whatsNew.tooltip" = "Ouvre les nouveautés de la version actuelle.";
+"about.userGuide.button" = "Ouvrir le manuel";
+"about.userGuide.tooltip" = "Ouvre le manuel utilisateur PDF inclus dans l’application.";
+"about.version.fallback" = "Application macOS";
+"about.version.withoutBuild" = "Version %@";
+"about.version" = "Version %@ (Build %@)";
+
+/* What's New */
+"whatsNew.title" = "Nouveautés de BookmarkBridge";
+"whatsNew.version" = "Version %@ (Build %@)";
+"whatsNew.introduction" = "Cette première bêta réunit le moteur de synchronisation, l’interface native, la plateforme QA et une documentation locale complète.";
+"whatsNew.features.title" = "Nouvelles fonctionnalités";
+"whatsNew.features.sync" = "Synchronisation additive Safari vers Chrome avec aperçu et confirmation.";
+"whatsNew.features.explorer" = "Dashboard, explorateur hiérarchique et recherche multi-sources.";
+"whatsNew.features.help" = "Assistant de bienvenue, centre d’aide, FAQ et manuel hors ligne.";
+"whatsNew.fixes.title" = "Corrections";
+"whatsNew.fixes.idempotence" = "Filtrage idempotent pour éviter les ajouts répétés.";
+"whatsNew.fixes.restore" = "Sauvegarde et restauration persistantes associées au bon profil.";
+"whatsNew.fixes.permissions" = "Gestion robuste des autorisations Safari et Chrome.";
+"whatsNew.improvements.title" = "Améliorations";
+"whatsNew.improvements.native" = "Interface macOS harmonisée et accessible.";
+"whatsNew.improvements.qa" = "Validation automatisée sur cinq datasets et quinze scénarios.";
+"whatsNew.improvements.packaging" = "Projet Release universel, archivable et préparé pour la distribution bêta.";
+
+/* Tooltips */
+"tooltip.authorize.safari" = "Sélectionne à nouveau la bibliothèque de favoris Safari.";
+"tooltip.authorize.chrome" = "Sélectionne à nouveau le dossier des profils Chrome.";
+"tooltip.compare" = "Affiche les différences détectées sans modifier les données.";
+"tooltip.synchronize" = "Synchronise les favoris prévisualisés entre Safari et Chrome.";
+"tooltip.reload" = "Relit les favoris autorisés sans modifier les données.";
+"tooltip.synchronization" = "Ouvre l’aperçu de synchronisation.";
+"tooltip.scan" = "Actualise l’aperçu sans modifier les données.";
+"tooltip.restore" = "Restaure la dernière sauvegarde Chrome disponible.";
+"tooltip.retry" = "Prépare une nouvelle tentative après vérification.";
+
+/* User-facing errors */
+"error.cause.label" = "Cause";
+"error.solution.label" = "Solution";
+"error.retry.tooltip" = "Réessaie l’opération après avoir vérifié la solution proposée.";
+
+"error.authorization.title" = "Autorisation requise";
+"error.authorization.description" = "BookmarkBridge ne peut plus accéder à l’emplacement sélectionné.";
+"error.authorization.cause" = "L’autorisation macOS a été retirée, a expiré ou l’emplacement a changé.";
+"error.authorization.solution" = "Cliquez sur Autoriser et sélectionnez à nouveau la bibliothèque correspondante.";
+
+"error.chromeRunning.title" = "Fermez Google Chrome";
+"error.chromeRunning.description" = "La synchronisation ou la restauration a été interrompue avant l’écriture.";
+"error.chromeRunning.cause" = "Chrome est encore ouvert et pourrait modifier ses favoris en même temps.";
+"error.chromeRunning.solution" = "Quittez Chrome avec Commande-Q, puis réessayez.";
+
+"error.multipleStores.title" = "Profil Chrome en lecture seule";
+"error.multipleStores.description" = "BookmarkBridge a détecté deux stockages de favoris non vides pour ce profil.";
+"error.multipleStores.cause" = "Chrome utilise simultanément des favoris locaux et des favoris de compte.";
+"error.multipleStores.solution" = "Consultez ce profil sans l’écrire ou choisissez un autre profil Chrome local.";
+
+"error.sourceMissing.title" = "Bibliothèque de favoris introuvable";
+"error.sourceMissing.description" = "L’emplacement précédemment sélectionné n’est plus disponible.";
+"error.sourceMissing.cause" = "Le fichier ou le dossier a été déplacé, renommé ou supprimé.";
+"error.sourceMissing.solution" = "Accordez de nouveau l’autorisation en sélectionnant l’emplacement actuel.";
+
+"error.unreadable.title" = "Favoris illisibles";
+"error.unreadable.description" = "BookmarkBridge n’a pas pu interpréter la bibliothèque sélectionnée.";
+"error.unreadable.cause" = "Le fichier ne correspond pas au format attendu ou est incomplet.";
+"error.unreadable.solution" = "Vérifiez l’emplacement choisi, puis actualisez. Ne modifiez pas le fichier manuellement.";
+
+"error.preview.title" = "Aperçu indisponible";
+"error.preview.description" = "Les différences n’ont pas pu être calculées.";
+"error.preview.cause" = "Une source n’est pas chargée ou ses données ont changé pendant l’analyse.";
+"error.preview.solution" = "Actualisez Safari et Chrome, puis relancez la prévisualisation.";
+
+"error.cancelled.title" = "Synchronisation annulée";
+"error.cancelled.description" = "L’opération s’est arrêtée avant sa validation complète.";
+"error.cancelled.cause" = "La tâche a été annulée avant la fin.";
+"error.cancelled.solution" = "Vérifiez l’aperçu actuel, puis relancez la synchronisation si nécessaire.";
+
+"error.backup.title" = "Sauvegarde impossible";
+"error.backup.description" = "BookmarkBridge n’a pas modifié les favoris Chrome.";
+"error.backup.cause" = "La copie de sécurité obligatoire n’a pas pu être créée.";
+"error.backup.solution" = "Vérifiez l’espace disponible et l’autorisation Chrome, puis réessayez.";
+
+"error.restore.title" = "Restauration impossible";
+"error.restore.description" = "La sauvegarde n’a pas pu remplacer le fichier Chrome actuel.";
+"error.restore.cause" = "Chrome est ouvert, l’autorisation a changé ou la sauvegarde n’est plus accessible.";
+"error.restore.solution" = "Fermez Chrome, autorisez de nouveau le profil si nécessaire, puis réessayez.";
+
+"error.synchronization.title" = "Synchronisation interrompue";
+"error.synchronization.description" = "BookmarkBridge n’a pas pu terminer l’opération confirmée.";
+"error.synchronization.cause" = "Le fichier Chrome ou son environnement a changé pendant la transaction.";
+"error.synchronization.solution" = "Laissez Chrome fermé, actualisez l’aperçu et réessayez. Utilisez Restaurer si le bouton est proposé.";
+
+"error.unsupportedBrowser.title" = "Navigateur non pris en charge";
+"error.unsupportedBrowser.description" = "Cette source ne peut pas être utilisée par la version actuelle.";
+"error.unsupportedBrowser.cause" = "BookmarkBridge 0.9.0 prend uniquement en charge Safari et Google Chrome.";
+"error.unsupportedBrowser.solution" = "Sélectionnez une bibliothèque Safari ou un profil Google Chrome.";
+
+"error.generic.title" = "Opération impossible";
+"error.generic.description" = "BookmarkBridge n’a pas pu terminer cette action.";
+"error.generic.cause" = "Une ressource nécessaire n’est momentanément pas disponible.";
+"error.generic.solution" = "Actualisez les sources et réessayez. Vos favoris existants restent inchangés.";

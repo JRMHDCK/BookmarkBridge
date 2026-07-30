@@ -10,6 +10,7 @@ import SwiftUI
 @main
 struct BookmarkBridgeApp: App {
     private let applicationViewModel: ApplicationViewModel
+    private let documentationRouter = DocumentationRouter()
 
     init() {
         let dependencies = AppDependencies.bootstrap()
@@ -67,11 +68,42 @@ struct BookmarkBridgeApp: App {
     var body: some Scene {
         WindowGroup {
             ApplicationNavigationView(model: applicationViewModel)
+                .environment(documentationRouter)
         }
         .defaultSize(
             width: Theme.Size.windowIdealWidth,
             height: Theme.Size.windowIdealHeight
         )
         .windowResizability(.contentMinSize)
+        .commands {
+            DocumentationCommands(router: documentationRouter)
+        }
+
+        Window(
+            DocumentationText.value("help.window.title"),
+            id: DocumentationWindow.helpCenter
+        ) {
+            HelpCenterView()
+                .environment(documentationRouter)
+        }
+        .defaultSize(width: 980, height: 720)
+
+        Window(
+            DocumentationText.value("whatsNew.window.title"),
+            id: DocumentationWindow.whatsNew
+        ) {
+            WhatsNewView()
+                .environment(documentationRouter)
+        }
+        .defaultSize(width: 720, height: 680)
+
+        Window(
+            DocumentationText.value("about.window.title"),
+            id: DocumentationWindow.about
+        ) {
+            AboutView()
+                .environment(documentationRouter)
+        }
+        .defaultSize(width: 620, height: 640)
     }
 }

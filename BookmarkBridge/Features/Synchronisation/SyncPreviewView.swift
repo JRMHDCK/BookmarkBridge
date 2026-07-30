@@ -155,12 +155,22 @@ struct SyncPreviewView: View {
                     Spacer(minLength: 0)
                     if model.canRestore {
                         Button("Restaurer") { Task { await restoreAndReload() } }
+                            .help(
+                                DocumentationText.value(
+                                    "tooltip.restore"
+                                )
+                            )
                     }
                     if model.canApplyToChrome {
                         Button("Appliquer") { confirmingApply = true }
                             .buttonStyle(.borderedProminent)
                             .controlSize(.large)
                             .tint(.accentColor)
+                            .help(
+                                DocumentationText.value(
+                                    "tooltip.synchronize"
+                                )
+                            )
                     }
                 }
             case .applying:
@@ -175,6 +185,11 @@ struct SyncPreviewView: View {
                     Spacer(minLength: 0)
                     if model.canRestore {
                         Button("Restaurer") { Task { await restoreAndReload() } }
+                            .help(
+                                DocumentationText.value(
+                                    "tooltip.restore"
+                                )
+                            )
                     }
                 }
             case .restoring:
@@ -186,16 +201,34 @@ struct SyncPreviewView: View {
                 Label("Restauration terminée.", systemImage: "checkmark.circle")
                     .foregroundStyle(Theme.Palette.green)
             case .failed(let message):
-                HStack(spacing: Theme.Spacing.m) {
-                    Label(message, systemImage: "exclamationmark.triangle.fill")
-                        .foregroundStyle(Theme.Palette.error)
-                    Spacer(minLength: 0)
-                    if model.canRestore {
-                        Button("Restaurer") { Task { await restoreAndReload() } }
-                    } else if model.canRetry {
-                        Button("Réessayer") {
-                            model.prepareRetry()
-                            confirmingApply = true
+                VStack(alignment: .leading, spacing: Theme.Spacing.m) {
+                    UserFacingErrorDetails(
+                        presentation:
+                            UserFacingErrorPresentation.presentation(
+                                for: message
+                            )
+                    )
+                    HStack {
+                        Spacer(minLength: 0)
+                        if model.canRestore {
+                            Button("Restaurer") {
+                                Task { await restoreAndReload() }
+                            }
+                            .help(
+                                DocumentationText.value(
+                                    "tooltip.restore"
+                                )
+                            )
+                        } else if model.canRetry {
+                            Button("Réessayer") {
+                                model.prepareRetry()
+                                confirmingApply = true
+                            }
+                            .help(
+                                DocumentationText.value(
+                                    "tooltip.retry"
+                                )
+                            )
                         }
                     }
                 }

@@ -35,6 +35,15 @@ struct SourceExplorerView: View {
     var body: some View {
         FolderListView(presentation: FolderPresentation(rootsOf: tree, title: source.displayName))
             .navigationTitle(source.displayName)
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    ContextualHelpButton(
+                        pageID: source.browser == .safari
+                            ? .safari
+                            : .chrome
+                    )
+                }
+            }
     }
 }
 
@@ -140,6 +149,7 @@ struct FolderListView: View {
             .navigationDestination(for: ExplorerStep.self) { explorerDestination(for: $0, path: .constant([])) }
     }
     .frame(width: 460, height: 420)
+    .environment(DocumentationRouter())
 }
 
 #Preview("Dossier vide") {

@@ -9,6 +9,9 @@ import SwiftUI
 /// `ApplicationScreen` case and its destination mapping.
 struct ApplicationNavigationView: View {
     @State private var model: ApplicationViewModel
+    @State private var presentsOnboarding = false
+    @AppStorage(DocumentationPreferences.onboardingCompletedKey)
+    private var hasCompletedOnboarding = false
 
     init(model: ApplicationViewModel) {
         _model = State(initialValue: model)
@@ -42,6 +45,38 @@ struct ApplicationNavigationView: View {
         .task {
             await model.loadIfNeeded()
         }
+        .onAppear {
+            if skipsOnboardingForUITests {
+                presentsOnboarding = false
+            } else {
+                presentsOnboarding =
+                    forcesOnboardingForUITests
+                    || !hasCompletedOnboarding
+            }
+        }
+        .onChange(of: hasCompletedOnboarding) { _, isCompleted in
+            if !isCompleted {
+                presentsOnboarding = true
+            }
+        }
+        .sheet(isPresented: $presentsOnboarding) {
+            OnboardingView {
+                hasCompletedOnboarding = true
+                presentsOnboarding = false
+            }
+        }
+    }
+
+    private var forcesOnboardingForUITests: Bool {
+        ProcessInfo.processInfo.environment[
+            DocumentationPreferences.onboardingUITestEnvironmentKey
+        ] == "1"
+    }
+
+    private var skipsOnboardingForUITests: Bool {
+        ProcessInfo.processInfo.environment[
+            DocumentationPreferences.onboardingUITestSkipEnvironmentKey
+        ] == "1"
     }
 
     @ViewBuilder

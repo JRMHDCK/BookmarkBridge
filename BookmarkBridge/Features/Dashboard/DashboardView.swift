@@ -71,7 +71,11 @@ struct DashboardView: View {
                             )
                         }
                         .disabled(viewModel.isLoading)
-                        .help("Actualiser les favoris")
+                        .help(
+                            DocumentationText.value(
+                                "tooltip.reload"
+                            )
+                        )
 
                         Button {
                             onShowSynchronization?()
@@ -83,7 +87,13 @@ struct DashboardView: View {
                             )
                         }
                         .disabled(onShowSynchronization == nil)
-                        .help("Ouvrir la synchronisation")
+                        .help(
+                            DocumentationText.value(
+                                "tooltip.synchronization"
+                            )
+                        )
+
+                        ContextualHelpButton(pageID: .introduction)
                     }
                 }
                 .searchable(
@@ -246,6 +256,13 @@ private struct ApplicationAuthorizationCard: View {
                         LoadingStateView(
                             message: "Vérification des autorisations…"
                         )
+                    } else if model.state.status == .invalidBookmark
+                        || model.state.status == .accessError {
+                        UserFacingErrorDetails(
+                            presentation: .authorization
+                        )
+                        browserRow(.safari)
+                        browserRow(.chrome)
                     } else {
                         Text(statusMessage)
                             .foregroundStyle(statusColor)
@@ -306,6 +323,13 @@ private struct ApplicationAuthorizationCard: View {
                     onAuthorize(browser)
                 }
                 .disabled(model.isLoading)
+                .help(
+                    DocumentationText.value(
+                        browser == .safari
+                            ? "tooltip.authorize.safari"
+                            : "tooltip.authorize.chrome"
+                    )
+                )
             } else {
                 Text("Autorisé")
                     .font(.callout)
@@ -362,6 +386,11 @@ private struct DashboardSynchronizationCard: View {
                 )
                 .accessibilityHint(
                     "Ouvre le détail de la synchronisation"
+                )
+                .help(
+                    DocumentationText.value(
+                        "tooltip.compare"
+                    )
                 )
                 .frame(maxWidth: .infinity, alignment: .trailing)
             }
@@ -495,6 +524,13 @@ private struct SourceRow: View {
             .accessibilityLabel(
                 "Autoriser l'accès aux favoris \(entry.source.displayName)"
             )
+            .help(
+                DocumentationText.value(
+                    entry.source.browser == .safari
+                        ? "tooltip.authorize.safari"
+                        : "tooltip.authorize.chrome"
+                )
+            )
         }
     }
 
@@ -517,4 +553,5 @@ private struct SourceRow: View {
             ),
         ])
     )
+    .environment(DocumentationRouter())
 }

@@ -41,7 +41,7 @@ struct SynchronizationPreviewScreen: View {
         }
         .navigationTitle("Synchronisation")
         .toolbar {
-            ToolbarItem(placement: .primaryAction) {
+            ToolbarItemGroup(placement: .primaryAction) {
                 Button {
                     Task { await onReload() }
                 } label: {
@@ -51,7 +51,13 @@ struct SynchronizationPreviewScreen: View {
                     )
                 }
                 .disabled(model.isSynchronizing)
-                .help("Actualiser la prévisualisation")
+                .help(
+                    DocumentationText.value(
+                        "tooltip.scan"
+                    )
+                )
+
+                ContextualHelpButton(pageID: .synchronization)
             }
         }
     }
@@ -195,7 +201,7 @@ struct SynchronizationPreviewScreen: View {
         if model.isSynchronizing {
             return "Une synchronisation est déjà en cours"
         }
-        return "Appliquer exactement les changements prévisualisés"
+        return DocumentationText.value("tooltip.synchronize")
     }
 }
 

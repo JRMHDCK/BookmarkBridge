@@ -6,16 +6,29 @@
 import SwiftUI
 
 struct AboutView: View {
+    @Environment(\.openWindow) private var openWindow
+    @Environment(\.openURL) private var openURL
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
                 VStack(alignment: .leading, spacing: Theme.Spacing.s) {
-                    Image(systemName: "bookmark")
-                        .font(.largeTitle)
+                    Image(systemName: "bookmark.fill")
+                        .font(.system(size: 38))
                         .symbolRenderingMode(.hierarchical)
                         .foregroundStyle(.tint)
-                        .accessibilityHidden(true)
-                    Text("BookmarkBridge")
+                        .frame(width: 76, height: 76)
+                        .background(
+                            Color.accentColor.opacity(0.10),
+                            in: RoundedRectangle(
+                                cornerRadius: Theme.Radius.card,
+                                style: .continuous
+                            )
+                        )
+                        .accessibilityLabel(
+                            DocumentationText.value("about.logo")
+                        )
+                    Text(DocumentationText.value("about.name"))
                         .font(Theme.Typography.screenTitle)
                     Text(versionDescription)
                         .font(.callout)
@@ -26,13 +39,13 @@ struct AboutView: View {
 
                 VStack(alignment: .leading, spacing: Theme.Spacing.s) {
                     Label(
-                        "Synchronisation sûre",
+                        DocumentationText.value("about.promise.title"),
                         systemImage: "checkmark.shield"
                     )
                     .font(.headline)
                     .symbolRenderingMode(.hierarchical)
                     Text(
-                        "BookmarkBridge prévisualise les changements et protège les données avant toute synchronisation."
+                        DocumentationText.value("about.promise.body")
                     )
                     .font(.body)
                     .foregroundStyle(.secondary)
@@ -41,13 +54,76 @@ struct AboutView: View {
                 Divider()
 
                 VStack(alignment: .leading, spacing: Theme.Spacing.s) {
-                    LabeledContent("Auteur", value: "Jérôme Hudecek")
-                    LabeledContent("Moteur de synchronisation", value: "BSE v1.0")
-                    Text("Copyright © 2026 Jérôme Hudecek")
+                    LabeledContent(
+                        DocumentationText.value("about.developer.label"),
+                        value: DocumentationText.value(
+                            "about.developer.value"
+                        )
+                    )
+                    LabeledContent(
+                        DocumentationText.value("about.engine.label"),
+                        value: DocumentationText.value(
+                            "about.engine.value"
+                        )
+                    )
+                    LabeledContent(
+                        DocumentationText.value("about.license.label"),
+                        value: DocumentationText.value(
+                            "about.license.value"
+                        )
+                    )
+                    Text(DocumentationText.value("about.copyright"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
                 .frame(maxWidth: 460)
+
+                GroupBox {
+                    Text(
+                        DocumentationText.value(
+                            "about.acknowledgements.body"
+                        )
+                    )
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.top, Theme.Spacing.xs)
+                } label: {
+                    Label(
+                        DocumentationText.value(
+                            "about.acknowledgements.title"
+                        ),
+                        systemImage: "heart"
+                    )
+                }
+
+                HStack(spacing: Theme.Spacing.m) {
+                    Button(
+                        DocumentationText.value(
+                            "about.whatsNew.button"
+                        )
+                    ) {
+                        openWindow(id: DocumentationWindow.whatsNew)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .help(
+                        DocumentationText.value(
+                            "about.whatsNew.tooltip"
+                        )
+                    )
+
+                    Button(
+                        DocumentationText.value(
+                            "about.userGuide.button"
+                        )
+                    ) {
+                        openUserGuide()
+                    }
+                    .buttonStyle(.bordered)
+                    .help(
+                        DocumentationText.value(
+                            "about.userGuide.tooltip"
+                        )
+                    )
+                }
             }
             .frame(
                 maxWidth: Theme.Size.contentMaxWidth,
@@ -56,7 +132,14 @@ struct AboutView: View {
             .padding(Theme.Spacing.xl)
             .frame(maxWidth: .infinity, alignment: .top)
         }
-        .navigationTitle("À propos")
+        .navigationTitle(
+            DocumentationText.value("about.window.title")
+        )
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                ContextualHelpButton(pageID: .introduction)
+            }
+        }
     }
 
     private var versionDescription: String {
@@ -67,8 +150,27 @@ struct AboutView: View {
             forInfoDictionaryKey: "CFBundleVersion"
         ) as? String
 
-        guard let version else { return "Application macOS" }
-        guard let build else { return "Version \(version)" }
-        return "Version \(version) (Build \(build))"
+        guard let version else {
+            return DocumentationText.value("about.version.fallback")
+        }
+        guard let build else {
+            return DocumentationText.formatted(
+                "about.version.withoutBuild",
+                version
+            )
+        }
+        return DocumentationText.formatted(
+            "about.version",
+            version,
+            build
+        )
+    }
+
+    private func openUserGuide() {
+        guard let url = Bundle.main.url(
+            forResource: "BookmarkBridge-User-Guide",
+            withExtension: "pdf"
+        ) else { return }
+        openURL(url)
     }
 }
