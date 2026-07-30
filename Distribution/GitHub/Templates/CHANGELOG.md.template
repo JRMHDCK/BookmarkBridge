@@ -1,0 +1,12 @@
+# Changelog — BookmarkBridge {{RELEASE_LABEL}}
+
+- Version : `{{VERSION}}`
+- Build : `{{BUILD}}`
+- Généré le : `{{RELEASE_DATE}}`
+
+Ce changelog est généré automatiquement depuis l’historique Git disponible au
+moment de la préparation de la Release.
+
+## Historique
+
+{{CHANGELOG_ENTRIES}}

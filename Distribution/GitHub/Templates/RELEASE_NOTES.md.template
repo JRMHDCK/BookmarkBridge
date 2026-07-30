@@ -1,0 +1,73 @@
+# BookmarkBridge {{RELEASE_LABEL}}
+
+- Version : `{{VERSION}}`
+- Build : `{{BUILD}}`
+- Date : `{{RELEASE_DATE}}`
+- Configuration minimale : macOS `{{MINIMUM_MACOS}}` ou version ultérieure
+
+## Résumé
+
+BookmarkBridge est une application macOS native qui compare les favoris Safari
+et Google Chrome, présente les changements avant application et réalise une
+synchronisation additive Safari vers Chrome. La protection des données reste
+prioritaire : prévisualisation, consentement explicite, sauvegarde restaurable
+et remplacement atomique encadrent chaque écriture.
+
+## Nouveautés
+
+- première version bêta préparée pour un usage quotidien ;
+- synchronisation additive Safari vers un profil Chrome local sélectionné ;
+- aide intégrée, assistant de premier lancement, manuel hors ligne et FAQ ;
+- identité visuelle finale et DMG macOS professionnel.
+
+## Améliorations
+
+- interface SwiftUI native et cohérente avec les conventions macOS ;
+- exploration hiérarchique, recherche multi-sources et aperçu des différences ;
+- transaction Chrome idempotente avec sauvegarde et restauration ;
+- plateforme QA automatisée couvrant datasets, scénarios, builds et tests ;
+- distribution universelle pour Mac Apple Silicon et Intel 64 bits.
+
+## Limitations connues
+
+{{KNOWN_ISSUES}}
+
+## Configuration minimale
+
+- macOS `{{MINIMUM_MACOS}}` ou version ultérieure ;
+- Mac Apple Silicon ou Intel 64 bits ;
+- Safari ou Google Chrome selon les sources utilisées ;
+- Chrome fermé pendant une synchronisation ou une restauration ;
+- autorisation explicite des bibliothèques de favoris par l’utilisateur.
+
+## Téléchargements
+
+| Fichier | Description |
+|---|---|
+| `{{DMG_NAME}}` | Application BookmarkBridge pour macOS |
+| `{{USER_GUIDE_NAME}}` | Manuel utilisateur hors ligne |
+| `SHA256.txt` | Somme de contrôle du DMG |
+| `CHANGELOG.md` | Historique des changements |
+
+### Intégrité du DMG
+
+- Taille : `{{DMG_SIZE}}`
+- SHA-256 : `{{DMG_SHA256}}`
+
+Pour vérifier le téléchargement :
+
+```sh
+shasum -a 256 "{{DMG_NAME}}"
+```
+
+La valeur obtenue doit correspondre à celle publiée dans `SHA256.txt`.
+
+## Installation
+
+1. Ouvrir `{{DMG_NAME}}`.
+2. Glisser BookmarkBridge dans le dossier Applications.
+3. Éjecter l’image disque.
+4. Ouvrir BookmarkBridge depuis Applications.
+
+Cette version n’est ni signée ni notarisée et n’est pas distribuée via le
+Mac App Store.
