@@ -3,6 +3,15 @@
 //  BookmarkBridge
 //
 
+#if DEBUG
+import OSLog
+
+nonisolated private let synchronizationPipelineLogger = Logger(
+    subsystem: "fr.jerome.BookmarkBridge",
+    category: "Synchronization.Pipeline"
+)
+#endif
+
 nonisolated protocol SynchronizationMatchingProcessing: Sendable {
     func execute(
         request: MatchingPipelineRequest
@@ -92,6 +101,11 @@ nonisolated struct SynchronizationPipeline: Sendable {
         let analysis = try await analyze(request: request)
         let plan: SynchronizationPlan
         do {
+            #if DEBUG
+            synchronizationPipelineLogger.debug(
+                "\(PreviewDiagnosticsContext.prefix, privacy: .public) stage=planning status=starting changes=\(analysis.logicalDiff.changes.count, privacy: .public)"
+            )
+            #endif
             plan = try planner.plan(
                 request: SynchronizationPlanningRequest(
                     before: analysis.projection.before,
@@ -99,11 +113,23 @@ nonisolated struct SynchronizationPipeline: Sendable {
                     policy: request.policy
                 )
             )
+        } catch is CancellationError {
+            #if DEBUG
+            synchronizationPipelineLogger.debug(
+                "\(PreviewDiagnosticsContext.prefix, privacy: .public) stage=planning status=cancelled"
+            )
+            #endif
+            throw CancellationError()
         } catch {
             throw SynchronizationPipelineError.planningFailure(
                 SynchronizationPipelineFailureContext(error)
             )
         }
+        #if DEBUG
+        synchronizationPipelineLogger.debug(
+            "\(PreviewDiagnosticsContext.prefix, privacy: .public) stage=planning status=success operations=\(plan.phases.flatMap(\.operations).count, privacy: .public)"
+        )
+        #endif
         return SynchronizationPipelineResult(
             analysis: analysis,
             plan: plan
@@ -113,14 +139,32 @@ nonisolated struct SynchronizationPipeline: Sendable {
     func analyze(
         request: SynchronizationPipelineRequest
     ) async throws -> SynchronizationPipelineAnalysis {
+        #if DEBUG
+        synchronizationPipelineLogger.debug(
+            "\(PreviewDiagnosticsContext.prefix, privacy: .public) stage=source-read status=starting"
+        )
+        #endif
         let sourceRead = try await read(
             request.sourceReader,
             source: true
         )
+        #if DEBUG
+        synchronizationPipelineLogger.debug(
+            "\(PreviewDiagnosticsContext.prefix, privacy: .public) stage=source-read status=success nodes=\(sourceRead.snapshot.tree.count, privacy: .public)"
+        )
+        synchronizationPipelineLogger.debug(
+            "\(PreviewDiagnosticsContext.prefix, privacy: .public) stage=target-read status=starting"
+        )
+        #endif
         let targetRead = try await read(
             request.targetReader,
             source: false
         )
+        #if DEBUG
+        synchronizationPipelineLogger.debug(
+            "\(PreviewDiagnosticsContext.prefix, privacy: .public) stage=target-read status=success nodes=\(targetRead.snapshot.tree.count, privacy: .public)"
+        )
+        #endif
         let resolvedSourceRead: EndToEndSynchronizationReadResult
         let resolvedTargetRead: EndToEndSynchronizationReadResult
         do {
@@ -128,6 +172,8 @@ nonisolated struct SynchronizationPipeline: Sendable {
                 .readResult
             resolvedTargetRead = try identityResolver.resolve(targetRead)
                 .readResult
+        } catch is CancellationError {
+            throw CancellationError()
         } catch {
             throw SynchronizationPipelineError
                 .nativeIdentityResolutionFailure(
@@ -137,12 +183,29 @@ nonisolated struct SynchronizationPipeline: Sendable {
 
         let matching: MatchingPipelineResult
         do {
+            #if DEBUG
+            synchronizationPipelineLogger.debug(
+                "\(PreviewDiagnosticsContext.prefix, privacy: .public) stage=matching status=starting"
+            )
+            #endif
             matching = try await matchingPipeline.execute(
                 request: MatchingPipelineRequest(snapshots: [
                     resolvedSourceRead.snapshot,
                     resolvedTargetRead.snapshot,
                 ])
             )
+            #if DEBUG
+            synchronizationPipelineLogger.debug(
+                "\(PreviewDiagnosticsContext.prefix, privacy: .public) stage=matching status=success logicalSnapshots=\(matching.logicalSnapshots.count, privacy: .public) groups=\(matching.pipelineReport.matchingGroupCount, privacy: .public) matched=\(matching.pipelineReport.matchedGroupCount, privacy: .public) unmatched=\(matching.pipelineReport.unmatchedGroupCount, privacy: .public) ambiguous=\(matching.pipelineReport.ambiguousGroupCount, privacy: .public) createdIdentities=\(matching.reconciliationReport.createdIdentities.count, privacy: .public) reusedIdentities=\(matching.reconciliationReport.reusedIdentities.count, privacy: .public) unresolved=\(matching.reconciliationReport.unresolvedObjects.count, privacy: .public)"
+            )
+            #endif
+        } catch is CancellationError {
+            #if DEBUG
+            synchronizationPipelineLogger.debug(
+                "\(PreviewDiagnosticsContext.prefix, privacy: .public) stage=matching status=cancelled"
+            )
+            #endif
+            throw CancellationError()
         } catch {
             throw SynchronizationPipelineError.matchingFailure(
                 SynchronizationPipelineFailureContext(error)
@@ -157,6 +220,8 @@ nonisolated struct SynchronizationPipeline: Sendable {
                     resolvedSourceRead.nativeIdentityObservations
                     + resolvedTargetRead.nativeIdentityObservations
             )
+        } catch is CancellationError {
+            throw CancellationError()
         } catch {
             throw SynchronizationPipelineError.bootstrapFailure(
                 SynchronizationPipelineFailureContext(error)
@@ -174,6 +239,11 @@ nonisolated struct SynchronizationPipeline: Sendable {
 
         let projection: TargetProjection
         do {
+            #if DEBUG
+            synchronizationPipelineLogger.debug(
+                "\(PreviewDiagnosticsContext.prefix, privacy: .public) stage=projection status=starting"
+            )
+            #endif
             projection = try projector.project(
                 request: ProjectionRequest(
                     sourceSnapshot: sourceSnapshot,
@@ -181,6 +251,8 @@ nonisolated struct SynchronizationPipeline: Sendable {
                     policy: request.policy
                 )
             )
+        } catch is CancellationError {
+            throw CancellationError()
         } catch {
             throw SynchronizationPipelineError.projectionFailure(
                 SynchronizationPipelineFailureContext(error)
@@ -189,12 +261,37 @@ nonisolated struct SynchronizationPipeline: Sendable {
 
         let logicalDiff: LogicalDiffResult
         do {
+            #if DEBUG
+            synchronizationPipelineLogger.debug(
+                "\(PreviewDiagnosticsContext.prefix, privacy: .public) stage=diff status=starting"
+            )
+            #endif
             logicalDiff = try diffEngine.diff(
                 request: LogicalDiffRequest(
                     before: projection.before,
                     after: projection.after
                 )
             )
+            #if DEBUG
+            let afterChildren = Dictionary(
+                grouping: projection.after.nodes,
+                by: \.parentID
+            ).mapValues(\.count)
+            let sparseAfterNodes = projection.after.nodes.filter { node in
+                guard let position = node.position else { return false }
+                return position >= afterChildren[node.parentID, default: 0]
+            }
+            synchronizationPipelineLogger.debug(
+                "\(PreviewDiagnosticsContext.prefix, privacy: .public) stage=diff status=success changes=\(logicalDiff.changes.count, privacy: .public) invalidProjectedPositions=\(sparseAfterNodes.count, privacy: .public)"
+            )
+            #endif
+        } catch is CancellationError {
+            #if DEBUG
+            synchronizationPipelineLogger.debug(
+                "\(PreviewDiagnosticsContext.prefix, privacy: .public) stage=diff status=cancelled"
+            )
+            #endif
+            throw CancellationError()
         } catch {
             throw SynchronizationPipelineError.diffFailure(
                 SynchronizationPipelineFailureContext(error)
@@ -218,8 +315,20 @@ nonisolated struct SynchronizationPipeline: Sendable {
     ) async throws -> EndToEndSynchronizationReadResult {
         do {
             return try await reader.readForSynchronization()
+        } catch is CancellationError {
+            #if DEBUG
+            synchronizationPipelineLogger.debug(
+                "\(PreviewDiagnosticsContext.prefix, privacy: .public) stage=\(source ? "source-read" : "target-read", privacy: .public) status=cancelled"
+            )
+            #endif
+            throw CancellationError()
         } catch {
             let context = SynchronizationPipelineFailureContext(error)
+            #if DEBUG
+            synchronizationPipelineLogger.error(
+                "\(PreviewDiagnosticsContext.prefix, privacy: .public) stage=\(source ? "source-read" : "target-read", privacy: .public) status=failure type=\(context.errorType, privacy: .public) error=\(context.description, privacy: .public)"
+            )
+            #endif
             if source {
                 throw SynchronizationPipelineError.sourceReadFailure(context)
             }

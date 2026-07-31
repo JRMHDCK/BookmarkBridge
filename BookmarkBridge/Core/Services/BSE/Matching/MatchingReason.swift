@@ -12,6 +12,8 @@ nonisolated enum MatchingReason: Hashable, Codable, Sendable {
     case sameLogicalID
     case samePermanentRootRole
     case sameBookmarkURL
+    case sameBookmarkURLAndStructure
+    case sameFolderPath
     case differentLogicalID
     case differentPermanentRootRole
     case differentBookmarkURL

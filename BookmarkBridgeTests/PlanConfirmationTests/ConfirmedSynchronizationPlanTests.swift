@@ -175,6 +175,38 @@ struct ConfirmedSynchronizationPlanTests {
         }
     }
 
+    @Test("Confirmation rejects a different authorized security scope")
+    func securityScopeMismatch() throws {
+        let fixture = try makeFixture()
+        let mismatched = ProductionSynchronizationRequest(
+            direction: fixture.executionRequest.direction,
+            safariSourceID: fixture.executionRequest.safariSourceID,
+            chromeSourceID: fixture.executionRequest.chromeSourceID,
+            safariBookmarksURL:
+                fixture.executionRequest.safariBookmarksURL,
+            chromeBookmarksURL:
+                fixture.executionRequest.chromeBookmarksURL,
+            safariBackupDirectoryURL:
+                fixture.executionRequest.safariBackupDirectoryURL,
+            chromeBackupDirectoryURL:
+                fixture.executionRequest.chromeBackupDirectoryURL,
+            chromeProfileIdentifier:
+                fixture.executionRequest.chromeProfileIdentifier,
+            safariSecurityScopeURL:
+                fixture.executionRequest.safariSecurityScopeURL,
+            chromeSecurityScopeURL: URL(
+                fileURLWithPath: "/tmp/unconfirmed-chrome-scope"
+            )
+        )
+
+        #expect(throws: PlanConfirmationError.requestMismatch) {
+            _ = try ConfirmedSynchronizationPlan(
+                confirming: fixture.preview,
+                executionRequest: mismatched
+            )
+        }
+    }
+
     @Test("Confirmed plan is Hashable and Sendable")
     func valueSemantics() throws {
         let fixture = try makeFixture()

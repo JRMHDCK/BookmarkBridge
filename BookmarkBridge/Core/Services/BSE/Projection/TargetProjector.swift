@@ -35,7 +35,7 @@ nonisolated struct TargetProjector: Sendable {
                 )
             }
         case .additionsOnly:
-            afterNodes = additionsOnlyNodes(request: request)
+            afterNodes = try additionsOnlyNodes(request: request)
         case .contentOnly:
             afterNodes = try contentOnlyNodes(request: request)
         }
@@ -44,16 +44,77 @@ nonisolated struct TargetProjector: Sendable {
             sourceSnapshot: request.sourceSnapshot,
             targetSnapshot: request.targetSnapshot
         )
+        let finalAfterNodes: [ProjectedNode]
+        switch request.policy.changeSelection {
+        case .allChanges, .additionsOnly:
+            finalAfterNodes = try normalizeChildPositions(
+                protectedAfterNodes
+            )
+        case .contentOnly:
+            finalAfterNodes = protectedAfterNodes
+        }
 
         return try TargetProjection(
             before: before,
-            after: makeGraph(projectedNodes: protectedAfterNodes)
+            after: makeGraph(projectedNodes: finalAfterNodes)
         )
+    }
+
+    /// Projection can remove or replace browser-specific subtrees while
+    /// retaining the source nodes' raw sibling indices. Positions in the
+    /// projected universal graph are ranks among the children that remain.
+    private func normalizeChildPositions(
+        _ projectedNodes: [ProjectedNode]
+    ) throws -> [ProjectedNode] {
+        let groups = Dictionary(grouping: projectedNodes) {
+            $0.node.parentID
+        }
+        var result: [ProjectedNode] = []
+        result.reserveCapacity(projectedNodes.count)
+        for parentID in groups.keys.sorted(by: optionalLogicalIDOrder) {
+            let siblings = groups[parentID, default: []].sorted {
+                if $0.node.position != $1.node.position {
+                    return $0.node.position < $1.node.position
+                }
+                return $0.node.logicalID < $1.node.logicalID
+            }
+            guard parentID != nil else {
+                result.append(contentsOf: siblings)
+                continue
+            }
+            for (position, projected) in siblings.enumerated() {
+                guard projected.node.position != position else {
+                    result.append(projected)
+                    continue
+                }
+                let node: BSENode
+                do {
+                    node = try BSENode(
+                        logicalID: projected.node.logicalID,
+                        kind: projected.node.kind,
+                        permanentRootRole: projected.node.permanentRootRole,
+                        title: projected.node.title,
+                        parentID: projected.node.parentID,
+                        position: position,
+                        url: projected.node.url
+                    )
+                } catch {
+                    throw TargetProjectionError.projectionImpossible(
+                        projected.node.logicalID
+                    )
+                }
+                result.append(ProjectedNode(
+                    node: node,
+                    observations: projected.observations
+                ))
+            }
+        }
+        return result
     }
 
     private func additionsOnlyNodes(
         request: ProjectionRequest
-    ) -> [ProjectedNode] {
+    ) throws -> [ProjectedNode] {
         let targetIDs = Set(request.targetSnapshot.tree.nodes.map(\.logicalID))
         let targetNodes = request.targetSnapshot.tree.nodes.map {
             ProjectedNode(
@@ -64,18 +125,70 @@ nonisolated struct TargetProjector: Sendable {
                 )]
             )
         }
-        let additions = request.sourceSnapshot.tree.nodes
+        let sourceAdditions = request.sourceSnapshot.tree.nodes
             .filter { !targetIDs.contains($0.logicalID) }
-            .map {
-                ProjectedNode(
-                    node: $0,
+        let existingChildCounts = Dictionary(
+            grouping: request.targetSnapshot.tree.nodes,
+            by: \.parentID
+        ).mapValues(\.count)
+        let additionsByParent = Dictionary(
+            grouping: sourceAdditions,
+            by: \.parentID
+        )
+        var projectedAdditions: [ProjectedNode] = []
+        projectedAdditions.reserveCapacity(sourceAdditions.count)
+
+        for parentID in additionsByParent.keys.sorted(by: optionalLogicalIDOrder) {
+            let siblings = additionsByParent[parentID, default: []].sorted {
+                if $0.position != $1.position {
+                    return $0.position < $1.position
+                }
+                return $0.logicalID < $1.logicalID
+            }
+            let startingPosition = existingChildCounts[parentID, default: 0]
+            for (offset, sourceNode) in siblings.enumerated() {
+                let node: BSENode
+                do {
+                    node = try BSENode(
+                        logicalID: sourceNode.logicalID,
+                        kind: sourceNode.kind,
+                        permanentRootRole: sourceNode.permanentRootRole,
+                        title: sourceNode.title,
+                        parentID: sourceNode.parentID,
+                        position: startingPosition + offset,
+                        url: sourceNode.url
+                    )
+                } catch {
+                    throw TargetProjectionError.projectionImpossible(
+                        sourceNode.logicalID
+                    )
+                }
+                projectedAdditions.append(ProjectedNode(
+                    node: node,
                     observations: [observation(
-                        node: $0,
+                        node: sourceNode,
                         snapshot: request.sourceSnapshot
                     )]
-                )
+                ))
             }
-        return targetNodes + additions
+        }
+        return targetNodes + projectedAdditions
+    }
+
+    private func optionalLogicalIDOrder(
+        _ lhs: LogicalNodeID?,
+        _ rhs: LogicalNodeID?
+    ) -> Bool {
+        switch (lhs, rhs) {
+        case (nil, nil):
+            false
+        case (nil, _):
+            true
+        case (_, nil):
+            false
+        case (.some(let lhs), .some(let rhs)):
+            lhs < rhs
+        }
     }
 
     private func contentOnlyNodes(

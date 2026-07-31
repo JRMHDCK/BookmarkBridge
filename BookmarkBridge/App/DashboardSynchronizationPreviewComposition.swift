@@ -48,7 +48,9 @@ nonisolated struct DashboardSynchronizationPreviewRequestProvider:
             chromeSourceID: Self.sourceID(for: chromeSource.id),
             safariBookmarksURL: safariLocation.fileURL,
             chromeBookmarksURL: chromeBookmarksURL,
-            chromeProfileIdentifier: profileIdentifier
+            chromeProfileIdentifier: profileIdentifier,
+            safariSecurityScopeURL: safariLocation.fileURL,
+            chromeSecurityScopeURL: chromeDirectory.fileURL
         )
     }
 

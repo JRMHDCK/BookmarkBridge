@@ -80,8 +80,26 @@ struct SynchronizationPreviewScreen: View {
                 message: "Validation de la synchronisation…"
             )
         case .failed(let message):
-            ErrorStateView(message: message, onRetry: nil)
+            synchronizationFailure(message)
         }
+    }
+
+    private func synchronizationFailure(_ message: String) -> some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.s) {
+            Label(
+                "Synchronisation interrompue",
+                systemImage: "exclamationmark.triangle.fill"
+            )
+            .font(.headline)
+            .foregroundStyle(Theme.Palette.error)
+            .symbolRenderingMode(.hierarchical)
+            Text(message)
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .textSelection(.enabled)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .accessibilityElement(children: .combine)
     }
 
     @ViewBuilder

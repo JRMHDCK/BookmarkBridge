@@ -38,7 +38,11 @@ nonisolated struct SynchronizationExecutionCoordinator:
             safariBackupDirectoryURL: safariBackupDirectoryURL,
             chromeBackupDirectoryURL: chromeBackupDirectoryURL,
             chromeProfileIdentifier:
-                previewRequest.chromeProfileIdentifier
+                previewRequest.chromeProfileIdentifier,
+            safariSecurityScopeURL:
+                previewRequest.safariSecurityScopeURL,
+            chromeSecurityScopeURL:
+                previewRequest.chromeSecurityScopeURL
         )
         let confirmedPlan = try ConfirmedSynchronizationPlan(
             confirming: preview,

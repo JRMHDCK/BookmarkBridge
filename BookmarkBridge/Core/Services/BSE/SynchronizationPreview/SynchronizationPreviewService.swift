@@ -4,17 +4,28 @@
 //
 
 import Foundation
+#if DEBUG
+import OSLog
+
+nonisolated private let synchronizationPreviewLogger = Logger(
+    subsystem: "fr.jerome.BookmarkBridge",
+    category: "Synchronization.Preview"
+)
+#endif
 
 /// Production read-only composition from concrete browser readers to an
 /// ordered synchronization plan. It never constructs or calls an Executor,
 /// WriteAdapter, Store, Mutator, backup service, or atomic writer.
 nonisolated struct SynchronizationPreviewService: Sendable {
     private let pipeline: any SynchronizationPipelineExecuting
+    private let fileController: any SecurityScopedFileControlling
 
     init(
         baselineRepository: BaselineRepository,
         identityProvider: any IdentityProvider,
-        nativeIdentityRepository: any NativeIdentityRepository
+        nativeIdentityRepository: any NativeIdentityRepository,
+        fileController: any SecurityScopedFileControlling =
+            SystemSecurityScopedFileController()
     ) {
         pipeline = SynchronizationPipeline(
             matchingPipeline: MatchingPipeline(
@@ -34,26 +45,48 @@ nonisolated struct SynchronizationPreviewService: Sendable {
                 repository: nativeIdentityRepository
             )
         )
+        self.fileController = fileController
     }
 
     /// Internal seam for deterministic orchestration and error-mapping tests.
-    init(pipeline: any SynchronizationPipelineExecuting) {
+    init(
+        pipeline: any SynchronizationPipelineExecuting,
+        fileController: any SecurityScopedFileControlling =
+            SystemSecurityScopedFileController()
+    ) {
         self.pipeline = pipeline
+        self.fileController = fileController
     }
 
     func preview(
         request: SynchronizationPreviewRequest
     ) async throws -> SynchronizationPreviewResult {
-        let safariAccess = request.safariBookmarksURL
-            .startAccessingSecurityScopedResource()
-        let chromeAccess = request.chromeBookmarksURL
-            .startAccessingSecurityScopedResource()
+        #if DEBUG
+        synchronizationPreviewLogger.debug(
+            "\(PreviewDiagnosticsContext.prefix, privacy: .public) stage=preview status=starting direction=\(String(describing: request.direction), privacy: .public)"
+        )
+        #endif
+        let safariAccess = fileController.startAccessing(
+            request.safariSecurityScopeURL
+        )
+        let chromeAccess = fileController.startAccessing(
+            request.chromeSecurityScopeURL
+        )
+        #if DEBUG
+        synchronizationPreviewLogger.debug(
+            "\(PreviewDiagnosticsContext.prefix, privacy: .public) stage=security-scope status=opened safari=\(safariAccess, privacy: .public) chrome=\(chromeAccess, privacy: .public) chromeUsesAuthorizedDirectory=\(request.chromeSecurityScopeURL != request.chromeBookmarksURL, privacy: .public)"
+        )
+        #endif
         defer {
             if safariAccess {
-                request.safariBookmarksURL.stopAccessingSecurityScopedResource()
+                fileController.stopAccessing(
+                    request.safariSecurityScopeURL
+                )
             }
             if chromeAccess {
-                request.chromeBookmarksURL.stopAccessingSecurityScopedResource()
+                fileController.stopAccessing(
+                    request.chromeSecurityScopeURL
+                )
             }
         }
 
@@ -68,7 +101,8 @@ nonisolated struct SynchronizationPreviewService: Sendable {
             profileIdentifier: request.chromeProfileIdentifier,
             dataSource: DefaultChromeDataSource(
                 bookmarksFileURL: request.chromeBookmarksURL,
-                profileIdentifier: request.chromeProfileIdentifier
+                profileIdentifier: request.chromeProfileIdentifier,
+                securityScopeURL: request.chromeSecurityScopeURL
             )
         )
         let sourceReader: any EndToEndSynchronizationReading
@@ -93,6 +127,11 @@ nonisolated struct SynchronizationPreviewService: Sendable {
 
         let result: SynchronizationPipelineResult
         do {
+            #if DEBUG
+            synchronizationPreviewLogger.debug(
+                "\(PreviewDiagnosticsContext.prefix, privacy: .public) stage=pipeline status=starting"
+            )
+            #endif
             result = try await pipeline.execute(
                 request: SynchronizationPipelineRequest(
                     sourceReader: sourceReader,
@@ -100,16 +139,40 @@ nonisolated struct SynchronizationPreviewService: Sendable {
                     policy: .allChanges(direction: direction)
                 )
             )
+        } catch is CancellationError {
+            #if DEBUG
+            synchronizationPreviewLogger.debug(
+                "\(PreviewDiagnosticsContext.prefix, privacy: .public) stage=pipeline status=cancelled"
+            )
+            #endif
+            throw CancellationError()
         } catch {
-            throw mapPipelineError(error)
+            let mapped = mapPipelineError(error)
+            #if DEBUG
+            synchronizationPreviewLogger.error(
+                "\(PreviewDiagnosticsContext.prefix, privacy: .public) stage=pipeline status=failure original=\(PreviewDiagnosticsContext.errorDescription(error), privacy: .public) mapped=\(String(reflecting: mapped), privacy: .public)"
+            )
+            #endif
+            throw mapped
         }
-        return try SynchronizationPreviewResult(
+        try SynchronizationPreviewSafetyValidator().validate(
+            before: result.projection.before,
+            after: result.projection.after,
+            plan: result.plan
+        )
+        let preview = try SynchronizationPreviewResult(
             request: request,
             sourceSnapshot: result.sourceRead.snapshot,
             targetSnapshot: result.targetRead.snapshot,
             logicalDiff: result.logicalDiff,
             plan: result.plan
         )
+        #if DEBUG
+        synchronizationPreviewLogger.debug(
+            "\(PreviewDiagnosticsContext.prefix, privacy: .public) stage=preview status=success sourceNodes=\(result.sourceRead.snapshot.tree.count, privacy: .public) targetNodes=\(result.targetRead.snapshot.tree.count, privacy: .public) changes=\(result.logicalDiff.changes.count, privacy: .public) operations=\(preview.totalOperationCount, privacy: .public) sourceHash=\(preview.sourceSnapshotFingerprint.rawValue, privacy: .public) targetHash=\(preview.targetSnapshotFingerprint.rawValue, privacy: .public) planHash=\(preview.planFingerprint.rawValue, privacy: .public)"
+        )
+        #endif
+        return preview
     }
 
     private func mapPipelineError(

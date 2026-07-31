@@ -174,6 +174,61 @@ struct SynchronizationViewModelTests {
         #expect(viewModel.state == .idle)
     }
 
+    @Test("Production preview request preserves authorized roots and stable source IDs")
+    func productionRequestUsesAuthorizedRoots() async throws {
+        let safariURL = URL(
+            fileURLWithPath:
+                "/tmp/BookmarkBridgeTests/Library/Safari/Bookmarks.plist"
+        )
+        let chromeDirectoryURL = URL(
+            fileURLWithPath:
+                "/tmp/BookmarkBridgeTests/Library/Application Support/Google/Chrome"
+        )
+        let provider = DashboardSynchronizationPreviewRequestProvider(
+            safariLocator: StubBookmarkSourceLocator(
+                result: .success(
+                    BrowserLocation(
+                        browser: .safari,
+                        fileURL: safariURL
+                    )
+                )
+            ),
+            chromeLocator: StubBookmarkSourceLocator(
+                result: .success(
+                    BrowserLocation(
+                        browser: .chrome,
+                        fileURL: chromeDirectoryURL
+                    )
+                )
+            )
+        )
+        let safariSource = BookmarkSource.singleProfile(.safari)
+        let chromeSource = BookmarkSource(
+            browser: .chrome,
+            profile: "Default",
+            displayName: "Chrome"
+        )
+
+        let first = try await provider.makeRequest(
+            safariSource: safariSource,
+            chromeSource: chromeSource
+        )
+        let second = try await provider.makeRequest(
+            safariSource: safariSource,
+            chromeSource: chromeSource
+        )
+
+        #expect(first.safariSecurityScopeURL == safariURL)
+        #expect(first.chromeSecurityScopeURL == chromeDirectoryURL)
+        #expect(
+            first.chromeBookmarksURL
+                == chromeDirectoryURL
+                    .appendingPathComponent("Default/Bookmarks")
+        )
+        #expect(first.safariSourceID == second.safariSourceID)
+        #expect(first.chromeSourceID == second.chromeSourceID)
+    }
+
     @Test("A successful synchronization automatically refreshes the preview")
     func synchronizationSuccessRefreshesPreview() async throws {
         let initial = try makeResult(operations: [
@@ -235,10 +290,12 @@ struct SynchronizationViewModelTests {
             return
         }
         #expect(preview.renameCount == 1)
-        guard case .failed = viewModel.executionState else {
+        guard case .failed(let message) = viewModel.executionState else {
             Issue.record("Expected a user-facing execution failure")
             return
         }
+        #expect(message.contains("TestFailure"))
+        #expect(message.contains("execution"))
         #expect(viewModel.canSynchronize)
     }
 

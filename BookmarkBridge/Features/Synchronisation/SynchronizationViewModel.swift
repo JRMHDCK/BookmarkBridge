@@ -5,6 +5,14 @@
 
 import Foundation
 import Observation
+#if DEBUG
+import OSLog
+
+private let synchronizationViewModelLogger = Logger(
+    subsystem: "fr.jerome.BookmarkBridge",
+    category: "Synchronization.ViewModel"
+)
+#endif
 
 /// Read-only boundary used by the UI. The concrete BSE preview service
 /// conforms without introducing a UI dependency into Core.
@@ -130,6 +138,9 @@ final class SynchronizationViewModel {
         safari: SynchronizationSourceSummary,
         chrome: SynchronizationSourceSummary
     )?
+    #if DEBUG
+    private var activePreviewAttempts: Set<String> = []
+    #endif
 
     init(
         previewService: any SynchronizationPreviewProviding,
@@ -153,6 +164,34 @@ final class SynchronizationViewModel {
         safari: SynchronizationSourceSummary,
         chrome: SynchronizationSourceSummary
     ) async {
+        #if DEBUG
+        let attemptID = String(UUID().uuidString.prefix(8))
+        let replacedAttempts = activePreviewAttempts.sorted()
+        activePreviewAttempts.insert(attemptID)
+        synchronizationViewModelLogger.notice(
+            "[Preview \(attemptID, privacy: .public)] START activeBefore=\(replacedAttempts.joined(separator: ","), privacy: .public)"
+        )
+        await PreviewDiagnosticsContext.$attemptID.withValue(attemptID) {
+            await performLoadPreview(safari: safari, chrome: chrome)
+        }
+        activePreviewAttempts.remove(attemptID)
+        synchronizationViewModelLogger.notice(
+            "[Preview \(attemptID, privacy: .public)] END"
+        )
+        #else
+        await performLoadPreview(safari: safari, chrome: chrome)
+        #endif
+    }
+
+    private func performLoadPreview(
+        safari: SynchronizationSourceSummary,
+        chrome: SynchronizationSourceSummary
+    ) async {
+        #if DEBUG
+        synchronizationViewModelLogger.debug(
+            "\(PreviewDiagnosticsContext.prefix, privacy: .public) stage=load-preview status=starting safariState=loaded safariFolders=\(safari.folderCount, privacy: .public) safariBookmarks=\(safari.bookmarkCount, privacy: .public) safariSource=\(String(describing: safari.source.id), privacy: .public) chromeState=loaded chromeFolders=\(chrome.folderCount, privacy: .public) chromeBookmarks=\(chrome.bookmarkCount, privacy: .public) chromeProfile=\(chrome.source.id.profile ?? "none", privacy: .public) chromeSource=\(String(describing: chrome.source.id), privacy: .public)"
+        )
+        #endif
         state = .loading
         latestSources = (safari, chrome)
         do {
@@ -160,6 +199,11 @@ final class SynchronizationViewModel {
                 safariSource: safari.source,
                 chromeSource: chrome.source
             )
+            #if DEBUG
+            synchronizationViewModelLogger.debug(
+                "\(PreviewDiagnosticsContext.prefix, privacy: .public) stage=request status=created direction=\(String(describing: request.direction), privacy: .public) safariSourceID=\(request.safariSourceID.description, privacy: .public) chromeSourceID=\(request.chromeSourceID.description, privacy: .public) chromeProfile=\(request.chromeProfileIdentifier.rawValue, privacy: .public) usesChromeDirectoryScope=\(request.chromeSecurityScopeURL != request.chromeBookmarksURL, privacy: .public)"
+            )
+            #endif
             let result = try await previewService.preview(request: request)
             latestPreviewResult = result
             let preview = Self.makePreview(
@@ -170,10 +214,25 @@ final class SynchronizationViewModel {
             state = result.totalOperationCount == 0
                 ? .empty(preview)
                 : .loaded(preview)
+            #if DEBUG
+            synchronizationViewModelLogger.debug(
+                "\(PreviewDiagnosticsContext.prefix, privacy: .public) stage=load-preview status=success operations=\(result.totalOperationCount, privacy: .public)"
+            )
+            #endif
         } catch is CancellationError {
+            #if DEBUG
+            synchronizationViewModelLogger.debug(
+                "\(PreviewDiagnosticsContext.prefix, privacy: .public) stage=load-preview status=cancelled replacementActive=\(self.activePreviewAttempts.count > 1, privacy: .public)"
+            )
+            #endif
             state = .idle
             latestPreviewResult = nil
         } catch {
+            #if DEBUG
+            synchronizationViewModelLogger.error(
+                "\(PreviewDiagnosticsContext.prefix, privacy: .public) stage=load-preview status=failure \(PreviewDiagnosticsContext.errorDescription(error), privacy: .public)"
+            )
+            #endif
             state = .failed(
                 "Impossible de calculer la prévisualisation."
             )
@@ -211,11 +270,33 @@ final class SynchronizationViewModel {
             )
             return false
         } catch {
+            #if DEBUG
+            synchronizationViewModelLogger.error(
+                "stage=synchronize status=failure \(PreviewDiagnosticsContext.errorDescription(error), privacy: .public)"
+            )
+            #endif
             executionState = .failed(
-                "La synchronisation a échoué. Aucune modification partielle n'a été conservée."
+                Self.executionFailureDescription(error)
             )
             return false
         }
+    }
+
+    private static func executionFailureDescription(
+        _ error: any Error
+    ) -> String {
+        if let transactionError = error as? SynchronizationTransactionError,
+           case .finalValidationFailed(let failure) = transactionError {
+            return [
+                "La validation finale a échoué.",
+                "\(failure.cause.errorType): \(failure.cause.description)",
+                "Restauration : \(failure.restorationStatus).",
+            ].joined(separator: " ")
+        }
+        return [
+            "La synchronisation a échoué.",
+            "\(String(reflecting: type(of: error))): \(String(describing: error))",
+        ].joined(separator: " ")
     }
 
     private static func makePreview(

@@ -25,6 +25,7 @@ nonisolated struct ProductionSynchronizationService: Sendable {
     private let chromeAdapterIdentifier: WriteAdapterIdentifier
     private let sessionCoordinator:
         ProductionSynchronizationSessionCoordinator
+    private let fileController: any SecurityScopedFileControlling
 
     init(
         baselineRepository: BaselineRepository,
@@ -41,7 +42,9 @@ nonisolated struct ProductionSynchronizationService: Sendable {
         safariAdapterIdentifier: WriteAdapterIdentifier,
         chromeAdapterIdentifier: WriteAdapterIdentifier,
         sessionCoordinator: ProductionSynchronizationSessionCoordinator =
-            ProductionSynchronizationSessionCoordinator()
+            ProductionSynchronizationSessionCoordinator(),
+        fileController: any SecurityScopedFileControlling =
+            SystemSecurityScopedFileController()
     ) {
         self.baselineRepository = baselineRepository
         self.identityProvider = identityProvider
@@ -52,6 +55,7 @@ nonisolated struct ProductionSynchronizationService: Sendable {
         self.safariAdapterIdentifier = safariAdapterIdentifier
         self.chromeAdapterIdentifier = chromeAdapterIdentifier
         self.sessionCoordinator = sessionCoordinator
+        self.fileController = fileController
     }
 
     func synchronize(
@@ -66,16 +70,22 @@ nonisolated struct ProductionSynchronizationService: Sendable {
         confirmedPlan: ConfirmedSynchronizationPlan
     ) async throws -> ProductionSynchronizationResult {
         let request = confirmedPlan.executionRequest
-        let safariAccess = request.safariBookmarksURL
-            .startAccessingSecurityScopedResource()
-        let chromeAccess = request.chromeBookmarksURL
-            .startAccessingSecurityScopedResource()
+        let safariAccess = fileController.startAccessing(
+            request.safariSecurityScopeURL
+        )
+        let chromeAccess = fileController.startAccessing(
+            request.chromeSecurityScopeURL
+        )
         defer {
             if safariAccess {
-                request.safariBookmarksURL.stopAccessingSecurityScopedResource()
+                fileController.stopAccessing(
+                    request.safariSecurityScopeURL
+                )
             }
             if chromeAccess {
-                request.chromeBookmarksURL.stopAccessingSecurityScopedResource()
+                fileController.stopAccessing(
+                    request.chromeSecurityScopeURL
+                )
             }
         }
 
@@ -115,6 +125,8 @@ nonisolated struct ProductionSynchronizationService: Sendable {
             let synchronizationStorage =
                 Mutex<EndToEndSynchronizationResult?>(nil)
             let transaction = try await coordinator.execute(preflight: {
+                try safariApplicationStateChecker.ensureSafariIsClosed()
+                try chromeApplicationStateChecker.ensureChromeIsClosed()
                 let preview = try await SynchronizationPreviewService(
                     baselineRepository: baselineRepository,
                     identityProvider: identityProvider,
@@ -222,7 +234,8 @@ nonisolated struct ProductionSynchronizationService: Sendable {
             profileIdentifier: request.chromeProfileIdentifier,
             dataSource: DefaultChromeDataSource(
                 bookmarksFileURL: request.chromeBookmarksURL,
-                profileIdentifier: request.chromeProfileIdentifier
+                profileIdentifier: request.chromeProfileIdentifier,
+                securityScopeURL: request.chromeSecurityScopeURL
             )
         )
 
@@ -315,7 +328,9 @@ nonisolated struct ProductionSynchronizationService: Sendable {
             chromeSourceID: request.chromeSourceID,
             safariBookmarksURL: request.safariBookmarksURL,
             chromeBookmarksURL: request.chromeBookmarksURL,
-            chromeProfileIdentifier: request.chromeProfileIdentifier
+            chromeProfileIdentifier: request.chromeProfileIdentifier,
+            safariSecurityScopeURL: request.safariSecurityScopeURL,
+            chromeSecurityScopeURL: request.chromeSecurityScopeURL
         )
     }
 

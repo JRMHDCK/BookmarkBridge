@@ -111,6 +111,55 @@ struct SynchronizationPreviewServiceTests {
 
         #expect(PreviewPipelineFailureScenario.matching.matches(error))
     }
+
+    @Test("Preview holds the user-authorized roots for the whole pipeline")
+    func opensAuthorizedSecurityScopes() async throws {
+        let pipeline = PreviewPipelineDouble(
+            error: PreviewPipelineFailureScenario.matching.pipelineError
+        )
+        let controller = SpySecurityScopedFileController()
+        let service = SynchronizationPreviewService(
+            pipeline: pipeline,
+            fileController: controller
+        )
+        let safariScope = URL(
+            fileURLWithPath: "/tmp/authorized/Library/Safari/Bookmarks.plist"
+        )
+        let chromeScope = URL(
+            fileURLWithPath:
+                "/tmp/authorized/Library/Application Support/Google/Chrome"
+        )
+        let request = SynchronizationPreviewRequest(
+            direction: .safariToChrome,
+            safariSourceID: BSESourceID(previewUUID(91)),
+            chromeSourceID: BSESourceID(previewUUID(92)),
+            safariBookmarksURL: safariScope,
+            chromeBookmarksURL: chromeScope
+                .appendingPathComponent("Default/Bookmarks"),
+            chromeProfileIdentifier:
+                try ChromeProfileIdentifier("Default"),
+            safariSecurityScopeURL: safariScope,
+            chromeSecurityScopeURL: chromeScope
+        )
+
+        _ = await capturedPreviewError {
+            try await service.preview(request: request)
+        }
+
+        #expect(controller.startedURLs == [safariScope, chromeScope])
+        #expect(controller.stoppedURLs == [safariScope, chromeScope])
+    }
+
+    @Test("Pipeline cancellation remains a cancellation")
+    func cancellationIsNotReportedAsPreviewFailure() async throws {
+        let service = SynchronizationPreviewService(
+            pipeline: CancelledPreviewPipeline()
+        )
+
+        await #expect(throws: CancellationError.self) {
+            _ = try await service.preview(request: previewSeamRequest())
+        }
+    }
 }
 
 private enum PreviewPipelineFailureScenario:
@@ -201,6 +250,22 @@ private final class PreviewPipelineDouble:
 
 private enum PreviewPipelineTestFailure: Error {
     case injected
+}
+
+private struct CancelledPreviewPipeline:
+    SynchronizationPipelineExecuting
+{
+    func execute(
+        request: SynchronizationPipelineRequest
+    ) async throws -> SynchronizationPipelineResult {
+        throw CancellationError()
+    }
+
+    func analyze(
+        request: SynchronizationPipelineRequest
+    ) async throws -> SynchronizationPipelineAnalysis {
+        throw CancellationError()
+    }
 }
 
 private func capturedPreviewError(

@@ -70,15 +70,38 @@ nonisolated struct DefaultIdentityMatchingGroupBuilder: IdentityMatchingGroupBui
                     remaining.remove(candidate)
 
                 case .ambiguous(let candidateIDs, _):
-                    ambiguousCandidateIDs.formUnion(candidateIDs)
-                    for candidate in candidates where candidateIDs.contains(
-                        candidate.provisionalLogicalID
+                    let matchingCandidates = candidates.filter {
+                        candidateIDs.contains($0.provisionalLogicalID)
+                    }
+                    if let candidate = uniqueStructuralCandidate(
+                        for: seed,
+                        among: matchingCandidates,
+                        occurrences: occurrences
                     ) {
+                        members.append(candidate)
+                        successfulMatches.append((
+                            candidate,
+                            .sameBookmarkURLAndStructure
+                        ))
                         remaining.remove(candidate)
+                    } else {
+                        ambiguousCandidateIDs.formUnion(candidateIDs)
+                        for candidate in matchingCandidates {
+                            remaining.remove(candidate)
+                        }
                     }
 
                 case .noMatch:
-                    continue
+                    guard let candidate = uniqueFolderPathCandidate(
+                        for: seed,
+                        among: candidates,
+                        occurrences: occurrences
+                    ) else {
+                        continue
+                    }
+                    members.append(candidate)
+                    successfulMatches.append((candidate, .sameFolderPath))
+                    remaining.remove(candidate)
                 }
             }
 
@@ -108,6 +131,123 @@ nonisolated struct DefaultIdentityMatchingGroupBuilder: IdentityMatchingGroupBui
         }
 
         return groups.sorted(by: groupOrder)
+    }
+
+    /// Resolves a URL-only ambiguity only when one candidate has the exact
+    /// bookmark title and immediate parent-folder identity. Position and higher
+    /// ancestors are intentionally excluded because a legitimate reorder or
+    /// parent-folder move must remain matchable.
+    ///
+    /// No best-effort score or ordering fallback is used: zero or multiple
+    /// structural matches preserve the original ambiguity.
+    private func uniqueStructuralCandidate(
+        for seed: IdentityNodeReference,
+        among candidates: [IdentityNodeReference],
+        occurrences: [IdentityNodeReference: BSENode]
+    ) -> IdentityNodeReference? {
+        guard let seedNode = occurrences[seed],
+              seedNode.kind == .bookmark,
+              let seedSignature = localStructure(
+                for: seed,
+                node: seedNode,
+                occurrences: occurrences
+              ) else {
+            return nil
+        }
+        let exact = candidates.filter { candidate in
+            guard let node = occurrences[candidate],
+                  node.kind == .bookmark else {
+                return false
+            }
+            return localStructure(
+                for: candidate,
+                node: node,
+                occurrences: occurrences
+            ) == seedSignature
+        }
+        return exact.count == 1 ? exact[0] : nil
+    }
+
+    /// Folder identifiers are browser-local. An exact path below a homologous
+    /// permanent root is the only cross-browser structural evidence accepted
+    /// for ordinary folders. Ambiguous duplicate paths remain unmatched.
+    private func uniqueFolderPathCandidate(
+        for seed: IdentityNodeReference,
+        among candidates: [IdentityNodeReference],
+        occurrences: [IdentityNodeReference: BSENode]
+    ) -> IdentityNodeReference? {
+        guard let seedNode = occurrences[seed],
+              let seedPath = folderPath(
+                for: seed,
+                node: seedNode,
+                occurrences: occurrences
+              ) else {
+            return nil
+        }
+        let exact = candidates.filter { candidate in
+            guard let node = occurrences[candidate] else {
+                return false
+            }
+            return folderPath(
+                for: candidate,
+                node: node,
+                occurrences: occurrences
+            ) == seedPath
+        }
+        return exact.count == 1 ? exact[0] : nil
+    }
+
+    private func folderPath(
+        for reference: IdentityNodeReference,
+        node: BSENode,
+        occurrences: [IdentityNodeReference: BSENode]
+    ) -> FolderStructuralPath? {
+        guard node.kind == .folder,
+              node.permanentRootRole == nil else {
+            return nil
+        }
+        var titles = [node.title]
+        var parentID = node.parentID
+        var visited: Set<LogicalNodeID> = [node.logicalID]
+
+        while let currentParentID = parentID {
+            guard visited.insert(currentParentID).inserted,
+                  let parent = occurrences[IdentityNodeReference(
+                    sourceID: reference.sourceID,
+                    provisionalLogicalID: currentParentID
+                  )],
+                  parent.kind == .folder else {
+                return nil
+            }
+            if let rootRole = parent.permanentRootRole {
+                return FolderStructuralPath(
+                    rootRole: rootRole,
+                    titles: Array(titles.reversed())
+                )
+            }
+            titles.append(parent.title)
+            parentID = parent.parentID
+        }
+        return nil
+    }
+
+    private func localStructure(
+        for reference: IdentityNodeReference,
+        node: BSENode,
+        occurrences: [IdentityNodeReference: BSENode]
+    ) -> BookmarkLocalStructure? {
+        guard let parentID = node.parentID,
+              let parent = occurrences[IdentityNodeReference(
+                sourceID: reference.sourceID,
+                provisionalLogicalID: parentID
+              )],
+              parent.kind == .folder else {
+            return nil
+        }
+        return BookmarkLocalStructure(
+            title: node.title,
+            parentTitle: parent.title
+        )
     }
 
     private func nextSeed(
@@ -163,4 +303,14 @@ nonisolated struct DefaultIdentityMatchingGroupBuilder: IdentityMatchingGroupBui
         }
         return lhsFirst < rhsFirst
     }
+}
+
+nonisolated private struct BookmarkLocalStructure: Hashable, Sendable {
+    let title: String
+    let parentTitle: String
+}
+
+nonisolated private struct FolderStructuralPath: Hashable, Sendable {
+    let rootRole: PermanentRootRole
+    let titles: [String]
 }

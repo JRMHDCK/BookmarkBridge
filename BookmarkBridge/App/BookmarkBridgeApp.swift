@@ -61,6 +61,9 @@ struct BookmarkBridgeApp: App {
                     dependencies.synchronizationPreviewRequestProvider,
                 executionService:
                     dependencies.synchronizationExecutionService
+            ),
+            browserOperationGuard: BrowserOperationGuard(
+                lifecycleController: SystemBrowserLifecycleController()
             )
         )
     }

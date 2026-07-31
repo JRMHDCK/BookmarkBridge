@@ -448,21 +448,11 @@ struct SynchronizationPlannerTests {
             after: [root, destination, origin, movedAfter, created]
         )
 
-        #expect(plan.phases[0].operations.isEmpty)
-        #expect(plan.phases[1].operations == [
-            .move(MoveNodeOperation(
-                logicalNodeID: movedBefore.logicalNodeID,
-                parentID: destination.logicalNodeID,
-                position: 0
-            )),
-            .create(CreateNodeOperation(
-                logicalNodeID: created.logicalNodeID,
-                kind: .bookmark,
-                title: "Bookmark",
-                url: created.url,
-                parentID: destination.logicalNodeID,
-                position: 1
-            )),
+        #expect(plan.phases[0].operations.map(\.logicalNodeID) == [
+            created.logicalNodeID,
+        ])
+        #expect(plan.phases[1].operations.map(\.logicalNodeID) == [
+            movedBefore.logicalNodeID,
         ])
     }
 
@@ -510,11 +500,12 @@ struct SynchronizationPlannerTests {
             ]
         )
 
-        #expect(plan.phases[0].operations.isEmpty)
+        #expect(plan.phases[0].operations.map(\.logicalNodeID) == [
+            created.logicalNodeID,
+        ])
         #expect(plan.phases[1].operations.map(\.logicalNodeID) == [
             firstBefore.logicalNodeID,
             secondBefore.logicalNodeID,
-            created.logicalNodeID,
         ])
     }
 
@@ -552,11 +543,12 @@ struct SynchronizationPlannerTests {
             ]
         )
 
-        #expect(plan.phases[0].operations.isEmpty)
-        #expect(plan.phases[1].operations.map(\.logicalNodeID) == [
-            movedBefore.logicalNodeID,
+        #expect(plan.phases[0].operations.map(\.logicalNodeID) == [
             firstCreated.logicalNodeID,
             secondCreated.logicalNodeID,
+        ])
+        #expect(plan.phases[1].operations.map(\.logicalNodeID) == [
+            movedBefore.logicalNodeID,
         ])
     }
 
@@ -610,15 +602,16 @@ struct SynchronizationPlannerTests {
             ]
         )
 
-        #expect(plan.phases[0].operations.isEmpty)
-        #expect(plan.phases[1].operations.map(\.logicalNodeID) == [
-            positionProviderBefore.logicalNodeID,
+        #expect(plan.phases[0].operations.map(\.logicalNodeID) == [
             createdParent.logicalNodeID,
+        ])
+        #expect(plan.phases[1].operations.map(\.logicalNodeID) == [
             movedToCreatedParentBefore.logicalNodeID,
+            positionProviderBefore.logicalNodeID,
         ])
     }
 
-    @Test("An unreachable insertion position fails without a partial plan")
+    @Test("A projected position gap is normalized to an executable insertion")
     func impossiblePositionDependency() throws {
         let root = try PlanningTestSupport.folder(id: 100)
         let destination = try PlanningTestSupport.folder(id: 10, parent: 100)
@@ -628,13 +621,18 @@ struct SynchronizationPlannerTests {
             position: 1
         )
 
-        #expect(throws: SynchronizationPlanningError
-            .unresolvablePositionDependency([created.logicalNodeID])) {
-            _ = try PlanningTestSupport.plan(
-                before: [root, destination],
-                after: [root, destination, created]
-            )
-        }
+        let plan = try PlanningTestSupport.plan(
+            before: [root, destination],
+            after: [root, destination, created]
+        )
+        #expect(plan.phases[0].operations == [.create(CreateNodeOperation(
+            logicalNodeID: created.logicalNodeID,
+            kind: .bookmark,
+            title: "Bookmark",
+            url: created.url,
+            parentID: destination.logicalNodeID,
+            position: 0
+        ))])
     }
 
     @Test("Position dependency ordering is independent of diff iteration order")
@@ -819,15 +817,144 @@ struct SynchronizationPlannerTests {
         let sibling2 = try PlanningTestSupport.bookmark(id: 4, parent: 1, position: 2)
         let sibling3 = try PlanningTestSupport.bookmark(id: 5, parent: 1, position: 3)
         let after = try PlanningTestSupport.bookmark(id: 2, parent: 1, position: 3)
+        let afterSibling1 = try PlanningTestSupport.bookmark(
+            id: 3, parent: 1, position: 0
+        )
+        let afterSibling2 = try PlanningTestSupport.bookmark(
+            id: 4, parent: 1, position: 1
+        )
+        let afterSibling3 = try PlanningTestSupport.bookmark(
+            id: 5, parent: 1, position: 2
+        )
         let plan = try PlanningTestSupport.plan(
             before: [parent, before, sibling1, sibling2, sibling3],
-            after: [parent, after, sibling1, sibling2, sibling3]
+            after: [
+                parent,
+                after,
+                afterSibling1,
+                afterSibling2,
+                afterSibling3,
+            ]
         )
 
         #expect(plan.phases[1].operations == [.reorder(ReorderNodeOperation(
             logicalNodeID: before.logicalNodeID,
             position: 3
         ))])
+    }
+
+    @Test("Sibling reorders become an executable minimal sequence")
+    func siblingReordersUseFinalPositionOrder() throws {
+        let parent = try PlanningTestSupport.folder(id: 10)
+        let first = try PlanningTestSupport.bookmark(
+            id: 2,
+            parent: 10,
+            position: 0
+        )
+        let second = try PlanningTestSupport.bookmark(
+            id: 3,
+            parent: 10,
+            position: 1
+        )
+        let third = try PlanningTestSupport.bookmark(
+            id: 4,
+            parent: 10,
+            position: 2
+        )
+        let reorderedFirst = try PlanningTestSupport.bookmark(
+            id: 2,
+            parent: 10,
+            position: 2
+        )
+        let reorderedSecond = try PlanningTestSupport.bookmark(
+            id: 3,
+            parent: 10,
+            position: 0
+        )
+        let reorderedThird = try PlanningTestSupport.bookmark(
+            id: 4,
+            parent: 10,
+            position: 1
+        )
+
+        let plan = try PlanningTestSupport.plan(
+            before: [parent, first, second, third],
+            after: [
+                parent,
+                reorderedFirst,
+                reorderedSecond,
+                reorderedThird,
+            ]
+        )
+
+        #expect(plan.phases[1].operations == [
+            .reorder(ReorderNodeOperation(
+                logicalNodeID: first.logicalNodeID,
+                position: 2
+            )),
+        ])
+    }
+
+    @Test("Reorder targets remain valid until target-only siblings are deleted")
+    func reorderWithPendingSiblingDeletion() throws {
+        let parent = try PlanningTestSupport.folder(id: 10)
+        let first = try PlanningTestSupport.bookmark(
+            id: 2,
+            parent: 10,
+            position: 0
+        )
+        let deleted = try PlanningTestSupport.bookmark(
+            id: 9,
+            parent: 10,
+            position: 1
+        )
+        let second = try PlanningTestSupport.bookmark(
+            id: 3,
+            parent: 10,
+            position: 2
+        )
+        let third = try PlanningTestSupport.bookmark(
+            id: 4,
+            parent: 10,
+            position: 3
+        )
+        let reorderedFirst = try PlanningTestSupport.bookmark(
+            id: 2,
+            parent: 10,
+            position: 2
+        )
+        let reorderedSecond = try PlanningTestSupport.bookmark(
+            id: 3,
+            parent: 10,
+            position: 0
+        )
+        let reorderedThird = try PlanningTestSupport.bookmark(
+            id: 4,
+            parent: 10,
+            position: 1
+        )
+
+        let plan = try PlanningTestSupport.plan(
+            before: [parent, first, deleted, second, third],
+            after: [
+                parent,
+                reorderedFirst,
+                reorderedSecond,
+                reorderedThird,
+            ]
+        )
+
+        #expect(plan.phases[1].operations == [
+            .reorder(ReorderNodeOperation(
+                logicalNodeID: first.logicalNodeID,
+                position: 3
+            )),
+        ])
+        #expect(plan.phases[3].operations == [
+            .delete(DeleteNodeOperation(
+                logicalNodeID: deleted.logicalNodeID
+            )),
+        ])
     }
 
     @Test("Move destination consolidation is independent of diff ordering")
@@ -990,14 +1117,17 @@ struct SynchronizationPlannerTests {
 
         let all = try PlanningTestSupport.plan(
             diff: diff,
+            before: [before],
             policy: .allChanges(direction: PlanningTestSupport.direction)
         )
         let additions = try PlanningTestSupport.plan(
             diff: diff,
+            before: [before],
             policy: .additionsOnly(direction: PlanningTestSupport.direction)
         )
         let content = try PlanningTestSupport.plan(
             diff: diff,
+            before: [before],
             policy: .contentOnly(direction: PlanningTestSupport.direction)
         )
 
@@ -1028,8 +1158,11 @@ struct SynchronizationPlannerTests {
             report: diff.report
         )
 
-        let first = try PlanningTestSupport.plan(diff: diff)
-        let second = try PlanningTestSupport.plan(diff: reversed)
+        let first = try PlanningTestSupport.plan(diff: diff, before: [before])
+        let second = try PlanningTestSupport.plan(
+            diff: reversed,
+            before: [before]
+        )
 
         #expect(first == second)
     }
@@ -1109,6 +1242,72 @@ struct SynchronizationPlannerTests {
     }
 
     private func requireSendable<T: Sendable>(_ value: T) { _ = value }
+
+    @Test("Consistency validation identifies the first invalid insertion")
+    func consistencyValidationFindsFirstDivergence() throws {
+        let root = try PlanningTestSupport.folder(id: 100)
+        let destination = try PlanningTestSupport.folder(id: 10, parent: 100)
+        let origin = try PlanningTestSupport.folder(id: 20, parent: 100)
+        let movedBefore = try PlanningTestSupport.bookmark(id: 30, parent: 20)
+        let movedAfter = try PlanningTestSupport.bookmark(
+            id: 30, parent: 10, position: 0
+        )
+        let created = try PlanningTestSupport.bookmark(
+            id: 40, parent: 10, position: 1
+        )
+        let beforeNodes = [root, destination, origin, movedBefore]
+        let afterNodes = [root, destination, origin, movedAfter, created]
+        let request = SynchronizationPlanningRequest(
+            before: try PlanningTestSupport.graph(nodes: beforeNodes),
+            logicalDiff: try PlanningTestSupport.diff(
+                before: beforeNodes,
+                after: afterNodes
+            ),
+            policy: .allChanges(direction: PlanningTestSupport.direction)
+        )
+        let invalidCreation = SynchronizationOperation.create(
+            CreateNodeOperation(
+                logicalNodeID: created.logicalNodeID,
+                kind: .bookmark,
+                title: "Bookmark",
+                url: created.url,
+                parentID: destination.logicalNodeID,
+                position: 1
+            )
+        )
+        let legacyPlan = SynchronizationPlan(
+            phases: [
+                .preparation([invalidCreation]),
+                .structural([.move(MoveNodeOperation(
+                    logicalNodeID: movedBefore.logicalNodeID,
+                    parentID: destination.logicalNodeID,
+                    position: 0
+                ))]),
+                .content([]),
+                .cleanup([]),
+            ],
+            report: SynchronizationPlanningReport(
+                policy: request.policy,
+                inputChangeCount: request.logicalDiff.changes.count,
+                plannedOperationCount: 2,
+                skippedChangeCount: 0,
+                preparationOperationCount: 1,
+                structuralOperationCount: 1,
+                contentOperationCount: 0,
+                cleanupOperationCount: 0
+            )
+        )
+
+        #expect(throws: SynchronizationPlanningError.executionPlanDiverged(
+            operationIndex: 0,
+            logicalNodeID: created.logicalNodeID
+        )) {
+            try SynchronizationPlanConsistencyValidator().validate(
+                plan: legacyPlan,
+                request: request
+            )
+        }
+    }
 }
 
 private enum PlanningTestSupport {

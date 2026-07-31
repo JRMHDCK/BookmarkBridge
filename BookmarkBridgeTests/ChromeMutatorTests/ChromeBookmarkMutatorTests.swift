@@ -206,8 +206,8 @@ struct ChromeBookmarkMutatorTests {
         }
 
         #expect(plan.operations.map(\.logicalNodeID) == [
-            movedBefore.logicalNodeID,
             created.logicalNodeID,
+            movedBefore.logicalNodeID,
         ])
         #expect(try ChromeMutatorTestSupport.childIdentifiers(
             of: ChromeMutatorTestSupport.deepFolderGUID,

@@ -13,5 +13,9 @@ nonisolated enum SynchronizationPlanningError: Error, Hashable, Sendable {
     case unresolvableOperationDependency([LogicalNodeID])
     case unresolvablePositionDependency([LogicalNodeID])
     case invalidPermanentRootMutation(LogicalNodeID)
+    case executionPlanDiverged(
+        operationIndex: Int?,
+        logicalNodeID: LogicalNodeID
+    )
     case inconsistentPlan
 }

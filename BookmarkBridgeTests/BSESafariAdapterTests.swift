@@ -297,7 +297,7 @@ struct BSESafariAdapterTests {
         let result = try await adapter.read()
 
         #expect(result.snapshot.tree.nodes.filter { $0.kind == .bookmark }.map(\.title) == ["Valid"])
-        #expect(result.snapshot.tree.nodes.first { $0.title == "Valid" }?.position == 1)
+        #expect(result.snapshot.tree.nodes.first { $0.title == "Valid" }?.position == 0)
         #expect(result.issues == [.missingURL(path: path(0, 0))])
     }
 
@@ -515,13 +515,13 @@ struct BSESafariAdapterTests {
     @Test("Default data source extracts native records without BSE conversion")
     func defaultExtractionIsSeparatedFromTransformation() async throws {
         let data = try propertyListData(children: [
+            ["WebBookmarkType": "FutureNode"],
             folderDictionary(
                 id: "native-folder",
                 title: "Folder",
                 nativeRoleIdentifier: "BookmarksBar",
                 children: [bookmarkDictionary(id: "native-bookmark")]
             ),
-            ["WebBookmarkType": "FutureNode"],
         ])
         let fingerprint = SafariStorageFingerprint(
             modificationDate: Date(timeIntervalSince1970: 1_760_000_000),
@@ -535,7 +535,7 @@ struct BSESafariAdapterTests {
         let extracted = try await dataSource.extract()
 
         #expect(extracted.records.count == 1)
-        #expect(extracted.issues == [.unknownNodeType(path: path(1))])
+        #expect(extracted.issues == [.unknownNodeType(path: path(0))])
         #expect(extracted.safariVersion == "18.5-test")
         #expect(extracted.storageVersion == "1")
 
@@ -546,6 +546,47 @@ struct BSESafariAdapterTests {
         #expect(transformed.snapshot.tree.count == 2)
         #expect(transformed.snapshot.tree.roots.first?.node.permanentRootRole
             == .primaryBookmarks)
+        #expect(transformed.snapshot.tree.roots.first?.node.position == 0)
+    }
+
+    @Test("Current Safari root titles identify permanent roots without legacy identifiers")
+    func permanentRootTitleFallback() async throws {
+        let data = try propertyListData(children: [
+            folderDictionary(
+                id: "bar",
+                title: "BookmarksBar",
+                children: []
+            ),
+            folderDictionary(
+                id: "menu",
+                title: "BookmarksMenu",
+                children: []
+            ),
+            folderDictionary(
+                id: "reading",
+                title: "com.apple.ReadingList",
+                children: []
+            ),
+        ])
+        let fingerprint = SafariStorageFingerprint(
+            modificationDate: Date(timeIntervalSince1970: 1_760_000_000),
+            fileSize: data.count
+        )
+
+        let extraction = try await defaultDataSource(
+            data: data,
+            fingerprint: { fingerprint }
+        ).extract()
+        let transformed = try SafariSnapshotTransformer().transform(
+            extraction,
+            sourceID: sourceID()
+        )
+
+        #expect(transformed.snapshot.tree.roots.map(\.node.permanentRootRole) == [
+            .primaryBookmarks,
+            .secondaryBookmarks,
+            .readingList,
+        ])
     }
 
     @Test("Default data source detects a source changing during read")

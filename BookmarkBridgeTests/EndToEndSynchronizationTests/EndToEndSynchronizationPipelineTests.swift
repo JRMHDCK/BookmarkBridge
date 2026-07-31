@@ -161,10 +161,11 @@ struct EndToEndSynchronizationPipelineTests {
 
         let outcome = try await run(scenario)
 
-        #expect(outcome.result.plan.phases[0].operations.isEmpty)
+        #expect(outcome.result.plan.phases[0].operations.map(\.logicalNodeID) == [
+            created.logicalID,
+        ])
         #expect(outcome.result.plan.phases[1].operations.map(\.logicalNodeID) == [
             movedBefore.logicalID,
-            created.logicalID,
         ])
         #expect(outcome.result.execution.status == .completed)
         #expect(outcome.world.writeCount == 2)

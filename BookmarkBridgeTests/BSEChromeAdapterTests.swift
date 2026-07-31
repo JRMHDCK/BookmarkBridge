@@ -449,6 +449,7 @@ struct BSEChromeAdapterTests {
         let result = try await adapter.read()
 
         #expect(result.snapshot.tree.nodes.filter { $0.kind == .bookmark }.map(\.title) == ["Valid"])
+        #expect(result.snapshot.tree.nodes.first { $0.title == "Valid" }?.position == 0)
         #expect(result.issues == [.missingURL(path: path(.bookmarksBar, 0))])
     }
 
@@ -775,7 +776,14 @@ struct BSEChromeAdapterTests {
             "bookmark_bar": folderJSON(
                 id: "bar",
                 name: "Bookmarks Bar",
-                children: [["type": "future", "guid": "future"]]
+                children: [
+                    ["type": "future", "guid": "future"],
+                    bookmarkJSON(
+                        id: "accepted",
+                        name: "Accepted",
+                        url: "https://accepted.test"
+                    ),
+                ]
             ),
         ])
         let dataSource = try defaultDataSource(data: data)
@@ -786,6 +794,16 @@ struct BSEChromeAdapterTests {
             .unknownNodeType(path: path(.bookmarksBar, 0)),
         ])
         #expect(extracted.records.count == 1)
+        let transformed = try ChromeSnapshotTransformer().transform(
+            extracted,
+            sourceID: sourceID()
+        )
+        let accepted = try #require(
+            transformed.snapshot.tree.nodes.first {
+                $0.kind == .bookmark
+            }
+        )
+        #expect(accepted.position == 0)
     }
 
     @Test("Unknown storage versions remain readable but untested")
@@ -820,6 +838,41 @@ struct BSEChromeAdapterTests {
         await #expect(throws: ChromeReadError.snapshotInconsistent) {
             _ = try await dataSource.extract()
         }
+    }
+
+    @Test("Reads through the authorized Chrome directory security scope")
+    func usesAuthorizedDirectoryScope() async throws {
+        let selectedProfile = try profile()
+        let data = try jsonData(roots: [:])
+        let controller = SpySecurityScopedFileController()
+        let chromeDirectory = officialSourceURL(
+            profileIdentifier: selectedProfile
+        )
+        .deletingLastPathComponent()
+        .deletingLastPathComponent()
+        let stableFingerprint = ChromeStorageFingerprint(
+            modificationDate: Date(timeIntervalSince1970: 1_760_000_000),
+            fileSize: data.count
+        )
+        let dataSource = DefaultChromeDataSource(
+            bookmarksFileURL: officialSourceURL(
+                profileIdentifier: selectedProfile
+            ),
+            profileIdentifier: selectedProfile,
+            securityScopeURL: chromeDirectory,
+            fileExists: { _ in true },
+            isReadable: { _ in true },
+            readData: { _ in data },
+            fingerprint: { _ in stableFingerprint },
+            chromeVersion: { "126.0-test" },
+            startAccessing: { controller.startAccessing($0) },
+            stopAccessing: { controller.stopAccessing($0) }
+        )
+
+        _ = try await dataSource.extract()
+
+        #expect(controller.startedURLs == [chromeDirectory])
+        #expect(controller.stoppedURLs == [chromeDirectory])
     }
 
     @Test("Corrupted JSON is a global error")

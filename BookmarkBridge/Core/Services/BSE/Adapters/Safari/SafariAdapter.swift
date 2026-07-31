@@ -4,6 +4,14 @@
 //
 
 import Foundation
+#if DEBUG
+import OSLog
+
+nonisolated private let safariAdapterLogger = Logger(
+    subsystem: "fr.jerome.BookmarkBridge",
+    category: "Synchronization.SafariRead"
+)
+#endif
 
 /// Read-only BSE adapter for exactly one local Safari bookmark source.
 nonisolated struct SafariAdapter: BSEAdapter {
@@ -54,7 +62,22 @@ nonisolated struct SafariAdapter: BSEAdapter {
     /// Safari diagnostics beside (never inside) the resulting snapshot.
     func read() async throws -> SafariReadResult {
         let startedAt = monotonicTime()
-        let extraction = try await dataSource.extract()
+        #if DEBUG
+        safariAdapterLogger.debug(
+            "\(PreviewDiagnosticsContext.prefix, privacy: .public) stage=safari-read status=starting source=\(sourceID.description, privacy: .public)"
+        )
+        #endif
+        let extraction: SafariExtraction
+        do {
+            extraction = try await dataSource.extract()
+        } catch {
+            #if DEBUG
+            safariAdapterLogger.error(
+                "\(PreviewDiagnosticsContext.prefix, privacy: .public) stage=safari-read status=failure \(PreviewDiagnosticsContext.errorDescription(error), privacy: .public)"
+            )
+            #endif
+            throw error
+        }
         let transformed = try transformer.transform(extraction, sourceID: sourceID)
         let duration = max(0, monotonicTime() - startedAt)
         let report = SafariReadReport(
@@ -65,6 +88,11 @@ nonisolated struct SafariAdapter: BSEAdapter {
             safariVersion: extraction.safariVersion,
             storageVersion: extraction.storageVersion
         )
+        #if DEBUG
+        safariAdapterLogger.debug(
+            "\(PreviewDiagnosticsContext.prefix, privacy: .public) stage=safari-read status=success folders=\(report.foldersRead, privacy: .public) bookmarks=\(report.bookmarksRead, privacy: .public) issues=\(report.issuesCount, privacy: .public) storageVersion=\(report.storageVersion ?? "unknown", privacy: .public) browserVersion=\(report.safariVersion ?? "unknown", privacy: .public) duration=\(report.duration, privacy: .public)"
+        )
+        #endif
         return SafariReadResult(
             snapshot: transformed.snapshot,
             report: report,

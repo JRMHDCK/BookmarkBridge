@@ -30,4 +30,8 @@ nonisolated enum SynchronizationPreviewError: Error, Hashable, Sendable {
     case projectionFailure(SynchronizationPreviewFailureContext)
     case diffFailure(SynchronizationPreviewFailureContext)
     case planningFailure(SynchronizationPreviewFailureContext)
+    case suspiciousStructuralChurn(
+        movedCount: Int,
+        equivalentPathMoveCount: Int
+    )
 }

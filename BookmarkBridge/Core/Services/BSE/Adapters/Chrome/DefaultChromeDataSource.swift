@@ -19,6 +19,7 @@ nonisolated struct DefaultChromeDataSource: ChromeDataSource {
     let profileIdentifier: ChromeProfileIdentifier
 
     private let bookmarksFileURL: URL
+    private let securityScopeURL: URL
     private let fileExists: @Sendable (URL) async -> Bool
     private let isReadable: @Sendable (URL) async -> Bool
     private let readData: @Sendable (URL) async throws -> Data
@@ -30,6 +31,7 @@ nonisolated struct DefaultChromeDataSource: ChromeDataSource {
     init(
         bookmarksFileURL: URL,
         profileIdentifier: ChromeProfileIdentifier,
+        securityScopeURL: URL? = nil,
         fileExists: @escaping @Sendable (URL) async -> Bool = {
             FileManager.default.fileExists(atPath: $0.path(percentEncoded: false))
         },
@@ -64,6 +66,7 @@ nonisolated struct DefaultChromeDataSource: ChromeDataSource {
         }
     ) {
         self.bookmarksFileURL = bookmarksFileURL
+        self.securityScopeURL = securityScopeURL ?? bookmarksFileURL
         self.profileIdentifier = profileIdentifier
         self.fileExists = fileExists
         self.isReadable = isReadable
@@ -82,8 +85,8 @@ nonisolated struct DefaultChromeDataSource: ChromeDataSource {
             )
         }
 
-        let accessing = startAccessing(bookmarksFileURL)
-        defer { if accessing { stopAccessing(bookmarksFileURL) } }
+        let accessing = startAccessing(securityScopeURL)
+        defer { if accessing { stopAccessing(securityScopeURL) } }
 
         guard await fileExists(bookmarksFileURL) else {
             return BSEAdapterPermissionStatus(
@@ -137,8 +140,8 @@ nonisolated struct DefaultChromeDataSource: ChromeDataSource {
             throw ChromeReadError.storageUnavailable
         }
 
-        let accessing = startAccessing(bookmarksFileURL)
-        defer { if accessing { stopAccessing(bookmarksFileURL) } }
+        let accessing = startAccessing(securityScopeURL)
+        defer { if accessing { stopAccessing(securityScopeURL) } }
 
         guard await fileExists(bookmarksFileURL) else {
             throw ChromeReadError.storageUnavailable
@@ -185,8 +188,8 @@ nonisolated struct DefaultChromeDataSource: ChromeDataSource {
         guard isOfficialLocalSource else {
             throw ChromeReadError.storageUnavailable
         }
-        let accessing = startAccessing(bookmarksFileURL)
-        defer { if accessing { stopAccessing(bookmarksFileURL) } }
+        let accessing = startAccessing(securityScopeURL)
+        defer { if accessing { stopAccessing(securityScopeURL) } }
         guard await fileExists(bookmarksFileURL) else {
             throw ChromeReadError.storageUnavailable
         }
@@ -307,17 +310,12 @@ nonisolated struct DefaultChromeDataSource: ChromeDataSource {
                 issues.append(.unsupportedNode(path: path))
                 childValues = []
             }
-            let children = childValues.enumerated().compactMap { childPosition, child in
-                decodeRecord(
-                    child,
-                    position: childPosition,
-                    path: ChromeRecordPath(
-                        root: path.root,
-                        positions: path.positions + [childPosition]
-                    ),
-                    issues: &issues
-                )
-            }
+            let children = decodeChildren(
+                childValues,
+                root: path.root,
+                pathPrefix: path.positions,
+                issues: &issues
+            )
             return .folder(ChromeFolderRecord(
                 chromeID: chromeID,
                 chromeGUID: chromeGUID,
@@ -330,6 +328,33 @@ nonisolated struct DefaultChromeDataSource: ChromeDataSource {
             issues.append(.unknownNodeType(path: path))
             return nil
         }
+    }
+
+    /// Keep the raw JSON index in the diagnostic path, but expose contiguous
+    /// logical positions after unsupported Chrome-specific entries are skipped.
+    private static func decodeChildren(
+        _ values: [Any],
+        root: ChromeRootKind,
+        pathPrefix: [Int],
+        issues: inout [ChromeReadIssue]
+    ) -> [ChromeRecord] {
+        var records: [ChromeRecord] = []
+        records.reserveCapacity(values.count)
+        for (rawPosition, value) in values.enumerated() {
+            guard let record = decodeRecord(
+                value,
+                position: records.count,
+                path: ChromeRecordPath(
+                    root: root,
+                    positions: pathPrefix + [rawPosition]
+                ),
+                issues: &issues
+            ) else {
+                continue
+            }
+            records.append(record)
+        }
+        return records
     }
 
     private static func installedChromeVersion() -> String? {

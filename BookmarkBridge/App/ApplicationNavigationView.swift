@@ -65,6 +65,34 @@ struct ApplicationNavigationView: View {
                 presentsOnboarding = false
             }
         }
+        .alert(
+            "Fermez les navigateurs",
+            isPresented: Binding(
+                get: { model.browserClosurePrompt != nil },
+                set: { _ in }
+            ),
+            presenting: model.browserClosurePrompt
+        ) { _ in
+            Button("Annuler", role: .cancel) {
+                model.cancelBrowserClosure()
+            }
+            Button("Fermer les navigateurs et continuer") {
+                Task { await model.closeBrowsersAndContinue() }
+            }
+        } message: { prompt in
+            Text(browserClosureMessage(prompt.browsers))
+        }
+        .alert(
+            "Fermeture impossible",
+            isPresented: Binding(
+                get: { model.browserClosureError != nil },
+                set: { _ in }
+            )
+        ) {
+            Button("OK") { model.dismissBrowserClosureError() }
+        } message: {
+            Text(model.browserClosureError ?? "")
+        }
     }
 
     private var forcesOnboardingForUITests: Bool {
@@ -77,6 +105,11 @@ struct ApplicationNavigationView: View {
         ProcessInfo.processInfo.environment[
             DocumentationPreferences.onboardingUITestSkipEnvironmentKey
         ] == "1"
+    }
+
+    private func browserClosureMessage(_ browsers: [Browser]) -> String {
+        let names = browsers.map(\.displayName).joined(separator: ", ")
+        return "Pour éviter toute modification concurrente ou corruption des favoris, Safari et Chrome doivent être fermés avant cette opération. À fermer : \(names)."
     }
 
     @ViewBuilder

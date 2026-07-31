@@ -237,14 +237,11 @@ nonisolated struct DefaultSafariDataSource: SafariDataSource {
         } else {
             throw SafariReadError.storageCorrupted
         }
-        let records = children.enumerated().compactMap { position, child in
-            decodeRecord(
-                child,
-                position: position,
-                path: SafariRecordPath([position]),
-                issues: &issues
-            )
-        }
+        let records = decodeChildren(
+            children,
+            pathPrefix: [],
+            issues: &issues
+        )
         return SafariExtraction(
             records: records,
             capturedAt: capturedAt,
@@ -313,19 +310,18 @@ nonisolated struct DefaultSafariDataSource: SafariDataSource {
                 issues.append(.unsupportedNode(path: path))
                 childValues = []
             }
-            let children = childValues.enumerated().compactMap { childPosition, child in
-                decodeRecord(
-                    child,
-                    position: childPosition,
-                    path: SafariRecordPath(path.positions + [childPosition]),
-                    issues: &issues
-                )
-            }
+            let children = decodeChildren(
+                childValues,
+                pathPrefix: path.positions,
+                issues: &issues
+            )
             return .folder(SafariFolderRecord(
                 nativeIdentifier: dictionary["WebBookmarkUUID"] as? String,
                 permanentRootRole: path.positions.count == 1
                     ? permanentRootRole(
-                        for: dictionary["WebBookmarkIdentifier"] as? String
+                        identifier:
+                            dictionary["WebBookmarkIdentifier"] as? String,
+                        title: dictionary["Title"] as? String
                     )
                     : nil,
                 title: dictionary["Title"] as? String,
@@ -339,10 +335,36 @@ nonisolated struct DefaultSafariDataSource: SafariDataSource {
         }
     }
 
+    /// Raw indices remain in `path` for precise diagnostics, while positions
+    /// are compacted over accepted records so the universal tree never exposes
+    /// insertion gaps caused by unsupported browser-specific entries.
+    private static func decodeChildren(
+        _ values: [Any],
+        pathPrefix: [Int],
+        issues: inout [SafariReadIssue]
+    ) -> [SafariRecord] {
+        var records: [SafariRecord] = []
+        records.reserveCapacity(values.count)
+        for (rawPosition, value) in values.enumerated() {
+            guard let record = decodeRecord(
+                value,
+                position: records.count,
+                path: SafariRecordPath(pathPrefix + [rawPosition]),
+                issues: &issues
+            ) else {
+                continue
+            }
+            records.append(record)
+        }
+        return records
+    }
+
     private static func permanentRootRole(
-        for nativeIdentifier: String?
+        identifier: String?,
+        title: String?
     ) -> PermanentRootRole? {
-        switch nativeIdentifier {
+        let marker = identifier ?? title
+        return switch marker {
         case "BookmarksBar":
             .primaryBookmarks
         case "BookmarksMenu":

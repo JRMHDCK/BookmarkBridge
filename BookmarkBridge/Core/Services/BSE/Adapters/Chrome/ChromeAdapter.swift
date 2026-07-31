@@ -4,6 +4,14 @@
 //
 
 import Foundation
+#if DEBUG
+import OSLog
+
+nonisolated private let chromeAdapterLogger = Logger(
+    subsystem: "fr.jerome.BookmarkBridge",
+    category: "Synchronization.ChromeRead"
+)
+#endif
 
 /// Read-only BSE adapter for exactly one local Chrome profile.
 nonisolated struct ChromeAdapter: BSEAdapter {
@@ -61,7 +69,22 @@ nonisolated struct ChromeAdapter: BSEAdapter {
         }
 
         let startedAt = monotonicTime()
-        let extraction = try await dataSource.extract()
+        #if DEBUG
+        chromeAdapterLogger.debug(
+            "\(PreviewDiagnosticsContext.prefix, privacy: .public) stage=chrome-read status=starting source=\(sourceID.description, privacy: .public) profile=\(profileIdentifier.rawValue, privacy: .public)"
+        )
+        #endif
+        let extraction: ChromeExtraction
+        do {
+            extraction = try await dataSource.extract()
+        } catch {
+            #if DEBUG
+            chromeAdapterLogger.error(
+                "\(PreviewDiagnosticsContext.prefix, privacy: .public) stage=chrome-read status=failure \(PreviewDiagnosticsContext.errorDescription(error), privacy: .public)"
+            )
+            #endif
+            throw error
+        }
         guard extraction.profileIdentifier == profileIdentifier else {
             throw ChromeReadError.profileMismatch
         }
@@ -76,6 +99,11 @@ nonisolated struct ChromeAdapter: BSEAdapter {
             storageVersion: extraction.storageVersion,
             profileIdentifier: extraction.profileIdentifier
         )
+        #if DEBUG
+        chromeAdapterLogger.debug(
+            "\(PreviewDiagnosticsContext.prefix, privacy: .public) stage=chrome-read status=success profile=\(report.profileIdentifier.rawValue, privacy: .public) folders=\(report.foldersRead, privacy: .public) bookmarks=\(report.bookmarksRead, privacy: .public) issues=\(report.issuesCount, privacy: .public) storageVersion=\(report.storageVersion ?? "unknown", privacy: .public) browserVersion=\(report.chromeVersion ?? "unknown", privacy: .public) duration=\(report.duration, privacy: .public)"
+        )
+        #endif
         return ChromeReadResult(
             snapshot: transformed.snapshot,
             report: report,

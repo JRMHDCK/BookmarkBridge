@@ -258,6 +258,10 @@ nonisolated private extension SynchronizationPreviewRequest {
             && chromeSourceID == request.chromeSourceID
             && safariBookmarksURL == request.safariBookmarksURL
             && chromeBookmarksURL == request.chromeBookmarksURL
+            && safariSecurityScopeURL
+                == request.safariSecurityScopeURL
+            && chromeSecurityScopeURL
+                == request.chromeSecurityScopeURL
             && chromeProfileIdentifier == request.chromeProfileIdentifier
     }
 }

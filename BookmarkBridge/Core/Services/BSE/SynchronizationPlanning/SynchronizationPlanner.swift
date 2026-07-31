@@ -66,7 +66,9 @@ nonisolated struct SynchronizationPlanner: Sendable {
             before: request.before
         )
         structural = try orderStructuralOperations(
-            structural,
+            structural.filter {
+                if case .move = $0 { true } else { false }
+            },
             afterCreating: preparation,
             before: request.before,
             deletedNodeIDs: Set(cleanup.compactMap { operation in
@@ -74,13 +76,18 @@ nonisolated struct SynchronizationPlanner: Sendable {
                 return operation.logicalNodeID
             })
         )
-        let positionOrdered = try PositionDependencyScheduler(
+        let predicted = try SynchronizationPlanModel.predicted(
+            request: request
+        )
+        let executableStructure = try ExecutableSynchronizationStructureBuilder(
+            before: request.before,
+            predicted: predicted
+        ).build(
             creations: preparation,
-            structuralOperations: structural,
-            before: request.before
-        ).ordered()
-        preparation = positionOrdered.preparation
-        structural = positionOrdered.structural
+            structuralOperations: structural
+        )
+        preparation = executableStructure.preparation
+        structural = executableStructure.structural
         content.sort(by: operationOrder)
         cleanup.sort(by: operationOrder)
         cleanup = try orderDeleteOperations(
@@ -95,7 +102,7 @@ nonisolated struct SynchronizationPlanner: Sendable {
         ]
         try validatePlan(phases)
         let operationCount = phases.reduce(0) { $0 + $1.operations.count }
-        return SynchronizationPlan(
+        let plan = SynchronizationPlan(
             phases: phases,
             report: SynchronizationPlanningReport(
                 policy: request.policy,
@@ -108,6 +115,11 @@ nonisolated struct SynchronizationPlanner: Sendable {
                 cleanupOperationCount: cleanup.count
             )
         )
+        try SynchronizationPlanConsistencyValidator().validate(
+            plan: plan,
+            request: request
+        )
+        return plan
     }
 
     private func validate(_ diff: LogicalDiffResult) throws {
@@ -421,276 +433,6 @@ nonisolated struct SynchronizationPlanner: Sendable {
     }
 }
 
-/// Merges the already validated creation and structural orders against the
-/// child counts that exist at each intermediate step. A creation remains in
-/// preparation only while it can execute before every structural mutation;
-/// once a move is required, all following structural mutations and dependent
-/// creations share the structural phase in their exact executable order.
-private nonisolated struct PositionDependencyScheduler {
-    private let creations: [SynchronizationOperation]
-    private let structuralOperations: [SynchronizationOperation]
-    private let before: LogicalStateGraph
-
-    init(
-        creations: [SynchronizationOperation],
-        structuralOperations: [SynchronizationOperation],
-        before: LogicalStateGraph
-    ) {
-        self.creations = creations
-        self.structuralOperations = structuralOperations
-        self.before = before
-    }
-
-    func ordered() throws -> (
-        preparation: [SynchronizationOperation],
-        structural: [SynchronizationOperation]
-    ) {
-        var state = try PositionPlanningState(before: before)
-        var remainingCreations = creations
-        var remainingStructural = structuralOperations
-        var preparation: [SynchronizationOperation] = []
-        var structural: [SynchronizationOperation] = []
-        var structuralPhaseStarted = false
-
-        while !remainingCreations.isEmpty || !remainingStructural.isEmpty {
-            let pending = remainingCreations + remainingStructural
-            if let creationIndex = firstReadyOperationIndex(
-                in: remainingCreations,
-                state: state,
-                pending: pending
-            ) {
-                let creation = remainingCreations.remove(
-                    at: creationIndex
-                )
-                try state.apply(creation)
-                if structuralPhaseStarted {
-                    structural.append(creation)
-                } else {
-                    preparation.append(creation)
-                }
-                continue
-            }
-            if let structuralIndex = firstReadyOperationIndex(
-                in: remainingStructural,
-                state: state,
-                pending: pending
-            ) {
-                let structuralOperation = remainingStructural.remove(
-                    at: structuralIndex
-                )
-                structuralPhaseStarted = true
-                try state.apply(structuralOperation)
-                structural.append(structuralOperation)
-                continue
-            }
-
-            let blockedIDs = (
-                remainingCreations + remainingStructural
-            ).map(\.logicalNodeID)
-            throw SynchronizationPlanningError
-                .unresolvablePositionDependency(
-                    Array(Set(blockedIDs)).sorted()
-                )
-        }
-        return (preparation, structural)
-    }
-
-    /// The pre-existing topological orders remain the stable priority. A
-    /// blocked head does not hide a later independent operation that can make
-    /// its position reachable.
-    private func firstReadyOperationIndex(
-        in operations: [SynchronizationOperation],
-        state: PositionPlanningState,
-        pending: [SynchronizationOperation]
-    ) -> Int? {
-        operations.indices.first { index in
-            let operation = operations[index]
-            return state.canApply(operation)
-                && !isBlockedByEarlierDestinationOperation(
-                    operation,
-                    pending: pending
-                )
-        }
-    }
-
-    /// Operations that insert into one destination establish its final prefix
-    /// in increasing position order. This is a real dependency even when the
-    /// current child count would make a later insertion technically possible.
-    private func isBlockedByEarlierDestinationOperation(
-        _ operation: SynchronizationOperation,
-        pending: [SynchronizationOperation]
-    ) -> Bool {
-        guard let insertion = PositionInsertion(operation) else {
-            return false
-        }
-        return pending.contains { candidate in
-            guard let other = PositionInsertion(candidate),
-                  other.parentID == insertion.parentID else {
-                return false
-            }
-            if other.position != insertion.position {
-                return other.position < insertion.position
-            }
-            return other.logicalNodeID < insertion.logicalNodeID
-        }
-    }
-}
-
-private nonisolated struct PositionInsertion {
-    let logicalNodeID: LogicalNodeID
-    let parentID: LogicalNodeID?
-    let position: Int
-
-    init?(_ operation: SynchronizationOperation) {
-        switch operation {
-        case .create(let create):
-            logicalNodeID = create.logicalNodeID
-            parentID = create.parentID
-            position = create.position
-        case .move(let move):
-            logicalNodeID = move.logicalNodeID
-            parentID = move.parentID
-            position = move.position
-        case .reorder, .rename, .updateURL, .archive, .delete:
-            return nil
-        }
-    }
-}
-
-private nonisolated struct PositionPlanningState {
-    private var existingNodeIDs: Set<LogicalNodeID>
-    private var parentByNodeID: [LogicalNodeID: LogicalNodeID]
-    private var childCountByParent: [LogicalNodeID?: Int]
-
-    init(before: LogicalStateGraph) throws {
-        existingNodeIDs = Set(before.nodes.map(\.logicalNodeID))
-        parentByNodeID = Dictionary(
-            uniqueKeysWithValues: before.nodes.compactMap { node in
-                guard let parentID = node.parentID else { return nil }
-                return (node.logicalNodeID, parentID)
-            }
-        )
-        childCountByParent = Dictionary(
-            grouping: before.nodes,
-            by: \.parentID
-        ).mapValues(\.count)
-    }
-
-    func canApply(_ operation: SynchronizationOperation) -> Bool {
-        switch operation {
-        case .create(let create):
-            guard !existingNodeIDs.contains(create.logicalNodeID),
-                  parentExists(create.parentID) else {
-                return false
-            }
-            return isValidInsertion(
-                create.position,
-                childCount: childCount(for: create.parentID)
-            )
-        case .move(let move):
-            guard existingNodeIDs.contains(move.logicalNodeID),
-                  parentExists(move.parentID),
-                  !wouldCreateCycle(
-                    moving: move.logicalNodeID,
-                    to: move.parentID
-                  ) else {
-                return false
-            }
-            let oldParent = parentByNodeID[move.logicalNodeID]
-            let availableCount = childCount(for: move.parentID)
-                - (oldParent == move.parentID ? 1 : 0)
-            return isValidInsertion(
-                move.position,
-                childCount: availableCount
-            )
-        case .reorder(let reorder):
-            guard existingNodeIDs.contains(reorder.logicalNodeID) else {
-                return false
-            }
-            let parentID = parentByNodeID[reorder.logicalNodeID]
-            return isValidInsertion(
-                reorder.position,
-                childCount: childCount(for: parentID) - 1
-            )
-        case .rename, .updateURL, .archive, .delete:
-            return false
-        }
-    }
-
-    mutating func apply(_ operation: SynchronizationOperation) throws {
-        guard canApply(operation) else {
-            throw SynchronizationPlanningError
-                .unresolvablePositionDependency([operation.logicalNodeID])
-        }
-        switch operation {
-        case .create(let create):
-            existingNodeIDs.insert(create.logicalNodeID)
-            if let parentID = create.parentID {
-                parentByNodeID[create.logicalNodeID] = parentID
-            }
-            incrementChildren(of: create.parentID)
-        case .move(let move):
-            let oldParent = parentByNodeID[move.logicalNodeID]
-            if oldParent != move.parentID {
-                decrementChildren(of: oldParent)
-                incrementChildren(of: move.parentID)
-            }
-            if let parentID = move.parentID {
-                parentByNodeID[move.logicalNodeID] = parentID
-            } else {
-                parentByNodeID.removeValue(forKey: move.logicalNodeID)
-            }
-        case .reorder:
-            break
-        case .rename, .updateURL, .archive, .delete:
-            throw SynchronizationPlanningError.inconsistentPlan
-        }
-    }
-
-    private func parentExists(_ parentID: LogicalNodeID?) -> Bool {
-        parentID.map(existingNodeIDs.contains) ?? true
-    }
-
-    private func childCount(for parentID: LogicalNodeID?) -> Int {
-        childCountByParent[parentID, default: 0]
-    }
-
-    private func isValidInsertion(
-        _ position: Int,
-        childCount: Int
-    ) -> Bool {
-        position >= 0 && position <= childCount
-    }
-
-    private func wouldCreateCycle(
-        moving logicalNodeID: LogicalNodeID,
-        to parentID: LogicalNodeID?
-    ) -> Bool {
-        var ancestor = parentID
-        var visited: Set<LogicalNodeID> = []
-        while let ancestorID = ancestor {
-            guard ancestorID != logicalNodeID,
-                  visited.insert(ancestorID).inserted else {
-                return true
-            }
-            ancestor = parentByNodeID[ancestorID]
-        }
-        return false
-    }
-
-    private mutating func incrementChildren(
-        of parentID: LogicalNodeID?
-    ) {
-        childCountByParent[parentID, default: 0] += 1
-    }
-
-    private mutating func decrementChildren(
-        of parentID: LogicalNodeID?
-    ) {
-        childCountByParent[parentID, default: 0] -= 1
-    }
-}
-
 /// Deterministic topological ordering for the preparation phase. Explicit
 /// edges ensure that a created parent exists before any created descendant.
 private nonisolated struct CreationDependencyOrderer {
@@ -836,6 +578,13 @@ private nonisolated struct StructuralDependencyOrderer {
             guard case .move(let move) = operation else { return nil }
             return move
         }
+        let reorderOperations = operationsByKey.values.compactMap {
+            operation -> ReorderNodeOperation? in
+            guard case .reorder(let reorder) = operation else {
+                return nil
+            }
+            return reorder
+        }
         var finalParents = currentParents
         for move in moveOperations {
             guard knownNodeIDs.contains(move.logicalNodeID) else {
@@ -907,6 +656,28 @@ private nonisolated struct StructuralDependencyOrderer {
                         OperationKey(.move(move))
                     )
                 }
+            }
+        }
+
+        // Repeated remove-and-insert mutations are order-dependent. Applying
+        // siblings in increasing final position establishes the final prefix;
+        // UUID ordering can displace an earlier result and leave a residual
+        // reorder diff after every operation has reported success.
+        for siblings in Dictionary(
+            grouping: reorderOperations,
+            by: { finalParents[$0.logicalNodeID] }
+        ).values {
+            let orderedSiblings = siblings.sorted {
+                if $0.position != $1.position {
+                    return $0.position < $1.position
+                }
+                return $0.logicalNodeID < $1.logicalNodeID
+            }
+            for pair in zip(orderedSiblings, orderedSiblings.dropFirst()) {
+                dependencies[
+                    OperationKey(.reorder(pair.1)),
+                    default: []
+                ].insert(OperationKey(.reorder(pair.0)))
             }
         }
 

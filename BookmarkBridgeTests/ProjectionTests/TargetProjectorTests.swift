@@ -101,6 +101,34 @@ struct TargetProjectorTests {
         ])
     }
 
+    @Test("Projection canonicalizes sparse browser positions after filtering")
+    func canonicalizesSparseChildPositions() throws {
+        let source = try snapshot(source: safari, nodes: [
+            folder(1, "Root"),
+            folder(2, "Only Retained Child", parent: 1, position: 22),
+        ])
+        let target = try snapshot(source: chrome, nodes: [
+            folder(1, "Root"),
+        ])
+
+        let projection = try project(source: source, target: target)
+        let diff = try LogicalDiffEngine().diff(request: .init(
+            before: projection.before,
+            after: projection.after
+        ))
+        let plan = try SynchronizationPlanner().plan(request: .init(
+            before: projection.before,
+            logicalDiff: diff,
+            policy: .allChanges(direction: .oneWay(
+                source: safari,
+                target: chrome
+            ))
+        ))
+
+        #expect(projection.after.node(for: logicalID(2))?.position == 0)
+        #expect(plan.report.plannedOperationCount == 1)
+    }
+
     @Test("Additions-only preserves target nodes and adds only missing source identities")
     func additionsOnly() throws {
         let source = try snapshot(source: safari, nodes: [
@@ -133,11 +161,56 @@ struct TargetProjectorTests {
         #expect(projection.after.node(for: logicalID(4)) != nil)
         #expect(diff.changes.count == 1)
         #expect(diff.changes.first?.logicalNodeID == logicalID(3))
+        #expect(projection.after.node(for: logicalID(3))?.position == 2)
         if case .created = diff.changes.first {
             // Expected.
         } else {
             Issue.record("The only projected change must be a creation")
         }
+    }
+
+    @Test("Additions-only translates sparse source positions into executable target positions")
+    func additionsOnlyNormalizesSparseSourcePositions() throws {
+        let source = try snapshot(source: safari, nodes: [
+            folder(1, "Root"),
+            folder(2, "Destination", parent: 1),
+            bookmark(3, "Existing Elsewhere", parent: 1, position: 1),
+            bookmark(4, "New", parent: 2, position: 22),
+        ])
+        let target = try snapshot(source: chrome, nodes: [
+            folder(1, "Root"),
+            folder(2, "Destination", parent: 1),
+            bookmark(3, "Existing Elsewhere", parent: 1, position: 1),
+        ])
+        let direction = SynchronizationDirection.oneWay(
+            source: safari,
+            target: chrome
+        )
+        let policy = SynchronizationPolicy.additionsOnly(direction: direction)
+
+        let projection = try TargetProjector().project(request: .init(
+            sourceSnapshot: source,
+            targetSnapshot: target,
+            policy: policy
+        ))
+        let diff = try LogicalDiffEngine().diff(request: .init(
+            before: projection.before,
+            after: projection.after
+        ))
+        let plan = try SynchronizationPlanner().plan(request: .init(
+            before: projection.before,
+            logicalDiff: diff,
+            policy: policy
+        ))
+
+        #expect(projection.after.node(for: logicalID(4))?.position == 0)
+        #expect(plan.report.plannedOperationCount == 1)
+        guard case .create(let creation) = plan.phases[0].operations.first else {
+            Issue.record("The sparse source addition must produce one creation")
+            return
+        }
+        #expect(creation.logicalNodeID == logicalID(4))
+        #expect(creation.position == 0)
     }
 
     @Test("Content-only projects title and URL without projecting structure or population")

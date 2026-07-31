@@ -77,6 +77,10 @@ nonisolated struct SafariSnapshotTransformer: Sendable {
         ) else { return }
 
         let title = title(folder.title, path: folder.path, issues: &state.issues)
+        let position = state.nextPosition(
+            original: folder.position,
+            parentID: parentID
+        )
         do {
             state.nodes.append(try BSENode(
                 logicalID: identity.logicalNodeID,
@@ -84,7 +88,7 @@ nonisolated struct SafariSnapshotTransformer: Sendable {
                 permanentRootRole: folder.permanentRootRole,
                 title: title,
                 parentID: parentID,
-                position: folder.position
+                position: position
             ))
         } catch {
             throw SafariReadError.snapshotInconsistent
@@ -125,6 +129,10 @@ nonisolated struct SafariSnapshotTransformer: Sendable {
             state.issues.append(.invalidURL(path: bookmark.path))
             return
         }
+        let position = state.nextPosition(
+            original: bookmark.position,
+            parentID: parentID
+        )
 
         do {
             state.nodes.append(try BSENode(
@@ -132,7 +140,7 @@ nonisolated struct SafariSnapshotTransformer: Sendable {
                 kind: .bookmark,
                 title: title,
                 parentID: parentID,
-                position: bookmark.position,
+                position: position,
                 url: url
             ))
         } catch {
@@ -224,8 +232,19 @@ nonisolated private struct TransformationState {
     var nativeIdentityObservations: [NativeIdentityObservation] = []
     var issues: [SafariReadIssue]
     var nativeIdentifiers: Set<String> = []
+    var nextChildPositionByParent: [LogicalNodeID: Int] = [:]
     var foldersRead = 0
     var bookmarksRead = 0
+
+    mutating func nextPosition(
+        original: Int,
+        parentID: LogicalNodeID?
+    ) -> Int {
+        guard let parentID else { return original }
+        let position = nextChildPositionByParent[parentID, default: 0]
+        nextChildPositionByParent[parentID] = position + 1
+        return position
+    }
 }
 
 nonisolated private struct ProvisionalNativeIdentity {

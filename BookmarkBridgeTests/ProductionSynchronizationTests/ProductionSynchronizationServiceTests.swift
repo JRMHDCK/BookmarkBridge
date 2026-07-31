@@ -85,7 +85,7 @@ struct ProductionSynchronizationServiceTests {
 
         #expect(
             first.synchronization.plan.operations.map(\.kind)
-                == [.move, .create]
+                == [.create, .move]
         )
         #expect(first.synchronization.diffAfter.changes.isEmpty)
         #expect(second.synchronization.diffBefore.changes.isEmpty)
@@ -211,7 +211,7 @@ struct ProductionSynchronizationServiceTests {
         try fixture.expectOriginalFixturesUnchanged()
     }
 
-    @Test("A target save failure is explicit and preserves the target file")
+    @Test("An open Chrome blocks the transaction before backup or write")
     func targetSaveFailure() async throws {
         let fixture = try await ProductionFixture.make(
             scenario: .creation,
@@ -224,7 +224,7 @@ struct ProductionSynchronizationServiceTests {
         let identitiesBefore =
             try fixture.nativeIdentityRepository.transactionSnapshot()
 
-        await #expect(throws: SynchronizationTransactionError.self) {
+        await #expect(throws: ProductionSynchronizationError.self) {
             _ = try await fixture.service.synchronize(
                 confirmedPlan: confirmedPlan
             )
@@ -236,13 +236,11 @@ struct ProductionSynchronizationServiceTests {
             try fixture.nativeIdentityRepository.transactionSnapshot()
                 == identitiesBefore
         )
-        #expect(try fixture.backupCount == 1)
+        #expect(try fixture.backupCount == 0)
         try fixture.expectOriginalFixturesUnchanged()
     }
 
-    @Test(
-        "Chrome to Safari failure restores file, Baseline, and native identities"
-    )
+    @Test("An open Safari blocks the transaction before backup or write")
     func reverseTargetSaveFailure() async throws {
         let fixture = try await ProductionFixture.make(
             scenario: .reverseCreation,
@@ -255,7 +253,7 @@ struct ProductionSynchronizationServiceTests {
         let identitiesBefore =
             try fixture.nativeIdentityRepository.transactionSnapshot()
 
-        await #expect(throws: SynchronizationTransactionError.self) {
+        await #expect(throws: ProductionSynchronizationError.self) {
             _ = try await fixture.service.synchronize(
                 confirmedPlan: confirmedPlan
             )
@@ -267,7 +265,7 @@ struct ProductionSynchronizationServiceTests {
             try fixture.nativeIdentityRepository.transactionSnapshot()
                 == identitiesBefore
         )
-        #expect(try fixture.backupCount == 1)
+        #expect(try fixture.backupCount == 0)
         try fixture.expectOriginalFixturesUnchanged()
     }
 
@@ -277,7 +275,7 @@ struct ProductionSynchronizationServiceTests {
     func laterChromeFailureRollsBackPersistentState() async throws {
         let fixture = try await ProductionFixture.make(
             scenario: .hierarchicalCreation,
-            chromeOpenOnSaveAttempt: 2
+            chromeOpenOnSaveAttempt: 3
         )
         defer { fixture.remove() }
         let confirmedPlan = try await fixture.confirmedPlan()
@@ -306,7 +304,7 @@ struct ProductionSynchronizationServiceTests {
     func laterSafariFailureRollsBackPersistentState() async throws {
         let fixture = try await ProductionFixture.make(
             scenario: .reverseHierarchicalCreation,
-            safariOpenOnSaveAttempt: 2
+            safariOpenOnSaveAttempt: 3
         )
         defer { fixture.remove() }
         let confirmedPlan = try await fixture.confirmedPlan()
@@ -335,7 +333,7 @@ struct ProductionSynchronizationServiceTests {
     func laterChromeDeleteFailureRollsBackPersistentState() async throws {
         let fixture = try await ProductionFixture.make(
             scenario: .multipleDeletions,
-            chromeOpenOnSaveAttempt: 2
+            chromeOpenOnSaveAttempt: 3
         )
         defer { fixture.remove() }
         let confirmedPlan = try await fixture.confirmedPlan()
@@ -364,7 +362,7 @@ struct ProductionSynchronizationServiceTests {
     func laterSafariDeleteFailureRollsBackPersistentState() async throws {
         let fixture = try await ProductionFixture.make(
             scenario: .reverseMultipleDeletions,
-            safariOpenOnSaveAttempt: 2
+            safariOpenOnSaveAttempt: 3
         )
         defer { fixture.remove() }
         let confirmedPlan = try await fixture.confirmedPlan()
@@ -495,7 +493,7 @@ enum ProductionScenario: String, CaseIterable, Sendable {
         case .hierarchicalCreation, .reverseHierarchicalCreation:
             [.create, .create, .create, .create, .create]
         case .positionDependentCreation, .reversePositionDependentCreation:
-            [.move, .create]
+            [.create, .move]
         case .rename:
             [.rename]
         case .move:

@@ -188,14 +188,18 @@ final class SpySecurityScopedFileController: SecurityScopedFileControlling, @unc
 
     private(set) var startCount = 0
     private(set) var stopCount = 0
+    private(set) var startedURLs: [URL] = []
+    private(set) var stoppedURLs: [URL] = []
 
     func fileExists(at url: URL) -> Bool { exists }
     func isReadable(at url: URL) -> Bool { readable }
     func startAccessing(_ url: URL) -> Bool {
         startCount += 1
+        startedURLs.append(url)
         return startReturnValue
     }
     func stopAccessing(_ url: URL) {
         stopCount += 1
+        stoppedURLs.append(url)
     }
 }
