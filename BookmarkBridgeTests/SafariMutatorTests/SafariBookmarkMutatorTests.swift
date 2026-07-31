@@ -89,6 +89,37 @@ struct SafariBookmarkMutatorTests {
         ) == nil)
     }
 
+    @Test("Create materializes Children for a Safari empty list that omits it")
+    func createInEmptyListWithoutChildren() throws {
+        var propertyList = MutatorTestSupport.propertyList()
+        var children = try #require(propertyList["Children"] as? [[String: Any]])
+        children[0].removeValue(forKey: "Children")
+        propertyList["Children"] = children
+        let document = try MutatorTestSupport.document(propertyList)
+        let setup = try MutatorTestSupport.setup(document: document)
+        let createdID = MutatorTestSupport.logicalID(31)
+        let nativeID = NativeNodeIdentifier("00000000-0000-0000-0000-000000000031")
+        let url = try #require(URL(string: "https://created.example/path"))
+
+        let result = try setup.mutator(
+            provider: FixedNativeIdentifierProvider(nativeID)
+        ).apply(.create(CreateNodeOperation(
+            logicalNodeID: createdID,
+            kind: .bookmark,
+            title: "Created bookmark",
+            url: url,
+            parentID: MutatorTestSupport.folderAID,
+            position: 0
+        )), to: setup.document)
+
+        let root = try MutatorTestSupport.root(of: result.document)
+        let folder = try #require(MutatorTestSupport.node(
+            MutatorTestSupport.folderAUUID,
+            in: root
+        ))
+        #expect(try MutatorTestSupport.childUUIDs(of: folder) == [nativeID.rawValue])
+    }
+
     @Test("A dependency-ordered plan creates a three-level Safari tree")
     func dependencyOrderedNestedCreationPlan() throws {
         let setup = try MutatorTestSupport.setup()
@@ -145,7 +176,7 @@ struct SafariBookmarkMutatorTests {
         #expect(try MutatorTestSupport.childUUIDs(of: grandchildNode) == [nativeIDs[3].rawValue])
     }
 
-    @Test("A position-dependent Safari plan moves before creating")
+    @Test("A position-dependent Safari plan keeps the predicted final order")
     func positionDependentMoveThenCreatePlan() throws {
         let setup = try MutatorTestSupport.setup()
         let folderA = try MutatorTestSupport.logicalFolder(
@@ -198,8 +229,8 @@ struct SafariBookmarkMutatorTests {
         }
 
         #expect(plan.operations.map(\.logicalNodeID) == [
-            movedBefore.logicalNodeID,
             created.logicalNodeID,
+            movedBefore.logicalNodeID,
         ])
         let root = try MutatorTestSupport.root(of: document)
         let destinationNode = try #require(MutatorTestSupport.node(

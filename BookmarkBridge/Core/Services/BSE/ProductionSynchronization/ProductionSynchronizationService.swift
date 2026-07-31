@@ -145,7 +145,6 @@ nonisolated struct ProductionSynchronizationService: Sendable {
                     validation: validation
                 )
                 let pipeline: EndToEndSynchronizationPipeline
-
                 switch request.direction {
                 case .safariToChrome:
                     pipeline = EndToEndSynchronizationPipeline(
@@ -286,7 +285,7 @@ nonisolated struct ProductionSynchronizationService: Sendable {
             identifier: safariAdapterIdentifier,
             sourceID: request.safariSourceID,
             store: safariStore,
-            mutator: safariMutator,
+            mutator: SafariWriter(mutator: safariMutator),
             nativeIdentityRepository: nativeIdentityRepository
         )
         let chromeWriter = ChromeBookmarkWriteAdapter(

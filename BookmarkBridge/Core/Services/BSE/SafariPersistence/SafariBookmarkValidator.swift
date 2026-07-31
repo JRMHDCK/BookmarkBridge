@@ -52,9 +52,10 @@ nonisolated struct SafariBookmarkValidator: SafariBookmarkValidating {
 
         switch node["WebBookmarkType"] as? String {
         case "WebBookmarkTypeList":
-            guard let children = node["Children"] as? [Any] else {
+            guard node["Children"] == nil || node["Children"] is [Any] else {
                 throw SafariPersistenceError.invalidStructure(.invalidChildren(path: path))
             }
+            let children = node["Children"] as? [Any] ?? []
             for (index, child) in children.enumerated() {
                 guard let childNode = child as? [String: Any] else {
                     throw SafariPersistenceError.invalidStructure(
@@ -77,6 +78,18 @@ nonisolated struct SafariBookmarkValidator: SafariBookmarkValidating {
             }
             guard node["Children"] == nil else {
                 throw SafariPersistenceError.invalidStructure(.invalidChildren(path: path))
+            }
+        case "WebBookmarkTypeProxy":
+            guard let identifier = node["WebBookmarkIdentifier"] as? String,
+                  !identifier.isEmpty else {
+                throw SafariPersistenceError.invalidStructure(
+                    .invalidNode(path: path)
+                )
+            }
+            guard node["Children"] == nil else {
+                throw SafariPersistenceError.invalidStructure(
+                    .invalidChildren(path: path)
+                )
             }
         default:
             throw SafariPersistenceError.invalidStructure(.invalidNode(path: path))

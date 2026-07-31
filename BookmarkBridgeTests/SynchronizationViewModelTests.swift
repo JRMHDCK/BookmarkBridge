@@ -121,6 +121,37 @@ struct SynchronizationViewModelTests {
         #expect(preview.target.name == "Chrome — Default")
     }
 
+    @Test("Chrome to Safari uses the normal executable preview")
+    func chromeToSafariPreview() async throws {
+        let result = try makeResult(
+            operations: [
+                .delete(DeleteNodeOperation(logicalNodeID: logicalID(1))),
+            ],
+            direction: .chromeToSafari
+        )
+        let executionService = ExecutionServiceDouble()
+        let viewModel = makeViewModel(
+            service: PreviewServiceDouble(result: result),
+            executionService: executionService
+        )
+
+        await viewModel.loadPreview(
+            safari: safariSummary,
+            chrome: chromeSummary,
+            direction: .chromeToSafari
+        )
+
+        guard case .loaded(let preview) = viewModel.state else {
+            Issue.record("Expected a loaded Chrome to Safari preview")
+            return
+        }
+        #expect(preview.source.name == "Chrome — Default")
+        #expect(preview.target.name == "Safari")
+        #expect(preview.totalOperationCount == 1)
+        #expect(viewModel.previewDirection == .chromeToSafari)
+        #expect(viewModel.canSynchronize)
+    }
+
     @Test("Reset clears a previously loaded preview")
     func reset() async throws {
         let result = try makeResult(operations: [
@@ -211,11 +242,13 @@ struct SynchronizationViewModelTests {
 
         let first = try await provider.makeRequest(
             safariSource: safariSource,
-            chromeSource: chromeSource
+            chromeSource: chromeSource,
+            direction: .safariToChrome
         )
         let second = try await provider.makeRequest(
             safariSource: safariSource,
-            chromeSource: chromeSource
+            chromeSource: chromeSource,
+            direction: .safariToChrome
         )
 
         #expect(first.safariSecurityScopeURL == safariURL)
@@ -227,6 +260,13 @@ struct SynchronizationViewModelTests {
         )
         #expect(first.safariSourceID == second.safariSourceID)
         #expect(first.chromeSourceID == second.chromeSourceID)
+
+        let reverse = try await provider.makeRequest(
+            safariSource: safariSource,
+            chromeSource: chromeSource,
+            direction: .chromeToSafari
+        )
+        #expect(reverse.direction == .chromeToSafari)
     }
 
     @Test("A successful synchronization automatically refreshes the preview")
@@ -393,13 +433,25 @@ struct SynchronizationViewModelTests {
     }
 
     private func makeResult(
-        operations: [SynchronizationOperation]
+        operations: [SynchronizationOperation],
+        direction productionDirection:
+            ProductionSynchronizationDirection = .safariToChrome
     ) throws -> SynchronizationPreviewResult {
         let safariSourceID = sourceID(1)
         let chromeSourceID = sourceID(2)
+        let sourceID: BSESourceID
+        let targetID: BSESourceID
+        switch productionDirection {
+        case .safariToChrome:
+            sourceID = safariSourceID
+            targetID = chromeSourceID
+        case .chromeToSafari:
+            sourceID = chromeSourceID
+            targetID = safariSourceID
+        }
         let direction = SynchronizationDirection.oneWay(
-            source: safariSourceID,
-            target: chromeSourceID
+            source: sourceID,
+            target: targetID
         )
         let policy = SynchronizationPolicy.allChanges(direction: direction)
         let plan = SynchronizationPlan(
@@ -444,7 +496,7 @@ struct SynchronizationViewModelTests {
         )
         let tree = try BSETree(nodes: [])
         let request = SynchronizationPreviewRequest(
-            direction: .safariToChrome,
+            direction: productionDirection,
             safariSourceID: safariSourceID,
             chromeSourceID: chromeSourceID,
             safariBookmarksURL: URL(fileURLWithPath: "/tmp/Safari.plist"),
@@ -454,12 +506,12 @@ struct SynchronizationViewModelTests {
         return try SynchronizationPreviewResult(
             request: request,
             sourceSnapshot: BSESnapshot(
-                source: safariSourceID,
+                source: sourceID,
                 capturedAt: .distantPast,
                 tree: tree
             ),
             targetSnapshot: BSESnapshot(
-                source: chromeSourceID,
+                source: targetID,
                 capturedAt: .distantPast,
                 tree: tree
             ),
@@ -507,10 +559,11 @@ nonisolated private struct PreviewRequestProviderDouble:
 {
     func makeRequest(
         safariSource: BookmarkSource,
-        chromeSource: BookmarkSource
+        chromeSource: BookmarkSource,
+        direction: ProductionSynchronizationDirection
     ) async throws -> SynchronizationPreviewRequest {
         SynchronizationPreviewRequest(
-            direction: .safariToChrome,
+            direction: direction,
             safariSourceID: BSESourceID(UUID(uuid: (
                 0, 0, 0, 0, 0, 0, 0, 0,
                 0, 0, 0, 0, 0, 0, 0, 1

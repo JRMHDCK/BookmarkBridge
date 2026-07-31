@@ -98,22 +98,70 @@ nonisolated struct ExecutableSynchronizationStructureBuilder: Sendable {
             resolvedStructural.append(resolved)
         }
 
+        let createdNodeIDs = Set(resolvedCreations.map(\.logicalNodeID))
         for parentID in predicted.parentIDs {
             let desired = predicted.children(of: parentID)
-            var previousID: LogicalNodeID?
-            for logicalNodeID in desired {
-                defer { previousID = logicalNodeID }
-                guard let previousID else { continue }
+            guard desired.contains(where: createdNodeIDs.contains) else {
+                var previousID: LogicalNodeID?
+                for logicalNodeID in desired {
+                    defer { previousID = logicalNodeID }
+                    guard let previousID else { continue }
+                    let current = state.children(of: parentID)
+                    guard let currentIndex = current.firstIndex(of: logicalNodeID),
+                          let previousIndex = current.firstIndex(of: previousID),
+                          currentIndex < previousIndex else {
+                        continue
+                    }
+                    let operation = SynchronizationOperation.reorder(
+                        ReorderNodeOperation(
+                            logicalNodeID: logicalNodeID,
+                            position: previousIndex
+                        )
+                    )
+                    try state.apply(operation)
+                    resolvedStructural.append(operation)
+                }
+                continue
+            }
+            let desiredNodeIDs = Set(desired)
+            while true {
                 let current = state.children(of: parentID)
-                guard let currentIndex = current.firstIndex(of: logicalNodeID),
-                      let previousIndex = current.firstIndex(of: previousID),
-                      currentIndex < previousIndex else {
-                    continue
+                let currentDesiredOrder = current.filter {
+                    desiredNodeIDs.contains($0)
+                }
+                guard currentDesiredOrder != desired else { break }
+                guard let mismatchIndex = zip(desired, currentDesiredOrder)
+                    .enumerated()
+                    .first(where: { $0.element.0 != $0.element.1 })?
+                    .offset else {
+                    throw SynchronizationPlanningError.inconsistentPlan
+                }
+                let expectedID = desired[mismatchIndex]
+                let displacedID = currentDesiredOrder[mismatchIndex]
+                let logicalNodeID: LogicalNodeID
+                let position: Int
+                if createdNodeIDs.contains(expectedID) {
+                    guard !createdNodeIDs.contains(displacedID),
+                          let expectedPosition = current.firstIndex(
+                            of: expectedID
+                          ) else {
+                        throw SynchronizationPlanningError.inconsistentPlan
+                    }
+                    logicalNodeID = displacedID
+                    position = expectedPosition
+                } else {
+                    guard let displacedPosition = current.firstIndex(
+                        of: displacedID
+                    ) else {
+                        throw SynchronizationPlanningError.inconsistentPlan
+                    }
+                    logicalNodeID = expectedID
+                    position = displacedPosition
                 }
                 let operation = SynchronizationOperation.reorder(
                     ReorderNodeOperation(
                         logicalNodeID: logicalNodeID,
-                        position: previousIndex
+                        position: position
                     )
                 )
                 try state.apply(operation)

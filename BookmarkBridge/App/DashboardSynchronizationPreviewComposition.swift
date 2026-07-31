@@ -27,7 +27,8 @@ nonisolated struct DashboardSynchronizationPreviewRequestProvider:
 
     func makeRequest(
         safariSource: BookmarkSource,
-        chromeSource: BookmarkSource
+        chromeSource: BookmarkSource,
+        direction: ProductionSynchronizationDirection
     ) async throws -> SynchronizationPreviewRequest {
         guard safariSource.browser == .safari,
               chromeSource.browser == .chrome,
@@ -43,7 +44,7 @@ nonisolated struct DashboardSynchronizationPreviewRequestProvider:
             .appendingPathComponent("Bookmarks", isDirectory: false)
 
         return SynchronizationPreviewRequest(
-            direction: .safariToChrome,
+            direction: direction,
             safariSourceID: Self.sourceID(for: safariSource.id),
             chromeSourceID: Self.sourceID(for: chromeSource.id),
             safariBookmarksURL: safariLocation.fileURL,

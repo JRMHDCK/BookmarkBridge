@@ -14,6 +14,8 @@ struct BookmarkBridgeApp: App {
 
     init() {
         let dependencies = AppDependencies.bootstrap()
+        let resolver = SystemSecurityScopedBookmarkResolver()
+        let fileController = SystemSecurityScopedFileController()
 
         let safariCoordinator = BrowserAccessCoordinator(
             browser: .safari,
@@ -41,9 +43,17 @@ struct BookmarkBridgeApp: App {
         ])
         let authorizationService = ApplicationAuthorizationService(
             store: dependencies.bookmarkStore,
-            resolver: SystemSecurityScopedBookmarkResolver(),
+            resolver: resolver,
             creator: dependencies.bookmarkCreator,
-            fileController: SystemSecurityScopedFileController(),
+            fileController: fileController,
+            requester: requester
+        )
+        let profileSelectionStore =
+            UserDefaultsChromeProfileSelectionStore()
+        let bookmarkAccessService = BookmarkAccessService(
+            store: dependencies.bookmarkStore,
+            resolver: resolver,
+            fileController: fileController,
             requester: requester
         )
         applicationViewModel = ApplicationViewModel(
@@ -53,6 +63,10 @@ struct BookmarkBridgeApp: App {
             ),
             authorization: ApplicationAuthorizationViewModel(
                 service: authorizationService
+            ),
+            bookmarkAccess: BookmarkAccessViewModel(
+                service: bookmarkAccessService,
+                selectionStore: profileSelectionStore
             ),
             synchronization: SynchronizationViewModel(
                 previewService:

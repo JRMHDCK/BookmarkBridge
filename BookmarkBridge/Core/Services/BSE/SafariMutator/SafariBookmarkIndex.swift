@@ -60,13 +60,20 @@ nonisolated struct SafariBookmarkIndex {
     }
 
     func children(of node: NSMutableDictionary) throws -> NSMutableArray {
-        guard node["WebBookmarkType"] as? String == "WebBookmarkTypeList",
-              let children = node["Children"] as? NSMutableArray else {
+        guard node["WebBookmarkType"] as? String == "WebBookmarkTypeList" else {
             let identifier = NativeNodeIdentifier(
                 node["WebBookmarkUUID"] as? String ?? ""
             )
             throw SafariBookmarkMutationError.parentIsNotFolder(identifier)
         }
+        if let children = node["Children"] as? NSMutableArray {
+            return children
+        }
+        guard node["Children"] == nil else {
+            throw SafariBookmarkMutationError.invalidDocument
+        }
+        let children = NSMutableArray()
+        node["Children"] = children
         return children
     }
 
@@ -92,9 +99,10 @@ nonisolated struct SafariBookmarkIndex {
 
         switch node["WebBookmarkType"] as? String {
         case "WebBookmarkTypeList":
-            guard let children = node["Children"] as? NSMutableArray else {
+            guard node["Children"] == nil || node["Children"] is NSMutableArray else {
                 throw SafariBookmarkMutationError.invalidDocument
             }
+            let children = node["Children"] as? NSMutableArray ?? NSMutableArray()
             var childUUIDs: [String] = []
             childUUIDs.reserveCapacity(children.count)
             for (childPosition, value) in children.enumerated() {
@@ -113,7 +121,7 @@ nonisolated struct SafariBookmarkIndex {
                 childUUIDs.append(childUUID)
             }
             childUUIDsByUUID[uuid] = childUUIDs
-        case "WebBookmarkTypeLeaf":
+        case "WebBookmarkTypeLeaf", "WebBookmarkTypeProxy":
             guard node["Children"] == nil else {
                 throw SafariBookmarkMutationError.invalidDocument
             }

@@ -18,8 +18,13 @@ final class ApplicationViewModel {
 
     enum BrowserProtectedAction: Hashable {
         case initialLoad
-        case reload
+        case reload(ProductionSynchronizationDirection)
+        case preview(ProductionSynchronizationDirection)
         case authorize(Browser)
+        case bookmarkAccessLoad
+        case bookmarkAccessTest(Browser)
+        case bookmarkAccessReselect(Browser)
+        case bookmarkAccessProfile(String)
         case retry(BookmarkSourceID)
         case synchronize
     }
@@ -28,6 +33,7 @@ final class ApplicationViewModel {
 
     let dashboard: DashboardViewModel
     let authorization: ApplicationAuthorizationViewModel
+    let bookmarkAccess: BookmarkAccessViewModel
     let synchronization: SynchronizationViewModel
     private(set) var browserClosurePrompt: BrowserClosurePrompt?
     private(set) var browserClosureError: String?
@@ -39,11 +45,13 @@ final class ApplicationViewModel {
     init(
         dashboard: DashboardViewModel,
         authorization: ApplicationAuthorizationViewModel,
+        bookmarkAccess: BookmarkAccessViewModel,
         synchronization: SynchronizationViewModel,
         browserOperationGuard: BrowserOperationGuard
     ) {
         self.dashboard = dashboard
         self.authorization = authorization
+        self.bookmarkAccess = bookmarkAccess
         self.synchronization = synchronization
         self.browserOperationGuard = browserOperationGuard
     }
@@ -81,15 +89,21 @@ final class ApplicationViewModel {
         await loadSynchronizationPreview()
     }
 
-    func reload() async {
-        guard requestBrowserClosureIfNeeded(for: .reload) else { return }
-        await performReload()
+    func reload(
+        direction: ProductionSynchronizationDirection = .safariToChrome
+    ) async {
+        guard requestBrowserClosureIfNeeded(for: .reload(direction)) else {
+            return
+        }
+        await performReload(direction: direction)
     }
 
-    private func performReload() async {
+    private func performReload(
+        direction: ProductionSynchronizationDirection
+    ) async {
         await authorization.restore()
         await dashboard.reloadAll()
-        await loadSynchronizationPreview()
+        await loadSynchronizationPreview(direction: direction)
     }
 
     func authorize(_ browser: Browser) async {
@@ -109,16 +123,71 @@ final class ApplicationViewModel {
         await loadSynchronizationPreview()
     }
 
+    func testBookmarkAccess(_ browser: Browser) async {
+        guard requestBrowserClosureIfNeeded(
+            for: .bookmarkAccessTest(browser)
+        ) else {
+            return
+        }
+        await bookmarkAccess.testAccess(browser)
+    }
+
+    func loadBookmarkAccess() async {
+        guard requestBrowserClosureIfNeeded(
+            for: .bookmarkAccessLoad
+        ) else {
+            return
+        }
+        await bookmarkAccess.load()
+    }
+
+    func reselectBookmarkAccess(_ browser: Browser) async {
+        guard requestBrowserClosureIfNeeded(
+            for: .bookmarkAccessReselect(browser)
+        ) else {
+            return
+        }
+        do {
+            guard try await bookmarkAccess.reauthorize(browser) else {
+                return
+            }
+            await authorization.restore()
+            await dashboard.reloadAll()
+            await loadSynchronizationPreview(
+                direction: synchronization.previewDirection
+                    ?? .safariToChrome
+            )
+        } catch AccessError.cancelled {
+            return
+        } catch {
+            browserClosureError = "Impossible d’enregistrer la nouvelle autorisation. Aucune source active n’a été remplacée."
+        }
+    }
+
+    func selectChromeProfile(_ directory: String) async {
+        guard requestBrowserClosureIfNeeded(
+            for: .bookmarkAccessProfile(directory)
+        ) else {
+            return
+        }
+        bookmarkAccess.selectChromeProfile(directory)
+        await loadSynchronizationPreview(
+            direction: synchronization.previewDirection
+                ?? .safariToChrome
+        )
+    }
+
     @discardableResult
     func synchronize() async -> Bool {
         guard canSynchronize else { return false }
         guard requestBrowserClosureIfNeeded(for: .synchronize) else {
             return false
         }
+        let direction = synchronization.previewDirection ?? .safariToChrome
         let succeeded = await synchronization.synchronize()
         guard succeeded else { return false }
         await dashboard.reloadAll()
-        await loadSynchronizationPreview()
+        await loadSynchronizationPreview(direction: direction)
         return true
     }
 
@@ -158,14 +227,27 @@ final class ApplicationViewModel {
         selection = .synchronization
     }
 
-    func loadSynchronizationPreview() async {
+    func selectSynchronizationDirection(
+        _ direction: ProductionSynchronizationDirection
+    ) async {
+        guard synchronization.previewDirection != direction else { return }
+        guard requestBrowserClosureIfNeeded(for: .preview(direction)) else {
+            return
+        }
+        await loadSynchronizationPreview(direction: direction)
+    }
+
+    func loadSynchronizationPreview(
+        direction: ProductionSynchronizationDirection = .safariToChrome
+    ) async {
         guard let (safari, chrome) = synchronizationSourcePair else {
             synchronization.reset()
             return
         }
         await synchronization.loadPreview(
             safari: safari,
-            chrome: chrome
+            chrome: chrome,
+            direction: direction
         )
     }
 
@@ -177,9 +259,7 @@ final class ApplicationViewModel {
         guard let safari = sources.first(where: {
             $0.source.browser == .safari
         }),
-        let chrome = sources.first(where: {
-            $0.source.browser == .chrome
-        }) else {
+        let chrome = selectedChromeSource(in: sources) else {
             return nil
         }
         return (
@@ -192,6 +272,21 @@ final class ApplicationViewModel {
                 summary: BrowserBookmarkSummary(tree: chrome.tree)
             )
         )
+    }
+
+    private func selectedChromeSource(
+        in sources: [SearchableSource]
+    ) -> SearchableSource? {
+        let chromeSources = sources.filter {
+            $0.source.browser == .chrome
+        }
+        guard let selected = bookmarkAccess.selectedChromeProfileDirectory
+        else {
+            return chromeSources.first
+        }
+        return chromeSources.first {
+            $0.source.id.profile == selected
+        } ?? chromeSources.first
     }
 
     private func requestBrowserClosureIfNeeded(
@@ -213,10 +308,20 @@ final class ApplicationViewModel {
             guard requestBrowserClosureIfNeeded(for: action) else { return }
             hasLoaded = true
             await performInitialLoad()
-        case .reload:
-            await reload()
+        case .reload(let direction):
+            await reload(direction: direction)
+        case .preview(let direction):
+            await selectSynchronizationDirection(direction)
         case .authorize(let browser):
             await authorize(browser)
+        case .bookmarkAccessLoad:
+            await loadBookmarkAccess()
+        case .bookmarkAccessTest(let browser):
+            await testBookmarkAccess(browser)
+        case .bookmarkAccessReselect(let browser):
+            await reselectBookmarkAccess(browser)
+        case .bookmarkAccessProfile(let directory):
+            await selectChromeProfile(directory)
         case .retry(let sourceID):
             await retry(sourceID)
         case .synchronize:

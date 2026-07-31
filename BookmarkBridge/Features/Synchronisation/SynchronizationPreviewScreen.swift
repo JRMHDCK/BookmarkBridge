@@ -12,6 +12,24 @@ struct SynchronizationPreviewScreen: View {
     let isAuthorized: Bool
     let onReload: @MainActor () async -> Void
     let onSynchronize: @MainActor () async -> Bool
+    let onBack: (() -> Void)?
+    let allowsSynchronization: Bool
+
+    init(
+        model: SynchronizationViewModel,
+        isAuthorized: Bool,
+        onReload: @escaping @MainActor () async -> Void,
+        onSynchronize: @escaping @MainActor () async -> Bool,
+        onBack: (() -> Void)? = nil,
+        allowsSynchronization: Bool = true
+    ) {
+        self.model = model
+        self.isAuthorized = isAuthorized
+        self.onReload = onReload
+        self.onSynchronize = onSynchronize
+        self.onBack = onBack
+        self.allowsSynchronization = allowsSynchronization
+    }
 
     var body: some View {
         ScrollView {
@@ -41,6 +59,18 @@ struct SynchronizationPreviewScreen: View {
         }
         .navigationTitle("Synchronisation")
         .toolbar {
+            if let onBack {
+                ToolbarItem(placement: .navigation) {
+                    Button {
+                        onBack()
+                    } label: {
+                        Label("Retour", systemImage: "chevron.left")
+                    }
+                    .disabled(model.isSynchronizing)
+                    .help("Revenir au choix de direction")
+                }
+            }
+
             ToolbarItemGroup(placement: .primaryAction) {
                 Button {
                     Task { await onReload() }
@@ -154,18 +184,28 @@ struct SynchronizationPreviewScreen: View {
             SynchronizationStatistics(preview: preview)
 
             if !isEmpty {
-                PrimaryActionButton(
-                    "Synchroniser",
-                    systemImage: "arrow.triangle.2.circlepath"
-                ) {
-                    Task { _ = await onSynchronize() }
+                if allowsSynchronization {
+                    PrimaryActionButton(
+                        "Synchroniser",
+                        systemImage: "arrow.triangle.2.circlepath"
+                    ) {
+                        Task { _ = await onSynchronize() }
+                    }
+                    .disabled(!isAuthorized || !model.canSynchronize)
+                    .accessibilityHint(
+                        "Applique uniquement la prévisualisation affichée"
+                    )
+                    .help(synchronizationHelp)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+                } else {
+                    Label(
+                        "Écriture vers Safari bientôt disponible",
+                        systemImage: "clock"
+                    )
+                    .font(.callout.weight(.medium))
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
                 }
-                .disabled(!isAuthorized || !model.canSynchronize)
-                .accessibilityHint(
-                    "Applique uniquement la prévisualisation affichée"
-                )
-                .help(synchronizationHelp)
-                .frame(maxWidth: .infinity, alignment: .trailing)
             }
         }
     }

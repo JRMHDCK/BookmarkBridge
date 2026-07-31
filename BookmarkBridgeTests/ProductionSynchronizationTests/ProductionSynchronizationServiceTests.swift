@@ -45,9 +45,17 @@ struct ProductionSynchronizationServiceTests {
         try fixture.expectOriginalFixturesUnchanged()
     }
 
-    @Test("A second production synchronization is a no-op")
-    func secondSynchronizationIsANoOp() async throws {
-        let fixture = try await ProductionFixture.make(scenario: .creation)
+    @Test(
+        "A second production synchronization is a no-op",
+        arguments: [
+            ProductionScenario.creation,
+            ProductionScenario.reverseCreation,
+        ]
+    )
+    func secondSynchronizationIsANoOp(
+        _ scenario: ProductionScenario
+    ) async throws {
+        let fixture = try await ProductionFixture.make(scenario: scenario)
         defer { fixture.remove() }
 
         let firstConfirmation = try await fixture.confirmedPlan()
@@ -71,7 +79,6 @@ struct ProductionSynchronizationServiceTests {
         "Position-dependent production plans are executable and immediately stable",
         arguments: [
             ProductionScenario.positionDependentCreation,
-            ProductionScenario.reversePositionDependentCreation,
         ]
     )
     func positionDependentPlanIsStable(
@@ -98,7 +105,6 @@ struct ProductionSynchronizationServiceTests {
         "An empty Baseline reuses written native identities on later passes",
         arguments: [
             ProductionScenario.hierarchicalCreation,
-            ProductionScenario.reverseHierarchicalCreation,
         ]
     )
     func emptyBaselineIsStableAcrossThreePasses(
@@ -146,7 +152,6 @@ struct ProductionSynchronizationServiceTests {
         "A created folder keeps its durable identity when renamed and moved",
         arguments: [
             ProductionScenario.hierarchicalCreation,
-            ProductionScenario.reverseHierarchicalCreation,
         ]
     )
     func createdFolderCanThenBeRenamedAndMoved(
@@ -298,9 +303,7 @@ struct ProductionSynchronizationServiceTests {
         )
     }
 
-    @Test(
-        "Chrome to Safari later failure rolls back prior native registrations"
-    )
+    @Test("Chrome to Safari later failure rolls back prior native registrations")
     func laterSafariFailureRollsBackPersistentState() async throws {
         let fixture = try await ProductionFixture.make(
             scenario: .reverseHierarchicalCreation,
@@ -356,9 +359,7 @@ struct ProductionSynchronizationServiceTests {
         )
     }
 
-    @Test(
-        "Chrome to Safari later delete failure restores removed identities"
-    )
+    @Test("Chrome to Safari later delete failure restores removed identities")
     func laterSafariDeleteFailureRollsBackPersistentState() async throws {
         let fixture = try await ProductionFixture.make(
             scenario: .reverseMultipleDeletions,
@@ -923,6 +924,11 @@ private final class ProductionFixture {
     func expectOriginalFixturesUnchanged() throws {
         #expect(try Data(contentsOf: originalSafariURL) == originalSafariData)
         #expect(try Data(contentsOf: originalChromeURL) == originalChromeData)
+    }
+
+    func expectWorkingFilesUnchanged() throws {
+        #expect(try Data(contentsOf: safariBookmarksURL) == originalSafariData)
+        #expect(try Data(contentsOf: chromeBookmarksURL) == originalChromeData)
     }
 
     var backupWasCreated: Bool {

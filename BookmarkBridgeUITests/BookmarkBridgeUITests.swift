@@ -26,7 +26,6 @@ final class BookmarkBridgeUITests: XCTestCase {
             "BOOKMARKBRIDGE_UI_TEST_ONBOARDING"
         ] = "1"
         app.launch()
-        app.typeKey("n", modifierFlags: .command)
 
         let primaryButton = app.buttons[
             "documentation.onboarding.primary"

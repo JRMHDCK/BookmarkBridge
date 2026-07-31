@@ -43,6 +43,8 @@ struct OpenPanelDirectoryAuthorizer: AccessAuthorizing {
         panel.title = "Autoriser l'accès aux favoris Chrome"
         panel.message = "Sélectionnez le dossier « Chrome » dans ~/Library/Application Support/Google/."
         panel.prompt = "Autoriser la lecture"
+        panel.directoryURL = DefaultChromeProfileLocator()
+            .defaultChromeDirectory()
 
         guard panel.runModal() == .OK else { return nil }
         return panel.url

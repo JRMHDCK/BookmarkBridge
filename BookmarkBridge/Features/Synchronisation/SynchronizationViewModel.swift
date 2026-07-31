@@ -38,7 +38,8 @@ nonisolated protocol SynchronizationProductionExecuting: Sendable {
 nonisolated protocol SynchronizationPreviewRequestProviding: Sendable {
     func makeRequest(
         safariSource: BookmarkSource,
-        chromeSource: BookmarkSource
+        chromeSource: BookmarkSource,
+        direction: ProductionSynchronizationDirection
     ) async throws -> SynchronizationPreviewRequest
 }
 
@@ -110,6 +111,7 @@ final class SynchronizationViewModel {
 
     private(set) var state: State = .idle
     private(set) var executionState: ExecutionState = .idle
+    private(set) var previewDirection: ProductionSynchronizationDirection?
 
     var isSynchronizing: Bool {
         switch executionState {
@@ -158,11 +160,13 @@ final class SynchronizationViewModel {
         executionState = .idle
         latestPreviewResult = nil
         latestSources = nil
+        previewDirection = nil
     }
 
     func loadPreview(
         safari: SynchronizationSourceSummary,
-        chrome: SynchronizationSourceSummary
+        chrome: SynchronizationSourceSummary,
+        direction: ProductionSynchronizationDirection = .safariToChrome
     ) async {
         #if DEBUG
         let attemptID = String(UUID().uuidString.prefix(8))
@@ -172,20 +176,29 @@ final class SynchronizationViewModel {
             "[Preview \(attemptID, privacy: .public)] START activeBefore=\(replacedAttempts.joined(separator: ","), privacy: .public)"
         )
         await PreviewDiagnosticsContext.$attemptID.withValue(attemptID) {
-            await performLoadPreview(safari: safari, chrome: chrome)
+            await performLoadPreview(
+                safari: safari,
+                chrome: chrome,
+                direction: direction
+            )
         }
         activePreviewAttempts.remove(attemptID)
         synchronizationViewModelLogger.notice(
             "[Preview \(attemptID, privacy: .public)] END"
         )
         #else
-        await performLoadPreview(safari: safari, chrome: chrome)
+        await performLoadPreview(
+            safari: safari,
+            chrome: chrome,
+            direction: direction
+        )
         #endif
     }
 
     private func performLoadPreview(
         safari: SynchronizationSourceSummary,
-        chrome: SynchronizationSourceSummary
+        chrome: SynchronizationSourceSummary,
+        direction: ProductionSynchronizationDirection
     ) async {
         #if DEBUG
         synchronizationViewModelLogger.debug(
@@ -197,7 +210,8 @@ final class SynchronizationViewModel {
         do {
             let request = try await requestProvider.makeRequest(
                 safariSource: safari.source,
-                chromeSource: chrome.source
+                chromeSource: chrome.source,
+                direction: direction
             )
             #if DEBUG
             synchronizationViewModelLogger.debug(
@@ -206,6 +220,7 @@ final class SynchronizationViewModel {
             #endif
             let result = try await previewService.preview(request: request)
             latestPreviewResult = result
+            previewDirection = result.direction
             let preview = Self.makePreview(
                 result: result,
                 safari: safari,
@@ -227,6 +242,7 @@ final class SynchronizationViewModel {
             #endif
             state = .idle
             latestPreviewResult = nil
+            previewDirection = nil
         } catch {
             #if DEBUG
             synchronizationViewModelLogger.error(
@@ -237,6 +253,7 @@ final class SynchronizationViewModel {
                 "Impossible de calculer la prévisualisation."
             )
             latestPreviewResult = nil
+            previewDirection = nil
         }
     }
 
@@ -260,7 +277,8 @@ final class SynchronizationViewModel {
             executionState = .validating
             await loadPreview(
                 safari: sources.safari,
-                chrome: sources.chrome
+                chrome: sources.chrome,
+                direction: preview.direction
             )
             executionState = .completed
             return true

@@ -8,12 +8,13 @@ import Testing
 
 @Suite("Application screens")
 struct ApplicationScreenTests {
-    @Test("The application exposes the four prepared destinations")
+    @Test("The application exposes the five prepared destinations")
     func exposesPreparedDestinations() {
         #expect(
             ApplicationScreen.allCases == [
                 .dashboard,
                 .synchronization,
+                .bookmarkAccess,
                 .settings,
                 .about,
             ]

@@ -130,12 +130,25 @@ struct ApplicationNavigationView: View {
                 }
             )
         case .synchronization:
-            SynchronizationPreviewScreen(
+            SynchronizationDirectionScreen(
                 model: model.synchronization,
                 isAuthorized:
                     model.authorization.state.status == .complete,
-                onReload: { await model.reload() },
+                onSelectDirection: {
+                    await model.selectSynchronizationDirection($0)
+                },
+                onReloadDirection: {
+                    await model.reload(direction: $0)
+                },
                 onSynchronize: { await model.synchronize() }
+            )
+        case .bookmarkAccess:
+            BookmarkAccessView(
+                model: model.bookmarkAccess,
+                onLoad: { await model.loadBookmarkAccess() },
+                onTestAccess: { await model.testBookmarkAccess($0) },
+                onReselect: { await model.reselectBookmarkAccess($0) },
+                onChangeProfile: { await model.selectChromeProfile($0) }
             )
         case .settings:
             SettingsView()

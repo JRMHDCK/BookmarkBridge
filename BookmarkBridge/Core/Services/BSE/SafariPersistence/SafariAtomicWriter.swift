@@ -34,7 +34,7 @@ nonisolated struct SafariAtomicWriter: SafariAtomicallyWriting {
             try FileManager().removeItem(at: $0)
         },
         temporaryURLProvider: @escaping @Sendable (URL) -> URL = { destinationURL in
-            destinationURL.deletingLastPathComponent().appendingPathComponent(
+            FileManager.default.temporaryDirectory.appendingPathComponent(
                 ".\(destinationURL.lastPathComponent).bookmarkbridge-\(UUID().uuidString).tmp",
                 isDirectory: false
             )

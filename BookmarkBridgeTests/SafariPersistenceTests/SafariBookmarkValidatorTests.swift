@@ -16,6 +16,43 @@ struct SafariBookmarkValidatorTests {
         try validator.validate(document(from: SafariPersistenceFixture.propertyList()))
     }
 
+    @Test("Safari system proxy nodes are valid and remain structurally strict")
+    func proxyNode() throws {
+        var root = SafariPersistenceFixture.propertyList()
+        var children = try #require(root["Children"] as? [[String: Any]])
+        children.insert([
+            "WebBookmarkType": "WebBookmarkTypeProxy",
+            "WebBookmarkUUID": "00000000-0000-0000-0000-000000000002",
+            "WebBookmarkIdentifier": "History",
+            "Title": "History",
+        ], at: 0)
+        root["Children"] = children
+
+        try validator.validate(document(from: root))
+
+        children[0].removeValue(forKey: "WebBookmarkIdentifier")
+        root["Children"] = children
+        #expect(throws: SafariPersistenceError.invalidStructure(
+            .invalidNode(path: [0])
+        )) {
+            try validator.validate(document(from: root))
+        }
+    }
+
+    @Test("Safari empty list nodes may omit Children")
+    func emptyListWithoutChildren() throws {
+        var root = SafariPersistenceFixture.propertyList()
+        var children = try #require(root["Children"] as? [[String: Any]])
+        children.append([
+            "WebBookmarkType": "WebBookmarkTypeList",
+            "WebBookmarkUUID": "00000000-0000-0000-0000-000000000003",
+            "Title": "BookmarksMenu",
+        ])
+        root["Children"] = children
+
+        try validator.validate(document(from: root))
+    }
+
     @Test("The root must be a recognized list")
     func invalidRoot() throws {
         var root = SafariPersistenceFixture.propertyList()

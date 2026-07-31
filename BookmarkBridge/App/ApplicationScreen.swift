@@ -7,6 +7,7 @@
 nonisolated enum ApplicationScreen: String, CaseIterable, Hashable, Identifiable, Sendable {
     case dashboard
     case synchronization
+    case bookmarkAccess
     case settings
     case about
 
@@ -16,6 +17,7 @@ nonisolated enum ApplicationScreen: String, CaseIterable, Hashable, Identifiable
         switch self {
         case .dashboard: "Accueil"
         case .synchronization: "Synchronisation"
+        case .bookmarkAccess: "Accès aux favoris"
         case .settings: "Réglages"
         case .about: "À propos"
         }
@@ -25,6 +27,7 @@ nonisolated enum ApplicationScreen: String, CaseIterable, Hashable, Identifiable
         switch self {
         case .dashboard: "house"
         case .synchronization: "arrow.triangle.2.circlepath"
+        case .bookmarkAccess: "lock.doc"
         case .settings: "gearshape"
         case .about: "info.circle"
         }

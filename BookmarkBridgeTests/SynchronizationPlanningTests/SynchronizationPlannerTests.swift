@@ -1308,6 +1308,49 @@ struct SynchronizationPlannerTests {
             )
         }
     }
+
+    @Test("Created nodes are positioned by reordering surviving siblings")
+    func createdNodeIsNotReordered() throws {
+        let root = try PlanningTestSupport.folder(id: 100)
+        let firstBefore = try PlanningTestSupport.bookmark(
+            id: 1,
+            parent: 100,
+            position: 0
+        )
+        let secondBefore = try PlanningTestSupport.bookmark(
+            id: 2,
+            parent: 100,
+            position: 1
+        )
+        let secondAfter = try PlanningTestSupport.bookmark(
+            id: 2,
+            parent: 100,
+            position: 0
+        )
+        let firstAfter = try PlanningTestSupport.bookmark(
+            id: 1,
+            parent: 100,
+            position: 1
+        )
+        let created = try PlanningTestSupport.bookmark(
+            id: 3,
+            parent: 100,
+            position: 2
+        )
+
+        let plan = try PlanningTestSupport.plan(
+            before: [root, firstBefore, secondBefore],
+            after: [root, secondAfter, firstAfter, created]
+        )
+
+        #expect(plan.operations.map(\.kind) == [.create, .reorder])
+        #expect(plan.operations[1].logicalNodeID == secondBefore.logicalNodeID)
+        #expect(
+            plan.operations.filter {
+                $0.logicalNodeID == created.logicalNodeID
+            }.map(\.kind) == [.create]
+        )
+    }
 }
 
 private enum PlanningTestSupport {
