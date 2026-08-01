@@ -1,8 +1,7 @@
 # Architecture — BookmarkBridge V1
 
 Ce document décrit l'architecture effectivement mise en œuvre dans la V1. Les
-règles de contribution complètes restent définies dans [`../AGENTS.md`](../AGENTS.md)
-et son équivalent [`../CLAUDE.md`](../CLAUDE.md).
+règles de contribution complètes restent définies dans [`../AGENTS.md`](../AGENTS.md).
 
 ## Vue d'ensemble
 
