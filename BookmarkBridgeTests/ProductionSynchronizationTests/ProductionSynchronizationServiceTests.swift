@@ -76,6 +76,76 @@ struct ProductionSynchronizationServiceTests {
     }
 
     @Test(
+        "A filtered creation remains visible to final validation and is stable",
+        arguments: [
+            ProductionScenario.creation,
+            ProductionScenario.reverseCreation,
+        ]
+    )
+    func filteredCreationIsStable(
+        _ scenario: ProductionScenario
+    ) async throws {
+        let fixture = try await ProductionFixture.make(scenario: scenario)
+        defer { fixture.remove() }
+        let selectedSemanticKeys = Set(
+            scenario.trees.source.flattened.map(\.semanticKey)
+        )
+        let scope = SynchronizationSelectionScope.nativeIdentifiers(
+            [],
+            includingSemanticKeys: selectedSemanticKeys,
+            excludingSemanticKeys: ["bookmark:https://unchecked.invalid"]
+        )
+
+        let first = try await fixture.service.synchronize(
+            confirmedPlan: fixture.confirmedPlan(
+                safariSelection: scope,
+                chromeSelection: scope
+            )
+        )
+        let second = try await fixture.service.synchronize(
+            confirmedPlan: fixture.confirmedPlan(
+                safariSelection: scope,
+                chromeSelection: scope
+            )
+        )
+
+        #expect(first.synchronization.execution.report.appliedOperationCount == 1)
+        #expect(first.synchronization.diffAfter.changes.isEmpty)
+        #expect(second.synchronization.plan.operations.isEmpty)
+        #expect(second.synchronization.diffAfter.changes.isEmpty)
+    }
+
+    @Test("An unchecked target-only bookmark is never planned as a deletion")
+    func uncheckedBookmarkIsNotDeleted() async throws {
+        let scenario = ProductionScenario.deletion
+        let fixture = try await ProductionFixture.make(scenario: scenario)
+        defer { fixture.remove() }
+        let selectedSemanticKeys = Set(
+            scenario.trees.source.flattened.map(\.semanticKey)
+        )
+        let scope = SynchronizationSelectionScope.nativeIdentifiers(
+            [],
+            includingSemanticKeys: selectedSemanticKeys,
+            excludingSemanticKeys: [
+                "bookmark:https://example.com/deleted",
+            ]
+        )
+        let targetBefore = try Data(contentsOf: fixture.chromeBookmarksURL)
+
+        let confirmation = try await fixture.confirmedPlan(
+            safariSelection: scope,
+            chromeSelection: scope
+        )
+        let result = try await fixture.service.synchronize(
+            confirmedPlan: confirmation
+        )
+
+        #expect(result.synchronization.plan.operations.isEmpty)
+        #expect(result.transaction.appliedOperationCount == 0)
+        #expect(try Data(contentsOf: fixture.chromeBookmarksURL) == targetBefore)
+    }
+
+    @Test(
         "Position-dependent production plans are executable and immediately stable",
         arguments: [
             ProductionScenario.positionDependentCreation,
@@ -706,6 +776,15 @@ indirect enum FixtureNode: Sendable {
             [self]
         }
     }
+
+    var semanticKey: String {
+        switch self {
+        case .folder(_, let title, _):
+            "folder:\(title.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current))"
+        case .bookmark(_, _, let url):
+            "bookmark:\(url)"
+        }
+    }
 }
 
 private final class ProductionFixture {
@@ -899,7 +978,10 @@ private final class ProductionFixture {
         )
     }
 
-    func confirmedPlan() async throws -> ConfirmedSynchronizationPlan {
+    func confirmedPlan(
+        safariSelection: SynchronizationSelectionScope = .all,
+        chromeSelection: SynchronizationSelectionScope = .all
+    ) async throws -> ConfirmedSynchronizationPlan {
         let preview = try await previewService.preview(
             request: SynchronizationPreviewRequest(
                 direction: request.direction,
@@ -907,12 +989,28 @@ private final class ProductionFixture {
                 chromeSourceID: request.chromeSourceID,
                 safariBookmarksURL: request.safariBookmarksURL,
                 chromeBookmarksURL: request.chromeBookmarksURL,
-                chromeProfileIdentifier: request.chromeProfileIdentifier
+                chromeProfileIdentifier: request.chromeProfileIdentifier,
+                safariSelection: safariSelection,
+                chromeSelection: chromeSelection
             )
+        )
+        let executionRequest = ProductionSynchronizationRequest(
+            direction: request.direction,
+            safariSourceID: request.safariSourceID,
+            chromeSourceID: request.chromeSourceID,
+            safariBookmarksURL: request.safariBookmarksURL,
+            chromeBookmarksURL: request.chromeBookmarksURL,
+            safariBackupDirectoryURL: request.safariBackupDirectoryURL,
+            chromeBackupDirectoryURL: request.chromeBackupDirectoryURL,
+            chromeProfileIdentifier: request.chromeProfileIdentifier,
+            safariSecurityScopeURL: request.safariSecurityScopeURL,
+            chromeSecurityScopeURL: request.chromeSecurityScopeURL,
+            safariSelection: safariSelection,
+            chromeSelection: chromeSelection
         )
         return try ConfirmedSynchronizationPlan(
             confirming: preview,
-            executionRequest: request
+            executionRequest: executionRequest
         )
     }
 

@@ -14,6 +14,7 @@ nonisolated struct SelectionScopedSynchronizationReader:
         let result = try await reader.readForSynchronization()
         guard case .nativeIdentifiers(
             let identifiers,
+            includingSemanticKeys: let includedSemanticKeys,
             excludingSemanticKeys: let excludedSemanticKeys
         ) = selection else {
             return result
@@ -38,10 +39,11 @@ nonisolated struct SelectionScopedSynchronizationReader:
                 observation.nativeIdentifier.rawValue,
                 observation.continuityIdentifier?.rawValue,
             ].compactMap { $0 }
-            return values.contains(where: identifiers.contains)
-                && !excludedSemanticKeys.contains(
-                    semanticKey(for: node)
-                )
+            let semanticKey = semanticKey(for: node)
+            return (
+                values.contains(where: identifiers.contains)
+                    || includedSemanticKeys.contains(semanticKey)
+            ) && !excludedSemanticKeys.contains(semanticKey)
                 ? node.logicalID
                 : nil
         })

@@ -74,6 +74,7 @@ struct SynchronizationSelectionTests {
             ),
             selection: .nativeIdentifiers(
                 ["keep", "ignore"],
+                includingSemanticKeys: [],
                 excludingSemanticKeys: ["bookmark:https://ignore.example"]
             )
         )
@@ -83,6 +84,113 @@ struct SynchronizationSelectionTests {
         #expect(result.snapshot.tree.nodes.map(\.logicalID) == [rootID, folderID, keptID])
         #expect(result.snapshot.tree.node(for: keptID)?.position == 0)
         #expect(result.nativeIdentityObservations.map(\.nativeIdentifier.rawValue) == ["root", "folder", "keep"])
+    }
+
+    @Test("Reader retains a selected node after its native identifier changes")
+    func readerRetainsNewTargetIdentifierAfterWrite() async throws {
+        let sourceID = BSESourceID(
+            UUID(uuidString: "10000000-0000-0000-0000-000000000002")!
+        )
+        let rootID = logicalID(10)
+        let createdID = logicalID(11)
+        let nodes = [
+            try BSENode(
+                logicalID: rootID,
+                kind: .folder,
+                permanentRootRole: .primaryBookmarks,
+                title: "Root",
+                position: 0
+            ),
+            try BSENode(
+                logicalID: createdID,
+                kind: .bookmark,
+                title: "Created",
+                parentID: rootID,
+                position: 0,
+                url: URL(string: "https://created.example")!
+            ),
+        ]
+        let reader = SelectionScopedSynchronizationReader(
+            reader: SelectionReader(result: EndToEndSynchronizationReadResult(
+                snapshot: BSESnapshot(
+                    source: sourceID,
+                    capturedAt: .distantPast,
+                    tree: try BSETree(nodes: nodes)
+                ),
+                nativeIdentityObservations: [
+                    observation(sourceID, rootID, "root"),
+                    observation(sourceID, createdID, "generated-after-write"),
+                ]
+            )),
+            selection: .nativeIdentifiers(
+                ["root"],
+                includingSemanticKeys: [
+                    "bookmark:https://created.example",
+                ],
+                excludingSemanticKeys: []
+            )
+        )
+
+        let result = try await reader.readForSynchronization()
+
+        #expect(result.snapshot.tree.nodes.map(\.logicalID) == [rootID, createdID])
+        #expect(
+            result.nativeIdentityObservations.map(\.nativeIdentifier.rawValue)
+                == ["root", "generated-after-write"]
+        )
+    }
+
+    @Test("An exclusion wins over identifiers and semantic inclusion")
+    func excludedNodeNeverEntersThePipeline() async throws {
+        let sourceID = BSESourceID(
+            UUID(uuidString: "10000000-0000-0000-0000-000000000003")!
+        )
+        let rootID = logicalID(20)
+        let excludedID = logicalID(21)
+        let nodes = [
+            try BSENode(
+                logicalID: rootID,
+                kind: .folder,
+                permanentRootRole: .primaryBookmarks,
+                title: "Root",
+                position: 0
+            ),
+            try BSENode(
+                logicalID: excludedID,
+                kind: .bookmark,
+                title: "Unchecked",
+                parentID: rootID,
+                position: 0,
+                url: URL(string: "https://unchecked.example")!
+            ),
+        ]
+        let key = "bookmark:https://unchecked.example"
+        let reader = SelectionScopedSynchronizationReader(
+            reader: SelectionReader(result: EndToEndSynchronizationReadResult(
+                snapshot: BSESnapshot(
+                    source: sourceID,
+                    capturedAt: .distantPast,
+                    tree: try BSETree(nodes: nodes)
+                ),
+                nativeIdentityObservations: [
+                    observation(sourceID, rootID, "root"),
+                    observation(sourceID, excludedID, "unchecked"),
+                ]
+            )),
+            selection: .nativeIdentifiers(
+                ["root", "unchecked"],
+                includingSemanticKeys: [key],
+                excludingSemanticKeys: [key]
+            )
+        )
+
+        let result = try await reader.readForSynchronization()
+
+        #expect(result.snapshot.tree.nodes.map(\.logicalID) == [rootID])
+        #expect(
+            result.nativeIdentityObservations.map(\.nativeIdentifier.rawValue)
+                == ["root"]
+        )
     }
 
     private static func source(

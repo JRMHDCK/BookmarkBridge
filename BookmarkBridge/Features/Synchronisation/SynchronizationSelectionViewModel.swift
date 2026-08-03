@@ -98,8 +98,18 @@ final class SynchronizationSelectionViewModel {
         }
         return .nativeIdentifiers(
             Set(selected.map { nativeIdentifier($0, for: sourceID.browser) }),
+            includingSemanticKeys: selectedSemanticKeys,
             excludingSemanticKeys: counterpartExclusions
         )
+    }
+
+    private var selectedSemanticKeys: Set<String> {
+        Set(sources.flatMap { source in
+            let selected = selectedIDs[source.source.id] ?? []
+            return Self.flatten(source.tree).compactMap { node in
+                selected.contains(node.id) ? Self.semanticKey(for: node) : nil
+            }
+        }).subtracting(counterpartExclusions)
     }
 
     private func set(

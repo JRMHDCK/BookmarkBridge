@@ -312,18 +312,66 @@ final class SynchronizationViewModel {
     private static func executionFailureDescription(
         _ error: any Error
     ) -> String {
-        if let transactionError = error as? SynchronizationTransactionError,
-           case .finalValidationFailed(let failure) = transactionError {
+        guard let transactionError = error as? SynchronizationTransactionError
+        else {
             return [
-                "La validation finale a échoué.",
-                "\(failure.cause.errorType): \(failure.cause.description)",
-                "Restauration : \(failure.restorationStatus).",
+                "La synchronisation a échoué.",
+                "\(String(reflecting: type(of: error))): \(String(describing: error))",
             ].joined(separator: " ")
         }
-        return [
-            "La synchronisation a échoué.",
-            "\(String(reflecting: type(of: error))): \(String(describing: error))",
-        ].joined(separator: " ")
+        switch transactionError {
+        case .finalValidationFailed(let failure):
+            return [
+                "La validation finale a détecté des différences résiduelles.",
+                "Cause : \(conciseCause(failure.cause))",
+                "La sauvegarde a été restaurée.",
+            ].joined(separator: " ")
+        case .restorationFailed(let failure):
+            let restorationFailures = failure.restorationFailures.map {
+                "\(restorationTargetDescription($0.target)) : "
+                    + conciseCause($0.context)
+            }.joined(separator: " ; ")
+            return [
+                "La synchronisation a échoué après \(failure.appliedOperationCount) opération(s).",
+                "Cause initiale : \(conciseCause(failure.cause))",
+                "La restauration automatique a échoué.",
+                restorationFailures.isEmpty
+                    ? "Le détail de restauration est indisponible."
+                    : "Détail : \(restorationFailures).",
+                "Fermez Safari et Chrome avant de réessayer.",
+            ].joined(separator: " ")
+        case .executionFailed(let failure):
+            return "L’écriture a échoué : \(conciseCause(failure.cause))"
+        case .backupCreationFailed(let context):
+            return "La sauvegarde obligatoire n’a pas pu être créée : \(conciseCause(context))"
+        case .participantCaptureFailed(let participant, let context):
+            return "Le point de restauration \(participant) n’a pas pu être créé : \(conciseCause(context))"
+        }
+    }
+
+    private static func conciseCause(
+        _ context: SynchronizationTransactionFailureContext
+    ) -> String {
+        if context.errorType.contains("EndToEndSynchronizationError"),
+           context.description.hasPrefix("residualDiff") {
+            return "la relecture finale ne correspond pas à l’aperçu confirmé"
+        }
+        let maximumLength = 500
+        guard context.description.count > maximumLength else {
+            return "\(context.errorType): \(context.description)"
+        }
+        return "\(context.errorType): \(context.description.prefix(maximumLength))…"
+    }
+
+    private static func restorationTargetDescription(
+        _ target: SynchronizationTransactionRestorationTarget
+    ) -> String {
+        switch target {
+        case .targetFile:
+            "fichier de favoris"
+        case .participant(let participant):
+            "état \(participant)"
+        }
     }
 
     private static func makePreview(

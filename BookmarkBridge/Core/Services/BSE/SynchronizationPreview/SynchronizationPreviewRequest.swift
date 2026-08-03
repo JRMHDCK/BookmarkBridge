@@ -9,6 +9,7 @@ nonisolated enum SynchronizationSelectionScope: Hashable, Sendable {
     case all
     case nativeIdentifiers(
         Set<String>,
+        includingSemanticKeys: Set<String> = [],
         excludingSemanticKeys: Set<String> = []
     )
 }

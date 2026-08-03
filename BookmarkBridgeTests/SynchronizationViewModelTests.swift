@@ -339,6 +339,65 @@ struct SynchronizationViewModelTests {
         #expect(viewModel.canSynchronize)
     }
 
+    @Test("A restoration failure exposes a concise cause and recovery detail")
+    func restorationFailureIsVisible() async throws {
+        let initial = try makeResult(operations: [
+            .rename(RenameNodeOperation(
+                logicalNodeID: logicalID(1),
+                title: "Renamed"
+            )),
+        ])
+        let residualState = try LogicalNodeState(
+                logicalNodeID: logicalID(2),
+                kind: .bookmark,
+                title: "Created",
+                url: URL(string: "https://created.example"),
+                parentID: nil,
+                position: 0,
+                lifecycle: .unregistered,
+                observations: []
+            )
+        let residual = EndToEndSynchronizationError.residualDiff([
+            .created(CreatedChange(after: residualState)),
+        ])
+        let failure = SynchronizationTransactionFailure(
+            failedOperation: nil,
+            appliedOperationCount: 1,
+            restorationStatus: .failed,
+            cause: SynchronizationTransactionFailureContext(residual),
+            restorationFailures: [
+                SynchronizationTransactionRestorationFailure(
+                    target: .targetFile,
+                    context: SynchronizationTransactionFailureContext(
+                        TestFailure.execution
+                    )
+                ),
+            ]
+        )
+        let executionService = ExecutionServiceDouble(
+            error: SynchronizationTransactionError.restorationFailed(failure)
+        )
+        let viewModel = makeViewModel(
+            service: PreviewServiceDouble(result: initial),
+            executionService: executionService
+        )
+        await viewModel.loadPreview(
+            safari: safariSummary,
+            chrome: chromeSummary
+        )
+
+        _ = await viewModel.synchronize()
+
+        guard case .failed(let message) = viewModel.executionState else {
+            Issue.record("Expected a visible restoration failure")
+            return
+        }
+        #expect(message.contains("relecture finale"))
+        #expect(message.contains("fichier de favoris"))
+        #expect(message.contains("Fermez Safari et Chrome"))
+        #expect(message.count < 1_500)
+    }
+
     @Test("A second click is ignored while synchronization is suspended")
     func doubleClickIsIgnored() async throws {
         let initial = try makeResult(operations: [
@@ -645,10 +704,10 @@ private actor SequencedPreviewService: SynchronizationPreviewProviding {
 }
 
 private actor ExecutionServiceDouble: SynchronizationProductionExecuting {
-    private let error: TestFailure?
+    private let error: (any Error & Sendable)?
     private(set) var callCount = 0
 
-    init(error: TestFailure? = nil) {
+    init(error: (any Error & Sendable)? = nil) {
         self.error = error
     }
 
