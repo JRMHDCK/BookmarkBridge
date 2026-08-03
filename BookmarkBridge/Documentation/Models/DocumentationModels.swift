@@ -30,23 +30,27 @@ enum HelpPageID: String, CaseIterable, Identifiable, Sendable {
         "help.page.\(rawValue).subtitle"
     }
 
-    var systemImage: String {
+    var icon: DocumentationIcon {
         switch self {
-        case .introduction: "sparkles"
-        case .installation: "square.and.arrow.down"
-        case .configuration: "gearshape"
-        case .safari: "safari"
-        case .chrome: "globe"
-        case .synchronization: "arrow.triangle.2.circlepath"
-        case .conflicts: "arrow.triangle.branch"
-        case .chromeProfiles: "person.crop.circle.badge.checkmark"
-        case .history: "clock.arrow.circlepath"
-        case .backups: "externaldrive.badge.timemachine"
-        case .faq: "questionmark.bubble"
-        case .troubleshooting: "wrench.and.screwdriver"
-        case .glossary: "text.book.closed"
+        case .introduction: .system("sparkles")
+        case .installation: .system("square.and.arrow.down")
+        case .configuration: .system("gearshape")
+        case .safari: .browser(.safari)
+        case .chrome, .chromeProfiles: .browser(.chrome)
+        case .synchronization: .system("arrow.triangle.2.circlepath")
+        case .conflicts: .system("arrow.triangle.branch")
+        case .history: .system("clock.arrow.circlepath")
+        case .backups: .system("externaldrive.badge.timemachine")
+        case .faq: .system("questionmark.bubble")
+        case .troubleshooting: .system("wrench.and.screwdriver")
+        case .glossary: .system("text.book.closed")
         }
     }
+}
+
+enum DocumentationIcon: Sendable {
+    case system(String)
+    case browser(Browser)
 }
 
 enum HelpBlock: Sendable {
@@ -85,7 +89,7 @@ struct OnboardingStep: Identifiable, Sendable {
     let id: String
     let titleKey: String
     let bodyKey: String
-    let systemImage: String
+    let icon: DocumentationIcon
 }
 
 struct WhatsNewSection: Identifiable, Sendable {

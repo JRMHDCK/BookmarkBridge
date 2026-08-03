@@ -54,11 +54,21 @@ struct HelpCenterView: View {
                     Button {
                         navigate(to: page.id)
                     } label: {
-                        Label(
-                            DocumentationText.value(page.id.titleKey),
-                            systemImage: page.id.systemImage
-                        )
-                        .symbolRenderingMode(.hierarchical)
+                        Label {
+                            Text(
+                                DocumentationText.value(
+                                    page.id.titleKey
+                                )
+                            )
+                        } icon: {
+                            switch page.id.icon {
+                            case .browser(let browser):
+                                BrowserLogo(browser: browser, size: 22)
+                            case .system(let name):
+                                Image(systemName: name)
+                                    .symbolRenderingMode(.hierarchical)
+                            }
+                        }
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     .buttonStyle(.plain)

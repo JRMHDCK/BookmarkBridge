@@ -83,8 +83,11 @@ struct SynchronizationSelectionScreen: View {
                     selected: model.sourceIsSelected(source),
                     partial: model.sourceIsPartiallySelected(source)
                 )
-                Image(systemName: source.source.browser == .safari ? "safari" : "person.crop.circle")
-                    .foregroundStyle(.secondary)
+                BrowserLogo(
+                    browser: source.source.browser,
+                    size: 26,
+                    chromeArtwork: .homeAndSynchronization
+                )
                 Text(source.source.displayName)
                     .font(.headline)
                 Spacer()

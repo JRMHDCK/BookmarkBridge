@@ -93,6 +93,13 @@ context.fillEllipse(
 context.restoreGState()
 
 NSGraphicsContext.current?.imageInterpolation = .high
+context.saveGState()
+let iconMask = NSBezierPath(
+    roundedRect: Background.logoRect,
+    xRadius: 15,
+    yRadius: 15
+)
+iconMask.addClip()
 icon.draw(
     in: Background.logoRect,
     from: .zero,
@@ -101,6 +108,7 @@ icon.draw(
     respectFlipped: true,
     hints: [.interpolation: NSImageInterpolation.high]
 )
+context.restoreGState()
 
 let centeredParagraph = NSMutableParagraphStyle()
 centeredParagraph.alignment = .center

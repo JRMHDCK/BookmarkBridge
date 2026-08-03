@@ -29,10 +29,17 @@ struct HelpPageView: View {
 
     private var pageHeader: some View {
         HStack(alignment: .top, spacing: Theme.Spacing.l) {
-            Image(systemName: page.id.systemImage)
-                .font(.system(size: 30))
-                .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(.tint)
+            Group {
+                switch page.id.icon {
+                case .browser(let browser):
+                    BrowserLogo(browser: browser, size: 44)
+                case .system(let name):
+                    Image(systemName: name)
+                        .font(.system(size: 30))
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(.tint)
+                }
+            }
                 .frame(width: 52, height: 52)
                 .background(
                     Color.accentColor.opacity(0.10),

@@ -92,11 +92,13 @@ struct SynchronizationDirectionScreen: View {
             navigation.select(direction)
         } label: {
             HStack(spacing: Theme.Spacing.m) {
-                Image(systemName: direction == .safariToChrome
-                    ? "safari"
-                    : "globe")
-                    .font(.title2)
-                    .foregroundStyle(Color.accentColor)
+                BrowserLogo(
+                    browser: direction == .safariToChrome
+                        ? .safari
+                        : .chrome,
+                    size: 32,
+                    chromeArtwork: .homeAndSynchronization
+                )
                     .frame(width: Theme.Size.minimumInteractive)
 
                 Text(direction.title)

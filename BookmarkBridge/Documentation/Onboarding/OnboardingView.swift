@@ -69,10 +69,17 @@ struct OnboardingView: View {
     private var onboardingPage: some View {
         let step = OnboardingContent.steps[currentIndex]
         return VStack(spacing: Theme.Spacing.xl) {
-            Image(systemName: step.systemImage)
-                .font(.system(size: 54))
-                .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(.tint)
+            Group {
+                switch step.icon {
+                case .browser(let browser):
+                    BrowserLogo(browser: browser, size: 76)
+                case .system(let name):
+                    Image(systemName: name)
+                        .font(.system(size: 54))
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(.tint)
+                }
+            }
                 .frame(width: 96, height: 96)
                 .background(
                     Color.accentColor.opacity(0.10),

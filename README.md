@@ -40,8 +40,8 @@ L’application est conçue autour d’un principe simple : vos favoris doivent 
 ## Captures
 
 <div align="center">
-  <img src="Distribution/DMG/Background/BookmarkBridge-DMG-Background.png" width="760" alt="Fenêtre d’installation de BookmarkBridge">
-  <p><em>Installation par glisser-déposer dans le dossier Applications.</em></p>
+  <img src="Distribution/GitHub/Screenshots/BookmarkBridge-DMG-Install.png" width="760" alt="Fenêtre du DMG avec BookmarkBridge.app et le raccourci Applications">
+  <p><em>Glissez BookmarkBridge.app sur le raccourci Applications.</em></p>
 </div>
 
 L’interface suit les conventions de macOS et prend en charge les apparences claire et sombre. Des captures détaillées du tableau de bord et de l’aperçu de synchronisation seront ajoutées au fil de la bêta publique.

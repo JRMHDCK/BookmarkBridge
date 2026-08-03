@@ -440,11 +440,12 @@ private struct SourceRow: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: Theme.Spacing.l) {
-            Image(systemName: symbolName)
-                .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(.secondary)
+            BrowserLogo(
+                browser: entry.source.browser,
+                size: 32,
+                chromeArtwork: .homeAndSynchronization
+            )
                 .frame(width: Theme.Size.minimumInteractive)
-                .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: Theme.Spacing.s) {
                 Text(entry.source.displayName)
                     .font(.headline)
@@ -534,12 +535,6 @@ private struct SourceRow: View {
         }
     }
 
-    private var symbolName: String {
-        switch entry.source.browser {
-        case .safari: "safari"
-        case .chrome: "globe"
-        }
-    }
 }
 
 #Preview("Dashboard (in-memory)") {
