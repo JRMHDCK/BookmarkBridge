@@ -42,7 +42,9 @@ nonisolated struct SynchronizationExecutionCoordinator:
             safariSecurityScopeURL:
                 previewRequest.safariSecurityScopeURL,
             chromeSecurityScopeURL:
-                previewRequest.chromeSecurityScopeURL
+                previewRequest.chromeSecurityScopeURL,
+            safariSelection: previewRequest.safariSelection,
+            chromeSelection: previewRequest.chromeSelection
         )
         let confirmedPlan = try ConfirmedSynchronizationPlan(
             confirming: preview,

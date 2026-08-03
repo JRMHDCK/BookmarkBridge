@@ -17,34 +17,42 @@ struct SynchronizationDirectionScreen: View {
     let onSynchronize: @MainActor () async -> Bool
 
     @State private var navigation = SynchronizationDirectionNavigation()
+    @State private var showsPreview = false
 
     var body: some View {
         switch navigation.selectedDirection {
         case nil:
             directionChoice
+        case .some(let direction) where !showsPreview:
+            SynchronizationSelectionScreen(
+                model: model.selection,
+                direction: direction,
+                onContinue: {
+                    await onSelectDirection(direction.previewDirection)
+                    showsPreview = true
+                },
+                onBack: { navigation.goBack() }
+            )
         case .safariToChrome:
-            SynchronizationPreviewScreen(
-                model: model,
-                isAuthorized: isAuthorized,
-                onReload: {
-                    await onReloadDirection(.safariToChrome)
-                },
-                onSynchronize: onSynchronize,
-                onBack: { navigation.goBack() },
-                allowsSynchronization: true
-            )
+            previewScreen(direction: .safariToChrome)
         case .chromeToSafari:
-            SynchronizationPreviewScreen(
+            previewScreen(direction: .chromeToSafari)
+        }
+    }
+
+    private func previewScreen(
+        direction: ProductionSynchronizationDirection
+    ) -> some View {
+        SynchronizationPreviewScreen(
                 model: model,
                 isAuthorized: isAuthorized,
                 onReload: {
-                    await onReloadDirection(.chromeToSafari)
+                    await onReloadDirection(direction)
                 },
                 onSynchronize: onSynchronize,
-                onBack: { navigation.goBack() },
+                onBack: { showsPreview = false },
                 allowsSynchronization: true
             )
-        }
     }
 
     private var directionChoice: some View {
@@ -82,9 +90,6 @@ struct SynchronizationDirectionScreen: View {
     ) -> some View {
         Button {
             navigation.select(direction)
-            Task {
-                await onSelectDirection(direction.previewDirection)
-            }
         } label: {
             HStack(spacing: Theme.Spacing.m) {
                 Image(systemName: direction == .safariToChrome

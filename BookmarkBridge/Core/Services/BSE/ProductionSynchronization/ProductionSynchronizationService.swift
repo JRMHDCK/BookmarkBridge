@@ -222,13 +222,13 @@ nonisolated struct ProductionSynchronizationService: Sendable {
         request: ProductionSynchronizationRequest,
         transactionBackup: SynchronizationBackup?
     ) -> Components {
-        let safariReader = SafariAdapter(
+        let safariAdapter = SafariAdapter(
             sourceID: request.safariSourceID,
             dataSource: DefaultSafariDataSource(
                 bookmarksFileURL: request.safariBookmarksURL
             )
         )
-        let chromeReader = ChromeAdapter(
+        let chromeAdapter = ChromeAdapter(
             sourceID: request.chromeSourceID,
             profileIdentifier: request.chromeProfileIdentifier,
             dataSource: DefaultChromeDataSource(
@@ -236,6 +236,14 @@ nonisolated struct ProductionSynchronizationService: Sendable {
                 profileIdentifier: request.chromeProfileIdentifier,
                 securityScopeURL: request.chromeSecurityScopeURL
             )
+        )
+        let safariReader = SelectionScopedSynchronizationReader(
+            reader: safariAdapter,
+            selection: request.safariSelection
+        )
+        let chromeReader = SelectionScopedSynchronizationReader(
+            reader: chromeAdapter,
+            selection: request.chromeSelection
         )
 
         let safariBackupService: any SafariBookmarkBackingUp
@@ -329,7 +337,9 @@ nonisolated struct ProductionSynchronizationService: Sendable {
             chromeBookmarksURL: request.chromeBookmarksURL,
             chromeProfileIdentifier: request.chromeProfileIdentifier,
             safariSecurityScopeURL: request.safariSecurityScopeURL,
-            chromeSecurityScopeURL: request.chromeSecurityScopeURL
+            chromeSecurityScopeURL: request.chromeSecurityScopeURL,
+            safariSelection: request.safariSelection,
+            chromeSelection: request.chromeSelection
         )
     }
 
@@ -371,8 +381,8 @@ nonisolated struct ProductionSynchronizationService: Sendable {
     }
 
     private struct Components {
-        let safariReader: SafariAdapter
-        let chromeReader: ChromeAdapter
+        let safariReader: SelectionScopedSynchronizationReader
+        let chromeReader: SelectionScopedSynchronizationReader
         let safariWriter: SafariBookmarkWriteAdapter
         let chromeWriter: ChromeBookmarkWriteAdapter
         let matchingPipeline: MatchingPipeline

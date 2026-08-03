@@ -19,7 +19,9 @@ struct UserFacingErrorPresentation: Sendable {
     )
 
     static func presentation(for message: String) -> Self {
-        if message.localizedCaseInsensitiveContains("Chrome doit être fermé") {
+        if message.localizedCaseInsensitiveContains(
+            "Safari et Chrome doivent être fermés"
+        ) {
             return preset("chromeRunning")
         }
         if message.localizedCaseInsensitiveContains("Deux stockages") {

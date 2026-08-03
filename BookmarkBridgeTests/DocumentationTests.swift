@@ -100,7 +100,7 @@ struct DocumentationTests {
     func errorsReceiveGuidance() {
         let closedChrome =
             UserFacingErrorPresentation.presentation(
-                for: "Chrome doit être fermé."
+                for: "Safari et Chrome doivent être fermés."
             )
         let authorization =
             UserFacingErrorPresentation.presentation(
@@ -115,5 +115,23 @@ struct DocumentationTests {
             authorization.titleKey
                 == "error.authorization.title"
         )
+    }
+
+    @Test("Documentation routes inside the main window")
+    func documentationRoutesInsideMainWindow() {
+        let router = DocumentationRouter()
+
+        router.request(.backups)
+        #expect(router.destination == .helpCenter)
+        #expect(router.requestedPageID == .backups)
+
+        router.showWhatsNew()
+        #expect(router.destination == .whatsNew)
+
+        router.showAbout()
+        #expect(router.destination == .about)
+
+        router.showApplication()
+        #expect(router.destination == .application)
     }
 }

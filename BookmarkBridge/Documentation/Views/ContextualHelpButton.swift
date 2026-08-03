@@ -7,14 +7,12 @@ import SwiftUI
 
 struct ContextualHelpButton: View {
     @Environment(DocumentationRouter.self) private var router
-    @Environment(\.openWindow) private var openWindow
 
     let pageID: HelpPageID
 
     var body: some View {
         Button {
             router.request(pageID)
-            openWindow(id: DocumentationWindow.helpCenter)
         } label: {
             Label(
                 DocumentationText.value("help.contextual.button"),

@@ -5,10 +5,21 @@
 //  Created by Jérôme Hudecek on 15/07/2026.
 //
 
+import AppKit
 import SwiftUI
+
+final class BookmarkBridgeAppDelegate: NSObject, NSApplicationDelegate {
+    func applicationShouldTerminateAfterLastWindowClosed(
+        _ sender: NSApplication
+    ) -> Bool {
+        true
+    }
+}
 
 @main
 struct BookmarkBridgeApp: App {
+    @NSApplicationDelegateAdaptor(BookmarkBridgeAppDelegate.self)
+    private var appDelegate
     private let applicationViewModel: ApplicationViewModel
     private let documentationRouter = DocumentationRouter()
 
@@ -83,9 +94,12 @@ struct BookmarkBridgeApp: App {
     }
 
     var body: some Scene {
-        WindowGroup {
+        Window("BookmarkBridge", id: "main") {
             ApplicationNavigationView(model: applicationViewModel)
                 .environment(documentationRouter)
+                .onDisappear {
+                    NSApp.terminate(nil)
+                }
         }
         .defaultSize(
             width: Theme.Size.windowIdealWidth,
@@ -95,32 +109,5 @@ struct BookmarkBridgeApp: App {
         .commands {
             DocumentationCommands(router: documentationRouter)
         }
-
-        Window(
-            DocumentationText.value("help.window.title"),
-            id: DocumentationWindow.helpCenter
-        ) {
-            HelpCenterView()
-                .environment(documentationRouter)
-        }
-        .defaultSize(width: 980, height: 720)
-
-        Window(
-            DocumentationText.value("whatsNew.window.title"),
-            id: DocumentationWindow.whatsNew
-        ) {
-            WhatsNewView()
-                .environment(documentationRouter)
-        }
-        .defaultSize(width: 720, height: 680)
-
-        Window(
-            DocumentationText.value("about.window.title"),
-            id: DocumentationWindow.about
-        ) {
-            AboutView()
-                .environment(documentationRouter)
-        }
-        .defaultSize(width: 620, height: 640)
     }
 }

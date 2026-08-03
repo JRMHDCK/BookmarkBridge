@@ -110,15 +110,27 @@ nonisolated struct SynchronizationPreviewService: Sendable {
         let direction: SynchronizationDirection
         switch request.direction {
         case .safariToChrome:
-            sourceReader = safariReader
-            targetReader = chromeReader
+            sourceReader = SelectionScopedSynchronizationReader(
+                reader: safariReader,
+                selection: request.safariSelection
+            )
+            targetReader = SelectionScopedSynchronizationReader(
+                reader: chromeReader,
+                selection: request.chromeSelection
+            )
             direction = .oneWay(
                 source: request.safariSourceID,
                 target: request.chromeSourceID
             )
         case .chromeToSafari:
-            sourceReader = chromeReader
-            targetReader = safariReader
+            sourceReader = SelectionScopedSynchronizationReader(
+                reader: chromeReader,
+                selection: request.chromeSelection
+            )
+            targetReader = SelectionScopedSynchronizationReader(
+                reader: safariReader,
+                selection: request.safariSelection
+            )
             direction = .oneWay(
                 source: request.chromeSourceID,
                 target: request.safariSourceID

@@ -92,15 +92,15 @@
 "help.chrome.authorization.open" = "Cliquez sur Choisir le profil Chrome.";
 "help.chrome.authorization.select" = "Sélectionnez le dossier Chrome dans Application Support/Google.";
 "help.chrome.authorization.profile" = "Dans Synchronisation, vérifiez le nom du profil cible avant de confirmer.";
-"help.chrome.closed.title" = "Fermez Chrome avant une écriture";
-"help.chrome.closed.body" = "Chrome doit être fermé pendant la synchronisation et la restauration. Cette précaution évite que Chrome et BookmarkBridge modifient le même fichier en même temps.";
+"help.chrome.closed.title" = "Fermez Safari et Chrome avant une écriture";
+"help.chrome.closed.body" = "Safari et Chrome doivent être fermés pendant la synchronisation et la restauration. Cette précaution évite que les navigateurs et BookmarkBridge modifient les favoris en même temps.";
 
 /* Synchronization */
 "help.synchronization.overview" = "La synchronisation suit une séquence contrôlée. Le plan visible reste la référence : aucune opération supplémentaire n’est ajoutée au moment de l’écriture.";
 "help.synchronization.workflow.title" = "Effectuer une première synchronisation";
 "help.synchronization.step.reload" = "Actualisez Accueil pour lire les bibliothèques Safari et Chrome.";
 "help.synchronization.step.review" = "Ouvrez Synchronisation et examinez le résumé ainsi que le nombre de changements.";
-"help.synchronization.step.close" = "Fermez complètement Google Chrome.";
+"help.synchronization.step.close" = "Fermez Safari et Chrome.";
 "help.synchronization.step.confirm" = "Cliquez sur Synchroniser, puis confirmez le plan affiché.";
 "help.synchronization.step.verify" = "Attendez le message de réussite et vérifiez que l’aperçu se recharge.";
 "help.synchronization.additive.title" = "Synchronisation additive";
@@ -136,7 +136,7 @@
 /* Backups */
 "help.backups.overview" = "Avant toute écriture, BookmarkBridge crée une copie privée et horodatée du fichier Chrome d’origine. La sauvegarde est liée au profil exact qui a été modifié.";
 "help.backups.restore.title" = "Restaurer une sauvegarde";
-"help.backups.restore.close" = "Fermez Google Chrome.";
+"help.backups.restore.close" = "Fermez Safari et Chrome.";
 "help.backups.restore.open" = "Ouvrez Synchronisation et repérez le bouton Restaurer.";
 "help.backups.restore.confirm" = "Lancez la restauration. BookmarkBridge replace atomiquement le fichier sauvegardé.";
 "help.backups.restore.verify" = "Attendez la confirmation, puis ouvrez Chrome pour vérifier vos favoris.";
@@ -157,15 +157,15 @@
 "help.faq.profiles.question" = "Puis-je synchroniser plusieurs profils Chrome ?";
 "help.faq.profiles.answer" = "BookmarkBridge peut lire plusieurs profils, mais chaque synchronisation vise un profil local précis. Vérifiez son nom dans l’aperçu avant de confirmer.";
 "help.faq.restore.question" = "Comment restaurer une sauvegarde ?";
-"help.faq.restore.answer" = "Fermez Chrome, ouvrez Synchronisation et utilisez Restaurer lorsque le bouton est disponible. La sauvegarde correspond au profil précédemment modifié.";
+"help.faq.restore.answer" = "Fermez Safari et Chrome, ouvrez Synchronisation et utilisez Restaurer lorsque le bouton est disponible. La sauvegarde correspond au profil précédemment modifié.";
 "help.faq.missing.question" = "Pourquoi certains favoris ne sont-ils pas synchronisés ?";
 "help.faq.missing.answer" = "Les éléments déjà présents après normalisation d’URL ne sont pas ajoutés à nouveau. Les stockages AccountBookmarks et les profils ambigus restent également en lecture seule.";
 
 /* Troubleshooting */
 "help.troubleshooting.permission.title" = "Une autorisation n’est plus valide";
 "help.troubleshooting.permission.body" = "Dans Accueil, utilisez le bouton d’autorisation correspondant et sélectionnez à nouveau le fichier Safari ou le dossier Chrome.";
-"help.troubleshooting.chrome.title" = "La synchronisation demande de fermer Chrome";
-"help.troubleshooting.chrome.body" = "Quittez Chrome avec Commande-Q, attendez quelques secondes, puis réessayez. Fermer uniquement une fenêtre ne quitte pas toujours l’application.";
+"help.troubleshooting.chrome.title" = "La synchronisation demande de fermer Safari et Chrome";
+"help.troubleshooting.chrome.body" = "Quittez Safari et Chrome avec Commande-Q, attendez quelques secondes, puis réessayez. Fermer uniquement leurs fenêtres ne quitte pas toujours les applications.";
 "help.troubleshooting.empty.title" = "Aucun favori n’apparaît";
 "help.troubleshooting.empty.body" = "Vérifiez la source et le profil, puis utilisez Actualiser. Si l’accès est signalé comme invalide, accordez-le de nouveau.";
 "help.troubleshooting.retry.title" = "L’aperçu ne se charge pas";
@@ -201,7 +201,7 @@
 "onboarding.chrome.title" = "Autoriser Chrome";
 "onboarding.chrome.body" = "Sélectionnez le dossier Chrome pour découvrir vos profils. Seul le profil local confirmé pourra recevoir des ajouts.";
 "onboarding.firstSync.title" = "Votre première synchronisation";
-"onboarding.firstSync.body" = "Actualisez les sources, ouvrez Synchronisation, vérifiez l’aperçu, fermez Chrome puis confirmez. Une sauvegarde sera créée automatiquement.";
+"onboarding.firstSync.body" = "Actualisez les sources, ouvrez Synchronisation, vérifiez l’aperçu, fermez Safari et Chrome puis confirmez. Une sauvegarde sera créée automatiquement.";
 "onboarding.finish.title" = "Tout est prêt";
 "onboarding.finish.body" = "Commencez par accorder les autorisations dans Accueil. Vous pourrez retrouver ce guide depuis Réglages et toute la documentation depuis le menu Aide.";
 "onboarding.previous" = "Précédent";
@@ -278,10 +278,10 @@
 "error.authorization.cause" = "L’autorisation macOS a été retirée, a expiré ou l’emplacement a changé.";
 "error.authorization.solution" = "Cliquez sur Autoriser et sélectionnez à nouveau la bibliothèque correspondante.";
 
-"error.chromeRunning.title" = "Fermez Google Chrome";
+"error.chromeRunning.title" = "Fermez Safari et Chrome";
 "error.chromeRunning.description" = "La synchronisation ou la restauration a été interrompue avant l’écriture.";
-"error.chromeRunning.cause" = "Chrome est encore ouvert et pourrait modifier ses favoris en même temps.";
-"error.chromeRunning.solution" = "Quittez Chrome avec Commande-Q, puis réessayez.";
+"error.chromeRunning.cause" = "Safari ou Chrome est encore ouvert et pourrait modifier ses favoris en même temps.";
+"error.chromeRunning.solution" = "Quittez Safari et Chrome avec Commande-Q, puis réessayez.";
 
 "error.multipleStores.title" = "Profil Chrome en lecture seule";
 "error.multipleStores.description" = "BookmarkBridge a détecté deux stockages de favoris non vides pour ce profil.";
@@ -315,13 +315,13 @@
 
 "error.restore.title" = "Restauration impossible";
 "error.restore.description" = "La sauvegarde n’a pas pu remplacer le fichier Chrome actuel.";
-"error.restore.cause" = "Chrome est ouvert, l’autorisation a changé ou la sauvegarde n’est plus accessible.";
-"error.restore.solution" = "Fermez Chrome, autorisez de nouveau le profil si nécessaire, puis réessayez.";
+"error.restore.cause" = "Safari ou Chrome est ouvert, l’autorisation a changé ou la sauvegarde n’est plus accessible.";
+"error.restore.solution" = "Fermez Safari et Chrome, autorisez de nouveau le profil si nécessaire, puis réessayez.";
 
 "error.synchronization.title" = "Synchronisation interrompue";
 "error.synchronization.description" = "BookmarkBridge n’a pas pu terminer l’opération confirmée.";
 "error.synchronization.cause" = "Le fichier Chrome ou son environnement a changé pendant la transaction.";
-"error.synchronization.solution" = "Laissez Chrome fermé, actualisez l’aperçu et réessayez. Utilisez Restaurer si le bouton est proposé.";
+"error.synchronization.solution" = "Laissez Safari et Chrome fermés, actualisez l’aperçu et réessayez. Utilisez Restaurer si le bouton est proposé.";
 
 "error.unsupportedBrowser.title" = "Navigateur non pris en charge";
 "error.unsupportedBrowser.description" = "Cette source ne peut pas être utilisée par la version actuelle.";

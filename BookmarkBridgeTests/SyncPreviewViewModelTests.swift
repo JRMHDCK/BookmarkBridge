@@ -160,7 +160,10 @@ struct SyncPreviewViewModelTests {
         ])
 
         await model.apply()
-        #expect(model.applyState == .failed("Chrome doit être fermé."))
+        #expect(
+            model.applyState
+                == .failed("Safari et Chrome doivent être fermés.")
+        )
         #expect(model.canRetry)
         #expect(model.canRestore == false)
 
@@ -185,7 +188,10 @@ struct SyncPreviewViewModelTests {
 
         await model.apply()
 
-        #expect(model.applyState == .failed("Chrome doit être fermé."))
+        #expect(
+            model.applyState
+                == .failed("Safari et Chrome doivent être fermés.")
+        )
         #expect(model.canRestore)
     }
 
@@ -244,7 +250,10 @@ struct SyncPreviewViewModelTests {
         await model.apply()
         await model.restore()
 
-        #expect(model.applyState == .failed("Chrome doit être fermé."))
+        #expect(
+            model.applyState
+                == .failed("Safari et Chrome doivent être fermés.")
+        )
         #expect(model.canRestore)
         #expect(backupStore.restored.isEmpty)
         #expect(controller.startCount == 0)

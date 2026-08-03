@@ -431,7 +431,7 @@ def build_story() -> list:
                             "Rechargez les sources pour lire leur état actuel.",
                             "Ouvrez Synchronisation et examinez le résumé des ajouts.",
                             "Développez les détails pour contrôler les favoris concernés.",
-                            "Fermez complètement Google Chrome.",
+                            "Fermez Safari et Chrome.",
                             "Confirmez l’application de la synchronisation.",
                             "Vérifiez le résultat, puis rouvrez Chrome.",
                         ],
@@ -472,7 +472,7 @@ def build_story() -> list:
                             "Aucun favori n’est transmis sur le réseau.",
                             "Safari et AccountBookmarks restent en lecture seule.",
                             "Une sauvegarde précède toute modification de Chrome.",
-                            "Chrome doit être fermé pendant l’écriture ou la restauration.",
+                            "Safari et Chrome doivent être fermés pendant l’écriture ou la restauration.",
                         ]
                     ),
                     callout(
@@ -518,7 +518,7 @@ def build_story() -> list:
                     KeepTogether([
                         heading("Comment restaurer une sauvegarde ?"),
                         paragraph(
-                            "Fermez Chrome, ouvrez le dernier résultat de synchronisation, choisissez "
+                            "Fermez Safari et Chrome, ouvrez le dernier résultat de synchronisation, choisissez "
                             "Restaurer et confirmez. Le tableau de bord est ensuite rechargé."
                         ),
                     ]),
@@ -534,10 +534,10 @@ def build_story() -> list:
                         "L’autorisation a probablement expiré ou le fichier a été déplacé. "
                         "Choisissez Autoriser, puis sélectionnez à nouveau Bookmarks.plist."
                     ),
-                    heading("Chrome doit être fermé"),
+                    heading("Safari et Chrome doivent être fermés"),
                     paragraph(
-                        "Quittez Chrome avec Commande-Q. Vérifiez qu’aucune fenêtre ni processus "
-                        "Chrome ne reste actif, puis réessayez."
+                        "Quittez Safari et Chrome avec Commande-Q. Vérifiez qu’aucune fenêtre ni "
+                        "aucun processus de ces navigateurs ne reste actif, puis réessayez."
                     ),
                     heading("Deux stockages Chrome sont détectés"),
                     paragraph(
@@ -566,7 +566,7 @@ def build_story() -> list:
                     bullets(
                         [
                             "Examinez toujours l’aperçu avant de confirmer.",
-                            "Fermez Chrome avant une synchronisation ou une restauration.",
+                            "Fermez Safari et Chrome avant une synchronisation ou une restauration.",
                             "Ne déplacez pas les fichiers des navigateurs pendant une opération.",
                             "Commencez par un profil Chrome dont vous connaissez le contenu.",
                             "Après une synchronisation, vérifiez quelques favoris dans Chrome.",

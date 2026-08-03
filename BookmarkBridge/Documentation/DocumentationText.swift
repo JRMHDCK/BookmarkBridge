@@ -31,9 +31,3 @@ enum DocumentationPreferences {
     static let onboardingUITestSkipEnvironmentKey =
         "BOOKMARKBRIDGE_UI_TEST_SKIP_ONBOARDING"
 }
-
-enum DocumentationWindow {
-    static let helpCenter = "documentation.help-center"
-    static let whatsNew = "documentation.whats-new"
-    static let about = "documentation.about"
-}

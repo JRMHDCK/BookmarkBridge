@@ -219,12 +219,12 @@ final class SyncPreviewViewModel {
             }
             applyState = .applied(count: result.addedCount)
         } catch ChromeWriteError.browserIsRunning {
-            applyState = .failed("Chrome doit être fermé.")
+            applyState = .failed("Safari et Chrome doivent être fermés.")
         } catch ChromeWriteError.browserStartedDuringTransaction(let handle) {
             if let selectedChromeID {
                 backupHandlesBySource[selectedChromeID] = handle
             }
-            applyState = .failed("Chrome doit être fermé.")
+            applyState = .failed("Safari et Chrome doivent être fermés.")
         } catch ChromeWriteError.bakCreationFailed(let handle, _) {
             if let selectedChromeID {
                 backupHandlesBySource[selectedChromeID] = handle
@@ -271,7 +271,7 @@ final class SyncPreviewViewModel {
               let handle = backupHandlesBySource[selectedChromeID],
               let scope = chromeScopeDirectory else { return }
         guard !browserDetector.isRunning(.chrome) else {
-            applyState = .failed("Chrome doit être fermé.")
+            applyState = .failed("Safari et Chrome doivent être fermés.")
             return
         }
         applyState = .restoring

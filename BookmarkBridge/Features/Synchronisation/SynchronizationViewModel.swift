@@ -112,6 +112,7 @@ final class SynchronizationViewModel {
     private(set) var state: State = .idle
     private(set) var executionState: ExecutionState = .idle
     private(set) var previewDirection: ProductionSynchronizationDirection?
+    let selection = SynchronizationSelectionViewModel()
 
     var isSynchronizing: Bool {
         switch executionState {
@@ -163,6 +164,10 @@ final class SynchronizationViewModel {
         previewDirection = nil
     }
 
+    func configureSelection(sources: [SearchableSource]) {
+        selection.configure(sources: sources)
+    }
+
     func loadPreview(
         safari: SynchronizationSourceSummary,
         chrome: SynchronizationSourceSummary,
@@ -208,10 +213,14 @@ final class SynchronizationViewModel {
         state = .loading
         latestSources = (safari, chrome)
         do {
-            let request = try await requestProvider.makeRequest(
+            let baseRequest = try await requestProvider.makeRequest(
                 safariSource: safari.source,
                 chromeSource: chrome.source,
                 direction: direction
+            )
+            let request = baseRequest.selecting(
+                safari: selection.scope(for: safari.source.id),
+                chrome: selection.scope(for: chrome.source.id)
             )
             #if DEBUG
             synchronizationViewModelLogger.debug(

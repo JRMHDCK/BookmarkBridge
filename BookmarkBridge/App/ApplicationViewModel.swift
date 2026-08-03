@@ -18,6 +18,7 @@ final class ApplicationViewModel {
 
     enum BrowserProtectedAction: Hashable {
         case initialLoad
+        case dashboardReload
         case reload(ProductionSynchronizationDirection)
         case preview(ProductionSynchronizationDirection)
         case authorize(Browser)
@@ -86,7 +87,8 @@ final class ApplicationViewModel {
     private func performInitialLoad() async {
         await authorization.restore()
         await dashboard.load()
-        await loadSynchronizationPreview()
+        synchronization.configureSelection(sources: dashboard.searchableSources)
+        synchronization.reset()
     }
 
     func reload(
@@ -98,11 +100,20 @@ final class ApplicationViewModel {
         await performReload(direction: direction)
     }
 
+    func reloadDashboard() async {
+        guard requestBrowserClosureIfNeeded(for: .dashboardReload) else { return }
+        await authorization.restore()
+        await dashboard.reloadAll()
+        synchronization.configureSelection(sources: dashboard.searchableSources)
+        synchronization.reset()
+    }
+
     private func performReload(
         direction: ProductionSynchronizationDirection
     ) async {
         await authorization.restore()
         await dashboard.reloadAll()
+        synchronization.configureSelection(sources: dashboard.searchableSources)
         await loadSynchronizationPreview(direction: direction)
     }
 
@@ -112,7 +123,8 @@ final class ApplicationViewModel {
         }
         await authorization.authorize(browser)
         await dashboard.reloadAll()
-        await loadSynchronizationPreview()
+        synchronization.configureSelection(sources: dashboard.searchableSources)
+        synchronization.reset()
     }
 
     func retry(_ sourceID: BookmarkSourceID) async {
@@ -120,7 +132,8 @@ final class ApplicationViewModel {
             return
         }
         await dashboard.retry(sourceID)
-        await loadSynchronizationPreview()
+        synchronization.configureSelection(sources: dashboard.searchableSources)
+        synchronization.reset()
     }
 
     func testBookmarkAccess(_ browser: Browser) async {
@@ -153,6 +166,7 @@ final class ApplicationViewModel {
             }
             await authorization.restore()
             await dashboard.reloadAll()
+            synchronization.configureSelection(sources: dashboard.searchableSources)
             await loadSynchronizationPreview(
                 direction: synchronization.previewDirection
                     ?? .safariToChrome
@@ -171,6 +185,7 @@ final class ApplicationViewModel {
             return
         }
         bookmarkAccess.selectChromeProfile(directory)
+        synchronization.configureSelection(sources: dashboard.searchableSources)
         await loadSynchronizationPreview(
             direction: synchronization.previewDirection
                 ?? .safariToChrome
@@ -187,6 +202,7 @@ final class ApplicationViewModel {
         let succeeded = await synchronization.synchronize()
         guard succeeded else { return false }
         await dashboard.reloadAll()
+        synchronization.configureSelection(sources: dashboard.searchableSources)
         await loadSynchronizationPreview(direction: direction)
         return true
     }
@@ -230,7 +246,6 @@ final class ApplicationViewModel {
     func selectSynchronizationDirection(
         _ direction: ProductionSynchronizationDirection
     ) async {
-        guard synchronization.previewDirection != direction else { return }
         guard requestBrowserClosureIfNeeded(for: .preview(direction)) else {
             return
         }
@@ -240,6 +255,7 @@ final class ApplicationViewModel {
     func loadSynchronizationPreview(
         direction: ProductionSynchronizationDirection = .safariToChrome
     ) async {
+        synchronization.configureSelection(sources: dashboard.searchableSources)
         guard let (safari, chrome) = synchronizationSourcePair else {
             synchronization.reset()
             return
@@ -258,6 +274,9 @@ final class ApplicationViewModel {
         let sources = dashboard.searchableSources
         guard let safari = sources.first(where: {
             $0.source.browser == .safari
+                && synchronization.selection.hasSelection(
+                    for: $0.source.id
+                )
         }),
         let chrome = selectedChromeSource(in: sources) else {
             return nil
@@ -279,6 +298,9 @@ final class ApplicationViewModel {
     ) -> SearchableSource? {
         let chromeSources = sources.filter {
             $0.source.browser == .chrome
+                && synchronization.selection.hasSelection(
+                    for: $0.source.id
+                )
         }
         guard let selected = bookmarkAccess.selectedChromeProfileDirectory
         else {
@@ -308,6 +330,8 @@ final class ApplicationViewModel {
             guard requestBrowserClosureIfNeeded(for: action) else { return }
             hasLoaded = true
             await performInitialLoad()
+        case .dashboardReload:
+            await reloadDashboard()
         case .reload(let direction):
             await reload(direction: direction)
         case .preview(let direction):

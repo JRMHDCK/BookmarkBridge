@@ -22,6 +22,8 @@ nonisolated struct ProductionSynchronizationRequest: Hashable, Sendable {
     let chromeProfileIdentifier: ChromeProfileIdentifier
     let safariSecurityScopeURL: URL
     let chromeSecurityScopeURL: URL
+    let safariSelection: SynchronizationSelectionScope
+    let chromeSelection: SynchronizationSelectionScope
 
     init(
         direction: ProductionSynchronizationDirection,
@@ -33,7 +35,9 @@ nonisolated struct ProductionSynchronizationRequest: Hashable, Sendable {
         chromeBackupDirectoryURL: URL,
         chromeProfileIdentifier: ChromeProfileIdentifier,
         safariSecurityScopeURL: URL? = nil,
-        chromeSecurityScopeURL: URL? = nil
+        chromeSecurityScopeURL: URL? = nil,
+        safariSelection: SynchronizationSelectionScope = .all,
+        chromeSelection: SynchronizationSelectionScope = .all
     ) {
         self.direction = direction
         self.safariSourceID = safariSourceID
@@ -47,5 +51,7 @@ nonisolated struct ProductionSynchronizationRequest: Hashable, Sendable {
             safariSecurityScopeURL ?? safariBookmarksURL
         self.chromeSecurityScopeURL =
             chromeSecurityScopeURL ?? chromeBookmarksURL
+        self.safariSelection = safariSelection
+        self.chromeSelection = chromeSelection
     }
 }

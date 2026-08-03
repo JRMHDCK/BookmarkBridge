@@ -62,35 +62,42 @@ final class BookmarkBridgeUITests: XCTestCase {
     }
 
     @MainActor
-    func testHelpMenuOpensDocumentationWindows() throws {
+    func testDocumentationStaysInTheMainWindow() throws {
         let app = XCUIApplication()
         app.launchEnvironment[
             "BOOKMARKBRIDGE_UI_TEST_SKIP_ONBOARDING"
         ] = "1"
         app.launch()
-        app.typeKey("n", modifierFlags: .command)
+        XCTAssertEqual(app.windows.count, 1)
 
-        let helpMenu = app.menuBars.menuBarItems["Aide"]
-        helpMenu.click()
-        helpMenu.menus.menuItems["Aide BookmarkBridge"].click()
-        let helpWindow = app.windows[
-            "documentation.help-center"
-        ]
+        app.typeKey("n", modifierFlags: .command)
+        XCTAssertEqual(app.windows.count, 1)
+
+        app.typeKey("/", modifierFlags: [.command, .shift])
         XCTAssertTrue(
-            helpWindow.waitForExistence(timeout: 3)
-        )
-        XCTAssertTrue(
-            helpWindow.searchFields.firstMatch
+            app.searchFields.firstMatch
                 .waitForExistence(timeout: 2)
         )
+        XCTAssertEqual(app.windows.count, 1)
+    }
+
+    @MainActor
+    func testClosingMainWindowTerminatesApplication() throws {
+        let app = XCUIApplication()
+        app.launchEnvironment[
+            "BOOKMARKBRIDGE_UI_TEST_SKIP_ONBOARDING"
+        ] = "1"
+        app.launch()
 
         app.typeKey("w", modifierFlags: .command)
-        helpMenu.click()
-        helpMenu.menus.menuItems["Nouveautés"].click()
-        XCTAssertTrue(
-            app.windows["documentation.whats-new"]
-                .waitForExistence(timeout: 3)
+
+        let stopped = XCTNSPredicateExpectation(
+            predicate: NSPredicate { _, _ in
+                app.state == .notRunning
+            },
+            object: nil
         )
+        wait(for: [stopped], timeout: 3)
     }
 
     @MainActor

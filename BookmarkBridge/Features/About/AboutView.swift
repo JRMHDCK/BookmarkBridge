@@ -7,7 +7,7 @@ import AppKit
 import SwiftUI
 
 struct AboutView: View {
-    @Environment(\.openWindow) private var openWindow
+    @Environment(DocumentationRouter.self) private var documentationRouter
     @Environment(\.openURL) private var openURL
 
     var body: some View {
@@ -94,7 +94,7 @@ struct AboutView: View {
                             "about.whatsNew.button"
                         )
                     ) {
-                        openWindow(id: DocumentationWindow.whatsNew)
+                        documentationRouter.showWhatsNew()
                     }
                     .buttonStyle(.borderedProminent)
                     .help(

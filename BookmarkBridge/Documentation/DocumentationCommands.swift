@@ -6,17 +6,18 @@
 import SwiftUI
 
 struct DocumentationCommands: Commands {
-    @Environment(\.openWindow) private var openWindow
     @Environment(\.openURL) private var openURL
 
     let router: DocumentationRouter
 
     var body: some Commands {
+        CommandGroup(replacing: .newItem) { }
+
         CommandGroup(replacing: .appInfo) {
             Button(
                 DocumentationText.value("menu.about")
             ) {
-                openWindow(id: DocumentationWindow.about)
+                router.showAbout()
             }
         }
 
@@ -25,7 +26,6 @@ struct DocumentationCommands: Commands {
                 DocumentationText.value("menu.helpCenter")
             ) {
                 router.request(.introduction)
-                openWindow(id: DocumentationWindow.helpCenter)
             }
             .keyboardShortcut("/", modifiers: [.command, .shift])
 
@@ -40,7 +40,7 @@ struct DocumentationCommands: Commands {
             Button(
                 DocumentationText.value("menu.whatsNew")
             ) {
-                openWindow(id: DocumentationWindow.whatsNew)
+                router.showWhatsNew()
             }
         }
     }

@@ -1,0 +1,139 @@
+import Foundation
+import Testing
+@testable import BookmarkBridge
+
+@Suite("Synchronization selection")
+struct SynchronizationSelectionTests {
+    @Test("All profiles and descendants start selected and profile toggles are independent")
+    @MainActor
+    func profileSelectionAndSessionPersistence() {
+        let safari = Self.source(.safari, profile: nil, name: "Safari", seed: "s")
+        let chromeDefault = Self.source(.chrome, profile: "Default", name: "Chrome — Default", seed: "c1")
+        let chromeWork = Self.source(.chrome, profile: "Profile 1", name: "Chrome — Travail", seed: "c2")
+        let model = SynchronizationSelectionViewModel()
+
+        model.configure(sources: [safari, chromeDefault, chromeWork])
+        #expect(model.sourceIsSelected(safari))
+        #expect(model.sourceIsSelected(chromeDefault))
+        #expect(model.sourceIsSelected(chromeWork))
+
+        model.toggleSource(chromeDefault)
+        #expect(!model.sourceIsSelected(chromeDefault))
+        #expect(model.sourceIsSelected(chromeWork))
+
+        model.configure(sources: [safari, chromeDefault, chromeWork])
+        #expect(!model.sourceIsSelected(chromeDefault))
+        #expect(model.sourceIsSelected(chromeWork))
+    }
+
+    @Test("Folder toggle cascades and an individual bookmark remains selectable")
+    @MainActor
+    func hierarchicalSelection() {
+        let chrome = Self.source(.chrome, profile: "Default", name: "Chrome", seed: "c")
+        let model = SynchronizationSelectionViewModel()
+        model.configure(sources: [chrome])
+        let root = BookmarkNode.folder(chrome.tree.roots[0])
+        let bookmark = chrome.tree.roots[0].children[0]
+
+        model.toggle(root, in: chrome)
+        #expect(!model.isSelected(root, in: chrome.source.id))
+        #expect(!model.isSelected(bookmark, in: chrome.source.id))
+
+        model.toggle(bookmark, in: chrome)
+        #expect(model.isSelected(bookmark, in: chrome.source.id))
+        #expect(model.isSelected(root, in: chrome.source.id))
+        #expect(model.isPartiallySelected(root, in: chrome.source.id))
+        #expect(model.scope(for: chrome.source.id) != .all)
+    }
+
+    @Test("Reader removes unchecked nodes before BSE and retains their ancestors")
+    func readerFiltersBeforePipeline() async throws {
+        let sourceID = BSESourceID(UUID(uuidString: "10000000-0000-0000-0000-000000000001")!)
+        let rootID = logicalID(1)
+        let folderID = logicalID(2)
+        let keptID = logicalID(3)
+        let ignoredID = logicalID(4)
+        let nodes = [
+            try BSENode(logicalID: rootID, kind: .folder, permanentRootRole: .primaryBookmarks, title: "Root", position: 0),
+            try BSENode(logicalID: folderID, kind: .folder, title: "Folder", parentID: rootID, position: 0),
+            try BSENode(logicalID: keptID, kind: .bookmark, title: "Keep", parentID: folderID, position: 1, url: URL(string: "https://keep.example")!),
+            try BSENode(logicalID: ignoredID, kind: .bookmark, title: "Ignore", parentID: folderID, position: 3, url: URL(string: "https://ignore.example")!),
+        ]
+        let observations = [
+            observation(sourceID, rootID, "root"),
+            observation(sourceID, folderID, "folder"),
+            observation(sourceID, keptID, "keep"),
+            observation(sourceID, ignoredID, "ignore"),
+        ]
+        let reader = SelectionScopedSynchronizationReader(
+            reader: SelectionReader(
+                result: EndToEndSynchronizationReadResult(
+                    snapshot: BSESnapshot(source: sourceID, capturedAt: .distantPast, tree: try BSETree(nodes: nodes)),
+                    nativeIdentityObservations: observations
+                )
+            ),
+            selection: .nativeIdentifiers(
+                ["keep", "ignore"],
+                excludingSemanticKeys: ["bookmark:https://ignore.example"]
+            )
+        )
+
+        let result = try await reader.readForSynchronization()
+
+        #expect(result.snapshot.tree.nodes.map(\.logicalID) == [rootID, folderID, keptID])
+        #expect(result.snapshot.tree.node(for: keptID)?.position == 0)
+        #expect(result.nativeIdentityObservations.map(\.nativeIdentifier.rawValue) == ["root", "folder", "keep"])
+    }
+
+    private static func source(
+        _ browser: Browser,
+        profile: String?,
+        name: String,
+        seed: String
+    ) -> SearchableSource {
+        let bookmark = Bookmark(
+            id: BookmarkID("\(browser == .chrome ? "chrome:" : "")\(seed)-bookmark"),
+            title: "Example",
+            url: URL(string: "https://\(seed).example")!
+        )
+        let otherBookmark = Bookmark(
+            id: BookmarkID("\(browser == .chrome ? "chrome:" : "")\(seed)-other"),
+            title: "Other",
+            url: URL(string: "https://other-\(seed).example")!
+        )
+        let root = BookmarkFolder(
+            id: BookmarkID("\(browser == .chrome ? "chrome:" : "")\(seed)-root"),
+            title: "Root",
+            children: [.bookmark(bookmark), .bookmark(otherBookmark)]
+        )
+        return SearchableSource(
+            source: BookmarkSource(browser: browser, profile: profile, displayName: name),
+            tree: BookmarkTree(browser: browser, roots: [root], capturedAt: .distantPast)
+        )
+    }
+
+    private func logicalID(_ value: Int) -> LogicalNodeID {
+        LogicalNodeID(UUID(uuidString: String(format: "20000000-0000-0000-0000-%012d", value))!)
+    }
+
+    private func observation(
+        _ sourceID: BSESourceID,
+        _ logicalID: LogicalNodeID,
+        _ nativeID: String
+    ) -> NativeIdentityObservation {
+        NativeIdentityObservation(
+            sourceID: sourceID,
+            provisionalLogicalNodeID: logicalID,
+            nativeIdentifier: NativeNodeIdentifier(nativeID)
+        )
+    }
+}
+
+private struct SelectionReader: EndToEndSynchronizationReading {
+    let result: EndToEndSynchronizationReadResult
+    var sourceID: BSESourceID { result.snapshot.source }
+
+    func readForSynchronization() async throws -> EndToEndSynchronizationReadResult {
+        result
+    }
+}

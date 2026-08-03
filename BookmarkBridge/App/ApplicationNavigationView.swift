@@ -8,6 +8,7 @@ import SwiftUI
 /// macOS application shell. Adding a top-level screen only requires a new
 /// `ApplicationScreen` case and its destination mapping.
 struct ApplicationNavigationView: View {
+    @Environment(DocumentationRouter.self) private var documentationRouter
     @State private var model: ApplicationViewModel
     @State private var presentsOnboarding = false
     @AppStorage(DocumentationPreferences.onboardingCompletedKey)
@@ -18,9 +19,8 @@ struct ApplicationNavigationView: View {
     }
 
     var body: some View {
-        @Bindable var model = model
         NavigationSplitView {
-            List(ApplicationScreen.allCases, selection: $model.selection) {
+            List(ApplicationScreen.allCases, selection: screenSelection) {
                 screen in
                 Label(screen.title, systemImage: screen.systemImage)
                     .symbolRenderingMode(.hierarchical)
@@ -35,7 +35,7 @@ struct ApplicationNavigationView: View {
                 max: Theme.Size.sidebarMaximumWidth
             )
         } detail: {
-            destination(for: model.selection)
+            displayedDestination
         }
         .navigationSplitViewStyle(.balanced)
         .frame(
@@ -95,6 +95,30 @@ struct ApplicationNavigationView: View {
         }
     }
 
+    private var screenSelection: Binding<ApplicationScreen> {
+        Binding(
+            get: { model.selection },
+            set: { screen in
+                model.selection = screen
+                documentationRouter.showApplication()
+            }
+        )
+    }
+
+    @ViewBuilder
+    private var displayedDestination: some View {
+        switch documentationRouter.destination {
+        case .application:
+            destination(for: model.selection)
+        case .helpCenter:
+            HelpCenterView()
+        case .whatsNew:
+            WhatsNewView()
+        case .about:
+            AboutView()
+        }
+    }
+
     private var forcesOnboardingForUITests: Bool {
         ProcessInfo.processInfo.environment[
             DocumentationPreferences.onboardingUITestEnvironmentKey
@@ -122,7 +146,7 @@ struct ApplicationNavigationView: View {
                 synchronizationSummary:
                     model.dashboardSynchronizationSummary,
                 loadsOnAppear: false,
-                onReload: { await model.reload() },
+                onReload: { await model.reloadDashboard() },
                 onAuthorize: { await model.authorize($0) },
                 onRetry: { await model.retry($0) },
                 onShowSynchronization: {

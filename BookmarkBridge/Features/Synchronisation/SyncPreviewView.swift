@@ -143,12 +143,12 @@ struct SyncPreviewView: View {
                         if model.canApplyToChrome {
                             Text("Ajouter \(model.chromeAdditionsCount) \(favoriteWord(model.chromeAdditionsCount)) à \(name)")
                                 .font(.callout).fontWeight(.medium)
-                            Text("Chrome doit être fermé. Une sauvegarde sera créée automatiquement.")
+                            Text("Safari et Chrome doivent être fermés. Une sauvegarde sera créée automatiquement.")
                                 .font(.caption).foregroundStyle(.secondary)
                         } else {
                             Text("Une sauvegarde de \(name) est disponible.")
                                 .font(.callout).fontWeight(.medium)
-                            Text("Chrome doit être fermé avant la restauration.")
+                            Text("Safari et Chrome doivent être fermés avant la restauration.")
                                 .font(.caption).foregroundStyle(.secondary)
                         }
                     }
@@ -246,7 +246,7 @@ struct SyncPreviewView: View {
             Button("Appliquer") { Task { await applyAndReload() } }
             Button("Annuler", role: .cancel) {}
         } message: {
-            Text("Chrome doit être fermé. Une sauvegarde automatique sera créée avant toute modification.")
+            Text("Safari et Chrome doivent être fermés. Une sauvegarde automatique sera créée avant toute modification.")
         }
     }
 
