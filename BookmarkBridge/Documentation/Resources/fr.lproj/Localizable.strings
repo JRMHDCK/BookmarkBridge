@@ -60,7 +60,7 @@
 "help.callout.readonly.body" = "La version actuelle lit Safari, mais n’y écrit jamais. La synchronisation appliquée ajoute uniquement à un profil Chrome local les favoris Safari qui y sont absents.";
 
 /* Installation */
-"help.installation.requirements" = "BookmarkBridge 0.9.0 nécessite macOS 26.5 ou une version ultérieure. L’application fonctionne sur les Mac Apple Silicon et Intel 64 bits.";
+"help.installation.requirements" = "BookmarkBridge 0.9.1 nécessite macOS 26.5 ou une version ultérieure. L’application fonctionne sur les Mac Apple Silicon et Intel 64 bits.";
 "help.installation.steps.title" = "Installer BookmarkBridge";
 "help.installation.step.move" = "Placez BookmarkBridge dans le dossier Applications.";
 "help.installation.step.open" = "Ouvrez l’application, puis confirmez son ouverture si macOS le demande.";
@@ -113,7 +113,7 @@
 "help.conflicts.behavior.readonly" = "Une source ambiguë reste en lecture seule.";
 "help.conflicts.behavior.choice" = "Si un profil n’est pas inscriptible, choisissez un autre profil local ou conservez-le en consultation.";
 "help.conflicts.safety.title" = "Aucune résolution destructive";
-"help.conflicts.safety.body" = "BookmarkBridge 0.9.0 ne résout pas un conflit en supprimant ou en écrasant silencieusement un favori.";
+"help.conflicts.safety.body" = "BookmarkBridge 0.9.1 ne résout pas un conflit en supprimant ou en écrasant silencieusement un favori.";
 
 /* Chrome profiles */
 "help.profiles.overview" = "Chaque profil Chrome possède son propre nom et son propre stockage. Vérifiez toujours le profil affiché dans l’aperçu avant de synchroniser.";
@@ -243,19 +243,19 @@
 /* What's New */
 "whatsNew.title" = "Nouveautés de BookmarkBridge";
 "whatsNew.version" = "Version %@ (Build %@)";
-"whatsNew.introduction" = "Cette première bêta réunit le moteur de synchronisation, l’interface native, la plateforme QA et une documentation locale complète.";
+"whatsNew.introduction" = "Cette première bêta publique réunit la synchronisation bidirectionnelle, la sélection détaillée, l’interface native et une documentation locale complète.";
 "whatsNew.features.title" = "Nouvelles fonctionnalités";
-"whatsNew.features.sync" = "Synchronisation additive Safari vers Chrome avec aperçu et confirmation.";
-"whatsNew.features.explorer" = "Dashboard, explorateur hiérarchique et recherche multi-sources.";
-"whatsNew.features.help" = "Assistant de bienvenue, centre d’aide, FAQ et manuel hors ligne.";
+"whatsNew.features.sync" = "Synchronisation bidirectionnelle Safari et Chrome avec aperçu et confirmation.";
+"whatsNew.features.explorer" = "Sélection des profils Chrome, dossiers et favoris avant synchronisation.";
+"whatsNew.features.help" = "Assistant de bienvenue, guide d’installation macOS et manuel hors ligne.";
 "whatsNew.fixes.title" = "Corrections";
-"whatsNew.fixes.idempotence" = "Filtrage idempotent pour éviter les ajouts répétés.";
-"whatsNew.fixes.restore" = "Sauvegarde et restauration persistantes associées au bon profil.";
-"whatsNew.fixes.permissions" = "Gestion robuste des autorisations Safari et Chrome.";
+"whatsNew.fixes.idempotence" = "Stabilisation du moteur et prévention des doublons au second passage.";
+"whatsNew.fixes.restore" = "Sélections partielles conservées jusqu’à la validation de transaction.";
+"whatsNew.fixes.permissions" = "Sauvegarde et restauration sécurisées dans les deux sens.";
 "whatsNew.improvements.title" = "Améliorations";
-"whatsNew.improvements.native" = "Interface macOS harmonisée et accessible.";
-"whatsNew.improvements.qa" = "Validation automatisée sur cinq datasets et quinze scénarios.";
-"whatsNew.improvements.packaging" = "Projet Release universel, archivable et préparé pour la distribution bêta.";
+"whatsNew.improvements.native" = "Logos et arborescence des favoris harmonisés avec macOS.";
+"whatsNew.improvements.qa" = "Navigation en fenêtre unique et sélection plus lisible.";
+"whatsNew.improvements.packaging" = "DMG et parcours de première ouverture améliorés.";
 
 /* Tooltips */
 "tooltip.authorize.safari" = "Sélectionne à nouveau la bibliothèque de favoris Safari.";
@@ -325,7 +325,7 @@
 
 "error.unsupportedBrowser.title" = "Navigateur non pris en charge";
 "error.unsupportedBrowser.description" = "Cette source ne peut pas être utilisée par la version actuelle.";
-"error.unsupportedBrowser.cause" = "BookmarkBridge 0.9.0 prend uniquement en charge Safari et Google Chrome.";
+"error.unsupportedBrowser.cause" = "BookmarkBridge 0.9.1 prend uniquement en charge Safari et Google Chrome.";
 "error.unsupportedBrowser.solution" = "Sélectionnez une bibliothèque Safari ou un profil Google Chrome.";
 
 "error.generic.title" = "Opération impossible";

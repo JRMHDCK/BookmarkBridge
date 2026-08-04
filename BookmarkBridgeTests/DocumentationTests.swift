@@ -76,7 +76,7 @@ struct DocumentationTests {
     func whatsNewIsComplete() {
         let release = WhatsNewContent.current
 
-        #expect(release.version == "0.9.0")
+        #expect(release.version == "0.9.1")
         #expect(release.build == "1")
         #expect(release.sections.count == 3)
         #expect(

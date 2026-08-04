@@ -273,7 +273,7 @@ def draw_page(canvas, document) -> None:
         canvas.drawRightString(
             width - 24 * mm,
             height - 13 * mm,
-            "Guide de l’utilisateur · 0.9.0-beta1",
+            "Guide de l’utilisateur · 0.9.1 Beta",
         )
         canvas.drawString(24 * mm, 14 * mm, "Documentation locale")
         canvas.drawRightString(width - 24 * mm, 14 * mm, str(document.page))
@@ -294,7 +294,7 @@ def build_story() -> list:
         Spacer(1, 20 * mm),
         Table(
             [[
-                Paragraph("<b>Version</b><br/>0.9.0-beta1", styles["Small"]),
+                Paragraph("<b>Version</b><br/>0.9.1 Beta", styles["Small"]),
                 Paragraph("<b>Configuration requise</b><br/>macOS 26.5 ou ultérieur", styles["Small"]),
                 Paragraph("<b>Moteur</b><br/>BSE v1.0", styles["Small"]),
             ]],
@@ -352,15 +352,15 @@ def build_story() -> list:
             PageBreak(),
             *section(
                 "1. Présentation",
-                "BookmarkBridge est une application macOS native qui compare les favoris "
-                "de Safari et de Google Chrome avant d’appliquer des ajouts contrôlés.",
+                "BookmarkBridge est une application macOS native qui synchronise les favoris "
+                "de Safari et de Google Chrome dans les deux sens, après un aperçu contrôlé.",
                 [
                     heading("Ce que fait la version bêta"),
                     bullets(
                         [
                             "Lit les bibliothèques Safari et les profils Chrome que vous autorisez.",
+                            "Permet de sélectionner les profils, dossiers et favoris à synchroniser.",
                             "Présente les différences avant toute modification.",
-                            "Ajoute à Chrome les favoris Safari manquants, sans supprimer les favoris existants.",
                             "Crée une sauvegarde restaurable avant chaque écriture.",
                         ]
                     ),
@@ -372,21 +372,21 @@ def build_story() -> list:
                     ),
                     callout(
                         "À retenir",
-                        "Safari reste en lecture seule dans cette version. Les écritures concernent "
-                        "uniquement le fichier Bookmarks local du profil Chrome sélectionné.",
+                        "Les deux sens utilisent le même pipeline sécurisé : aperçu, confirmation, "
+                        "sauvegarde, transaction, validation et restauration en cas d’échec.",
                     ),
                 ],
             ),
             PageBreak(),
             *section(
                 "2. Installation",
-                "BookmarkBridge 0.9.0-beta1 nécessite macOS 26.5 ou une version ultérieure "
+                "BookmarkBridge 0.9.1 Beta nécessite macOS 26.5 ou une version ultérieure "
                 "et fonctionne sur les Mac Apple Silicon et Intel 64 bits.",
                 [
                     heading("Installer l’application"),
                     bullets(
                         [
-                            "Téléchargez et ouvrez BookmarkBridge-0.9.0-build-1.dmg.",
+                            "Téléchargez et ouvrez BookmarkBridge-0.9.1-build-1.dmg.",
                             "Glissez BookmarkBridge.app sur le raccourci Applications.",
                             "Ouvrez BookmarkBridge depuis le dossier Applications.",
                             "Suivez le guide de bienvenue lors du premier lancement.",
@@ -501,29 +501,31 @@ def build_story() -> list:
             PageBreak(),
             *section(
                 "4. Synchronisation",
-                "La synchronisation suit un parcours en deux temps : apercevoir, puis confirmer.",
+                "La synchronisation suit le même parcours sécurisé dans les deux sens : "
+                "sélectionner, apercevoir, puis confirmer.",
                 [
                     heading("Procédure recommandée"),
                     bullets(
                         [
                             "Rechargez les sources pour lire leur état actuel.",
-                            "Ouvrez Synchronisation et examinez le résumé des ajouts.",
-                            "Développez les détails pour contrôler les favoris concernés.",
+                            "Choisissez le sens Safari vers Chrome ou Chrome vers Safari.",
+                            "Cochez les profils, dossiers et favoris à synchroniser.",
+                            "Examinez l’aperçu complet des opérations proposées.",
                             "Fermez Safari et Chrome.",
                             "Confirmez l’application de la synchronisation.",
-                            "Vérifiez le résultat, puis rouvrez Chrome.",
+                            "Vérifiez le résultat, puis rouvrez les navigateurs.",
                         ],
                         numbered=True,
                     ),
                     callout(
-                        "Synchronisation additive",
-                        "Cette bêta ajoute à Chrome les favoris Safari absents. Elle ne supprime "
-                        "ni ne remplace les favoris déjà présents dans Chrome.",
+                        "Sélection explicite",
+                        "Un élément décoché est entièrement ignoré par la comparaison et la "
+                        "transaction. Il n’est jamais supprimé uniquement parce qu’il est décoché.",
                     ),
                     heading("Après l’application"),
                     paragraph(
                         "BookmarkBridge recharge automatiquement le tableau de bord et l’aperçu. "
-                        "Une seconde exécution ne doit pas recréer les mêmes favoris."
+                        "Une seconde exécution, sans nouvelle modification, doit afficher zéro opération."
                     ),
                 ],
             ),
@@ -548,8 +550,8 @@ def build_story() -> list:
                     bullets(
                         [
                             "Aucun favori n’est transmis sur le réseau.",
-                            "Safari et AccountBookmarks restent en lecture seule.",
-                            "Une sauvegarde précède toute modification de Chrome.",
+                            "Chrome AccountBookmarks reste en lecture seule.",
+                            "Une sauvegarde précède toute modification du navigateur cible.",
                             "Safari et Chrome doivent être fermés pendant l’écriture ou la restauration.",
                         ]
                     ),
@@ -573,10 +575,10 @@ def build_story() -> list:
                         ),
                     ]),
                     KeepTogether([
-                        heading("Que se passe-t-il si je supprime un favori ?"),
+                        heading("Que se passe-t-il si je décoche un favori ?"),
                         paragraph(
-                            "La bêta n’applique pas les suppressions. Elle ajoute uniquement les "
-                            "favoris Safari manquants au stockage local Chrome."
+                            "Il est exclu de la comparaison, de l’aperçu et de la transaction. "
+                            "Le décocher ne provoque jamais sa suppression."
                         ),
                     ]),
                     KeepTogether([
@@ -589,8 +591,8 @@ def build_story() -> list:
                     KeepTogether([
                         heading("Puis-je synchroniser plusieurs profils Chrome ?"),
                         paragraph(
-                            "Vous pouvez autoriser et consulter plusieurs profils, mais chaque "
-                            "synchronisation cible un seul stockage local clairement sélectionné."
+                            "Oui. La sélection permet de conserver ou d’exclure chaque profil Chrome, "
+                            "puis d’affiner le choix dossier par dossier et favori par favori."
                         ),
                     ]),
                     KeepTogether([
@@ -647,7 +649,7 @@ def build_story() -> list:
                             "Fermez Safari et Chrome avant une synchronisation ou une restauration.",
                             "Ne déplacez pas les fichiers des navigateurs pendant une opération.",
                             "Commencez par un profil Chrome dont vous connaissez le contenu.",
-                            "Après une synchronisation, vérifiez quelques favoris dans Chrome.",
+                            "Après une synchronisation, vérifiez quelques favoris dans le navigateur cible.",
                             "Conservez l’application à jour et consultez Nouveautés après une mise à niveau.",
                         ]
                     ),
@@ -676,13 +678,13 @@ def build_story() -> list:
                             "<b>Bibliothèque</b> : ensemble des favoris et dossiers d’un navigateur.",
                             "<b>Profil Chrome</b> : espace utilisateur Chrome possédant ses propres favoris.",
                             "<b>Sauvegarde</b> : copie restaurable créée avant une écriture.",
-                            "<b>Synchronisation additive</b> : ajout des éléments absents sans suppression.",
+                            "<b>Sélection</b> : périmètre explicite des éléments inclus dans la synchronisation.",
                         ]
                     ),
                     heading("Compatibilité de la bêta"),
                     bullets(
                         [
-                            "BookmarkBridge 0.9.0-beta1, build 1.",
+                            "BookmarkBridge 0.9.1 Beta, build 1.",
                             "BSE v1.0.",
                             "macOS 26.5 ou ultérieur.",
                             "Safari et Google Chrome.",
@@ -691,9 +693,8 @@ def build_story() -> list:
                     ),
                     heading("Limites confirmées"),
                     paragraph(
-                        "Les écritures vont uniquement de Safari vers le fichier Bookmarks local "
-                        "de Chrome. La structure Safari n’est pas reconstruite : les nouveaux favoris "
-                        "sont ajoutés à « Autres favoris ». Il n’existe pas de synchronisation cloud, "
+                        "Seuls Safari et Google Chrome sont pris en charge. Chrome AccountBookmarks "
+                        "reste en lecture seule. Il n’existe pas de synchronisation cloud, "
                         "multi-machine, temps réel ou en arrière-plan."
                     ),
                     callout(
@@ -722,7 +723,7 @@ def generate() -> None:
         bottomMargin=22 * mm,
         title="BookmarkBridge — Guide de l’utilisateur",
         author="Jérôme Hudecek",
-        subject="Manuel utilisateur hors ligne de BookmarkBridge 0.9.0-beta1",
+        subject="Manuel utilisateur hors ligne de BookmarkBridge 0.9.1 Beta",
         creator="BookmarkBridge Documentation",
     )
     document.build(build_story(), onFirstPage=draw_page, onLaterPages=draw_page)

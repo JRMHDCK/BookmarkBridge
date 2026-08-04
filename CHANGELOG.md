@@ -6,11 +6,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.9.1-beta] - 2026-08-04
+
 ### Added
 
+- Bidirectional Safari and Chrome synchronization.
+- Chrome profile, folder, and bookmark selection before preview.
+- Visual macOS Gatekeeper installation guide on the website and in the PDF manual.
 - Public-repository governance, contribution, security, and community-health documentation.
 - GitHub issue forms, pull request template, and non-publishing continuous integration.
 - Automated repository privacy, secret-pattern, artifact, workflow, and Markdown-link checks.
+
+### Fixed
+
+- Stabilized scoped selections across preview, preflight, transaction, and final validation.
+- Prevented unchecked items from being interpreted as deletions.
+- Improved Chrome branding, bookmark-tree presentation, and DMG visuals.
+
+### Security
+
+- Mandatory preview, explicit confirmation, backups, validation, and rollback remain enabled.
+- Unchecked items are excluded from matching and transactions without being deleted.
 
 ## [0.9.0-beta1] - 2026-07-29
 

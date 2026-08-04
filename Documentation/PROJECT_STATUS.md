@@ -61,17 +61,18 @@ Utiliser `git log --oneline` pour l'historique complet et les commits de détail
 
 ## État actuel
 
-- Version configurée : `0.9.0` (build `1`), première bêta `0.9.0-beta1`.
+- Version configurée : `0.9.1` (build `1`), bêta publique `v0.9.1-beta`.
 - Cible : macOS 26.5+, Swift 6, concurrence stricte.
 - Configurations Xcode : Debug et Release ; Release compile en whole-module,
   génère un dSYM, retire les symboles du produit installé et élimine le code mort.
 - Archive Release : binaire universel Apple Silicon et Intel.
 - App Sandbox actif avec accès user-selected read-write et bookmarks app-scope.
 - Lecture Safari et Chrome multi-profils opérationnelle.
-- Synchronisation V1 appliquée uniquement de Safari vers le fichier Chrome local.
-- Aperçu obligatoire, fermeture de Chrome, sauvegarde, remplacement atomique,
-  idempotence et restauration sont en place.
-- Safari et `AccountBookmarks` restent en lecture seule.
+- Synchronisation bidirectionnelle Safari et Chrome, avec sélection préalable
+  des profils, dossiers et favoris.
+- Aperçu obligatoire, fermeture du navigateur cible, sauvegarde, écriture atomique,
+  validation, idempotence et restauration sont en place.
+- Chrome `AccountBookmarks` reste en lecture seule.
 - Interface, navigation, moteur BSE et logique métier sont gelés.
 - La plateforme QA s'exécute avec `QA/Scripts/run-qa.sh`.
 
