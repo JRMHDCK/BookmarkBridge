@@ -15,14 +15,17 @@ struct BookmarkAccessTests {
 
     @Test("Safari detection uses the supplied current-user home directory")
     func detectsSafariPathWithoutHardcodedUser() async {
-        let home = URL(fileURLWithPath: "/Users/dynamic-user", isDirectory: true)
+        let home = FileManager.default.temporaryDirectory.appendingPathComponent(
+            "BookmarkAccessTests/UserHome",
+            isDirectory: true
+        )
         let service = makeService(homeDirectory: home)
 
         let snapshot = await service.inspectAccess()
 
         #expect(
             snapshot.safari.detectedURL.path
-                == "/Users/dynamic-user/Library/Safari/Bookmarks.plist"
+                == home.appendingPathComponent("Library/Safari/Bookmarks.plist").path
         )
         #expect(snapshot.safari.authorizedURL == nil)
         #expect(snapshot.safari.status == .authorizationMissing)
@@ -30,8 +33,12 @@ struct BookmarkAccessTests {
 
     @Test("Safari detection escapes the application sandbox home directory")
     func detectsSafariPathFromSandboxHome() async {
-        let sandboxHome = URL(
-            fileURLWithPath: "/Users/dynamic-user/Library/Containers/fr.jerome.BookmarkBridge/Data",
+        let home = FileManager.default.temporaryDirectory.appendingPathComponent(
+            "BookmarkAccessTests/UserHome",
+            isDirectory: true
+        )
+        let sandboxHome = home.appendingPathComponent(
+            "Library/Containers/fr.jerome.BookmarkBridge/Data",
             isDirectory: true
         )
         let service = makeService(homeDirectory: sandboxHome)
@@ -40,7 +47,7 @@ struct BookmarkAccessTests {
 
         #expect(
             snapshot.safari.detectedURL.path
-                == "/Users/dynamic-user/Library/Safari/Bookmarks.plist"
+                == home.appendingPathComponent("Library/Safari/Bookmarks.plist").path
         )
     }
 
