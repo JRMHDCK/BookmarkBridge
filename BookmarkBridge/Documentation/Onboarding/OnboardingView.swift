@@ -72,7 +72,11 @@ struct OnboardingView: View {
             Group {
                 switch step.icon {
                 case .browser(let browser):
-                    BrowserLogo(browser: browser, size: 76)
+                    BrowserLogo(
+                        browser: browser,
+                        size: 76,
+                        chromeArtwork: .homeAndSynchronization
+                    )
                 case .system(let name):
                     Image(systemName: name)
                         .font(.system(size: 54))
