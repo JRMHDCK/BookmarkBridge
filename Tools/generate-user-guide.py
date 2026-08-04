@@ -13,6 +13,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfbase import pdfmetrics
 from reportlab.platypus import (
     Flowable,
+    Image,
     KeepTogether,
     ListFlowable,
     ListItem,
@@ -34,6 +35,14 @@ BUNDLED = (
     / "Resources"
     / "BookmarkBridge-User-Guide.pdf"
 )
+WEBSITE = (
+    ROOT
+    / "Distribution"
+    / "Website"
+    / "downloads"
+    / "BookmarkBridge-User-Guide.pdf"
+)
+GUIDE_IMAGES = ROOT / "Documentation" / "UserGuide" / "Images"
 
 NAVY = colors.HexColor("#172033")
 BLUE = colors.HexColor("#2879E0")
@@ -184,6 +193,15 @@ def paragraph(text: str) -> Paragraph:
 
 def heading(text: str) -> Paragraph:
     return Paragraph(text, styles["Heading"])
+
+
+def guide_image(filename: str, max_width: float, max_height: float) -> Image:
+    image = Image(str(GUIDE_IMAGES / filename))
+    scale = min(max_width / image.imageWidth, max_height / image.imageHeight)
+    image.drawWidth = image.imageWidth * scale
+    image.drawHeight = image.imageHeight * scale
+    image.hAlign = "CENTER"
+    return image
 
 
 def bullets(items: list[str], numbered: bool = False) -> ListFlowable:
@@ -368,8 +386,9 @@ def build_story() -> list:
                     heading("Installer l’application"),
                     bullets(
                         [
-                            "Placez BookmarkBridge dans le dossier Applications.",
-                            "Ouvrez l’application depuis le Finder.",
+                            "Téléchargez et ouvrez BookmarkBridge-0.9.0-build-1.dmg.",
+                            "Glissez BookmarkBridge.app sur le raccourci Applications.",
+                            "Ouvrez BookmarkBridge depuis le dossier Applications.",
                             "Suivez le guide de bienvenue lors du premier lancement.",
                             "Accordez séparément les accès Safari et Chrome lorsque macOS les demande.",
                         ],
@@ -385,6 +404,65 @@ def build_story() -> list:
                         "BookmarkBridge ne dépend d’aucun compte en ligne et n’envoie pas vos "
                         "favoris vers un service distant.",
                         blue=False,
+                    ),
+                ],
+            ),
+            PageBreak(),
+            *section(
+                "Première ouverture - étape 1 sur 3",
+                "La bêta n’est pas encore notariée par Apple. Le premier blocage de macOS est "
+                "donc attendu et ne nécessite pas de désactiver Gatekeeper.",
+                [
+                    heading("Tenter l’ouverture"),
+                    paragraph(
+                        "Après avoir placé BookmarkBridge dans Applications, ouvrez l’app depuis "
+                        "ce dossier. Lorsque macOS affiche « Élément BookmarkBridge non ouvert », "
+                        "cliquez sur Terminé."
+                    ),
+                    Spacer(1, 3 * mm),
+                    guide_image("gatekeeper-step-1.png", 92 * mm, 92 * mm),
+                    Spacer(1, 5 * mm),
+                    callout(
+                        "Message attendu",
+                        "Ce message apparaît parce que cette bêta n’est pas encore signée ni "
+                        "notariée par Apple. Poursuivez uniquement si le nom affiché est BookmarkBridge.",
+                        blue=False,
+                    ),
+                ],
+            ),
+            PageBreak(),
+            *section(
+                "Première ouverture - étape 2 sur 3",
+                "Ouvrez Réglages Système, puis Confidentialité et sécurité. Descendez jusqu’à "
+                "la section Sécurité.",
+                [
+                    heading("Autoriser cette app"),
+                    paragraph(
+                        "À côté du message « BookmarkBridge a été bloqué pour protéger votre Mac », "
+                        "cliquez sur Ouvrir quand même. Le bouton apparaît seulement après la "
+                        "première tentative d’ouverture."
+                    ),
+                    Spacer(1, 3 * mm),
+                    guide_image("gatekeeper-step-2.png", 150 * mm, 126 * mm),
+                ],
+            ),
+            PageBreak(),
+            *section(
+                "Première ouverture - étape 3 sur 3",
+                "macOS demande une dernière confirmation avant de lancer BookmarkBridge.",
+                [
+                    heading("Confirmer l’ouverture"),
+                    paragraph(
+                        "Cliquez sur Ouvrir quand même. macOS peut demander votre mot de passe "
+                        "ou Touch ID. BookmarkBridge s’ouvrira ensuite normalement."
+                    ),
+                    Spacer(1, 3 * mm),
+                    guide_image("gatekeeper-step-3.png", 102 * mm, 112 * mm),
+                    Spacer(1, 5 * mm),
+                    callout(
+                        "Protections conservées",
+                        "Cette procédure autorise uniquement BookmarkBridge. Elle ne désactive "
+                        "ni Gatekeeper ni les contrôles de sécurité des autres applications.",
                     ),
                 ],
             ),
@@ -634,6 +712,7 @@ def build_story() -> list:
 def generate() -> None:
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     BUNDLED.parent.mkdir(parents=True, exist_ok=True)
+    WEBSITE.parent.mkdir(parents=True, exist_ok=True)
     document = SimpleDocTemplate(
         str(OUTPUT),
         pagesize=A4,
@@ -648,8 +727,10 @@ def generate() -> None:
     )
     document.build(build_story(), onFirstPage=draw_page, onLaterPages=draw_page)
     shutil.copyfile(OUTPUT, BUNDLED)
+    shutil.copyfile(OUTPUT, WEBSITE)
     print(f"Generated {OUTPUT}")
     print(f"Bundled   {BUNDLED}")
+    print(f"Website   {WEBSITE}")
 
 
 if __name__ == "__main__":

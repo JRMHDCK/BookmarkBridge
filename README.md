@@ -7,12 +7,12 @@
 
 [![macOS 26.5+](https://img.shields.io/badge/macOS-26.5%2B-111827?logo=apple)](https://bookmarkbridge.fr)
 [![Swift 6](https://img.shields.io/badge/Swift-6-F05138?logo=swift&logoColor=white)](https://www.swift.org/)
-[![Version bêta](https://img.shields.io/badge/version-0.9.0--beta1-2563EB)](https://bookmarkbridge.fr/downloads/BookmarkBridge-0.9.0-build-1.dmg)
+[![Version bêta](https://img.shields.io/badge/version-0.9.0--beta1-2563EB)](https://bookmarkbridge.fr/download.html)
 [![Licence MIT](https://img.shields.io/badge/licence-MIT-16A34A)](LICENSE)
 
 ### [🌐 Site officiel — bookmarkbridge.fr](https://bookmarkbridge.fr)
 
-[Télécharger la bêta](https://bookmarkbridge.fr/downloads/BookmarkBridge-0.9.0-build-1.dmg) · [Guide utilisateur](BookmarkBridge/Documentation/Resources/BookmarkBridge-User-Guide.pdf) · [FAQ](https://bookmarkbridge.fr/faq.html) · [Discussions](https://github.com/JRMHDCK/BookmarkBridge/discussions)
+[Télécharger la bêta](https://bookmarkbridge.fr/download.html) · [Guide utilisateur](BookmarkBridge/Documentation/Resources/BookmarkBridge-User-Guide.pdf) · [FAQ](https://bookmarkbridge.fr/faq.html) · [Discussions](https://github.com/JRMHDCK/BookmarkBridge/discussions)
 </div>
 
 > [!IMPORTANT]
@@ -56,15 +56,15 @@ L’interface suit les conventions de macOS et prend en charge les apparences cl
 
 ### Installation du DMG
 
-1. [Téléchargez BookmarkBridge gratuitement](https://bookmarkbridge.fr/downloads/BookmarkBridge-0.9.0-build-1.dmg).
+1. [Téléchargez BookmarkBridge gratuitement](https://bookmarkbridge.fr/download.html).
 2. Ouvrez `BookmarkBridge-0.9.0-build-1.dmg`.
 3. Glissez `BookmarkBridge.app` sur le raccourci `Applications`.
 4. Éjectez l’image disque.
 5. Ouvrez BookmarkBridge depuis le dossier Applications.
 
-Gatekeeper peut bloquer la première ouverture car la bêta n’est pas encore notariée. Dans ce cas, faites un **clic droit sur BookmarkBridge**, choisissez **Ouvrir**, puis confirmez avec **Ouvrir**. Ne désactivez pas Gatekeeper globalement.
+Gatekeeper peut bloquer la première ouverture car la bêta n’est pas encore notariée. Le [guide illustré de téléchargement](https://bookmarkbridge.fr/download.html) explique comment ouvrir **Réglages Système > Confidentialité et sécurité**, puis utiliser **Ouvrir quand même**, sans désactiver Gatekeeper.
 
-- [Page de téléchargement](https://bookmarkbridge.fr/downloads/BookmarkBridge-0.9.0-build-1.dmg)
+- [Page de téléchargement et guide Gatekeeper](https://bookmarkbridge.fr/download.html)
 - [DMG direct](https://bookmarkbridge.fr/downloads/BookmarkBridge-0.9.0-build-1.dmg)
 - [Somme SHA-256](https://bookmarkbridge.fr/downloads/SHA256.txt)
 - [Guide utilisateur PDF](BookmarkBridge/Documentation/Resources/BookmarkBridge-User-Guide.pdf)
