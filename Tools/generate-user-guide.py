@@ -290,7 +290,7 @@ def draw_page(canvas, document) -> None:
         canvas.drawRightString(
             width - 24 * mm,
             height - 13 * mm,
-            tr('manual.userGuide091Beta'),
+            tr('manual.userGuide092Beta'),
         )
         canvas.drawString(24 * mm, 14 * mm, tr('manual.localDocumentation'))
         canvas.drawRightString(width - 24 * mm, 14 * mm, str(document.page))
@@ -311,7 +311,7 @@ def build_story() -> list:
         Spacer(1, 20 * mm),
         Table(
             [[
-                Paragraph(tr('manual.version091Beta'), styles["Small"]),
+                Paragraph(tr('manual.version092Beta'), styles["Small"]),
                 Paragraph(tr('manual.systemRequirementsMacOS265OrLater'), styles["Small"]),
                 Paragraph(tr('manual.engineBSEV10'), styles["Small"]),
             ]],
@@ -392,12 +392,12 @@ def build_story() -> list:
             PageBreak(),
             *section(
                 tr('manual.2Installation'),
-                tr('manual.bookmarkbridge091BetaRequiresMacOS'),
+                tr('manual.bookmarkbridge092BetaRequiresMacOS'),
                 [
                     heading(tr('manual.installTheApp')),
                     bullets(
                         [
-                            tr('manual.downloadAndOpenBookmarkBridge091'),
+                            tr('manual.downloadAndOpenBookmarkBridge092'),
                             tr('manual.dragBookmarkBridgeAppToTheApplicationsShortcut'),
                             tr('manual.openBookmarkBridgeFromTheApplicationsFolder'),
                             tr('manual.followTheWelcomeGuideWhenFirstLaunching'),
@@ -670,7 +670,7 @@ def build_story() -> list:
                     heading(tr('manual.betaCompatibility')),
                     bullets(
                         [
-                            tr('manual.bookmarkbridge091BetaBuild1'),
+                            tr('manual.bookmarkbridge092BetaBuild1'),
                             tr('manual.bseV10'),
                             tr('manual.macos265OrLater'),
                             tr('manual.safariAndGoogleChrome'),
@@ -709,7 +709,7 @@ def generate(language: str) -> None:
         bottomMargin=22 * mm,
         title=tr('manual.bookmarkbridgeUserGuide'),
         author=tr('manual.jeromeHudecek'),
-        subject=tr('manual.bookmarkbridge091BetaOfflineUser'),
+        subject=tr('manual.bookmarkbridge092BetaOfflineUser'),
         creator=tr('manual.bookmarkbridgeDocumentation'),
     )
     document.build(build_story(), onFirstPage=draw_page, onLaterPages=draw_page)

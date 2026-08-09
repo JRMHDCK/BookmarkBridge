@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.9.2-beta] - 2026-08-09
+
+### Added
+
+- Native English, French, Spanish, German, Italian, Portuguese, Dutch, and Polish localization.
+- Persistent synchronization session preferences across application launches.
+
+### Fixed
+
+- Preserved distinct identities when matching identical duplicate bookmarks.
+- Classified user-facing errors consistently in every supported language.
+- Stabilized localized navigation and About-window validation.
+
 ## [0.9.1-beta] - 2026-08-04
 
 ### Added

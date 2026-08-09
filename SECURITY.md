@@ -6,7 +6,8 @@ BookmarkBridge handles browser bookmark libraries, so data integrity and local p
 
 | Version | Supported |
 | --- | --- |
-| 0.9.1 Beta | Yes |
+| 0.9.2 Beta | Yes |
+| 0.9.1 Beta | No |
 | 0.9.0-beta1 | No |
 | Earlier development builds | No |
 

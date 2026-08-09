@@ -5,7 +5,7 @@
 
 enum WhatsNewContent {
     static let current = WhatsNewRelease(
-        version: "0.9.1",
+        version: "0.9.2",
         build: "1",
         sections: [
             WhatsNewSection(

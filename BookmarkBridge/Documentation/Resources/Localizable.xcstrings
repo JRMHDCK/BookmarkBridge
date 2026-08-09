@@ -8594,49 +8594,49 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "BookmarkBridge 0.9.1 unterstützt nur Safari und Google Chrome."
+            "value" : "BookmarkBridge 0.9.2 unterstützt nur Safari und Google Chrome."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "BookmarkBridge 0.9.1 only supports Safari and Google Chrome."
+            "value" : "BookmarkBridge 0.9.2 only supports Safari and Google Chrome."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "BookmarkBridge 0.9.1 sólo es compatible con Safari y Google Chrome."
+            "value" : "BookmarkBridge 0.9.2 sólo es compatible con Safari y Google Chrome."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "BookmarkBridge 0.9.1 prend uniquement en charge Safari et Google Chrome."
+            "value" : "BookmarkBridge 0.9.2 prend uniquement en charge Safari et Google Chrome."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "BookmarkBridge 0.9.1 supporta solo Safari e Google Chrome."
+            "value" : "BookmarkBridge 0.9.2 supporta solo Safari e Google Chrome."
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "BookmarkBridge 0.9.1 ondersteunt alleen Safari en Google Chrome."
+            "value" : "BookmarkBridge 0.9.2 ondersteunt alleen Safari en Google Chrome."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "BookmarkBridge 0.9.1 obsługuje tylko przeglądarki Safari i Google Chrome."
+            "value" : "BookmarkBridge 0.9.2 obsługuje tylko przeglądarki Safari i Google Chrome."
           }
         },
         "pt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "BookmarkBridge 0.9.1 suporta apenas Safari e Google Chrome."
+            "value" : "BookmarkBridge 0.9.2 suporta apenas Safari e Google Chrome."
           }
         }
       }
@@ -11085,49 +11085,49 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "BookmarkBridge 0.9.1 löst einen Konflikt nicht durch stillschweigendes Löschen oder Überschreiben eines Lesezeichens."
+            "value" : "BookmarkBridge 0.9.2 löst einen Konflikt nicht durch stillschweigendes Löschen oder Überschreiben eines Lesezeichens."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "BookmarkBridge 0.9.1 does not resolve a conflict by silently deleting or overwriting a bookmark."
+            "value" : "BookmarkBridge 0.9.2 does not resolve a conflict by silently deleting or overwriting a bookmark."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "BookmarkBridge 0.9.1 no resuelve un conflicto eliminando o sobrescribiendo silenciosamente un marcador."
+            "value" : "BookmarkBridge 0.9.2 no resuelve un conflicto eliminando o sobrescribiendo silenciosamente un marcador."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "BookmarkBridge 0.9.1 ne résout pas un conflit en supprimant ou en écrasant silencieusement un favori."
+            "value" : "BookmarkBridge 0.9.2 ne résout pas un conflit en supprimant ou en écrasant silencieusement un favori."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "BookmarkBridge 0.9.1 non risolve un conflitto eliminando o sovrascrivendo silenziosamente un segnalibro."
+            "value" : "BookmarkBridge 0.9.2 non risolve un conflitto eliminando o sovrascrivendo silenziosamente un segnalibro."
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "BookmarkBridge 0.9.1 lost een conflict niet op door stilletjes een bladwijzer te verwijderen of te overschrijven."
+            "value" : "BookmarkBridge 0.9.2 lost een conflict niet op door stilletjes een bladwijzer te verwijderen of te overschrijven."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "BookmarkBridge 0.9.1 nie rozwiązuje konfliktu poprzez ciche usuwanie lub zastąpienie zakładki."
+            "value" : "BookmarkBridge 0.9.2 nie rozwiązuje konfliktu poprzez ciche usuwanie lub zastąpienie zakładki."
           }
         },
         "pt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "BookmarkBridge 0.9.1 não resolve um conflito excluindo ou substituindo silenciosamente um marcador."
+            "value" : "BookmarkBridge 0.9.2 não resolve um conflito excluindo ou substituindo silenciosamente um marcador."
           }
         }
       }
@@ -13311,49 +13311,49 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "BookmarkBridge 0.9.1 erfordert macOS 26.5 oder höher. Die Anwendung funktioniert auf Apple Silicon- und Intel 64-Bit-Macs."
+            "value" : "BookmarkBridge 0.9.2 erfordert macOS 26.5 oder höher. Die Anwendung funktioniert auf Apple Silicon- und Intel 64-Bit-Macs."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "BookmarkBridge 0.9.1 requires macOS 26.5 or later. The application works on Apple Silicon and Intel 64-bit Macs."
+            "value" : "BookmarkBridge 0.9.2 requires macOS 26.5 or later. The application works on Apple Silicon and Intel 64-bit Macs."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "BookmarkBridge 0.9.1 requiere macOS 26.5 o posterior. La aplicación funciona en Mac Apple Silicon e Intel de 64 bits."
+            "value" : "BookmarkBridge 0.9.2 requiere macOS 26.5 o posterior. La aplicación funciona en Mac Apple Silicon e Intel de 64 bits."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "BookmarkBridge 0.9.1 nécessite macOS 26.5 ou une version ultérieure. L’application fonctionne sur les Mac Apple Silicon et Intel 64 bits."
+            "value" : "BookmarkBridge 0.9.2 nécessite macOS 26.5 ou une version ultérieure. L’application fonctionne sur les Mac Apple Silicon et Intel 64 bits."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "BookmarkBridge 0.9.1 richiede macOS 26.5 o successivo. L'applicazione funziona su Mac Apple Silicon e Intel a 64 bit."
+            "value" : "BookmarkBridge 0.9.2 richiede macOS 26.5 o successivo. L'applicazione funziona su Mac Apple Silicon e Intel a 64 bit."
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "BookmarkBridge 0.9.1 vereist macOS 26.5 of hoger. De applicatie werkt op Apple Silicon en Intel 64-bit Macs."
+            "value" : "BookmarkBridge 0.9.2 vereist macOS 26.5 of hoger. De applicatie werkt op Apple Silicon en Intel 64-bit Macs."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "BookmarkBridge 0.9.1 wymaga systemu macOS 26.5 lub nowszego. Aplikacja działa na 64-bitowych komputerach Mac Apple Silicon i Intel."
+            "value" : "BookmarkBridge 0.9.2 wymaga systemu macOS 26.5 lub nowszego. Aplikacja działa na 64-bitowych komputerach Mac Apple Silicon i Intel."
           }
         },
         "pt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "BookmarkBridge 0.9.1 requer macOS 26.5 ou posterior. O aplicativo funciona em Macs Apple Silicon e Intel de 64 bits."
+            "value" : "BookmarkBridge 0.9.2 requer macOS 26.5 ou posterior. O aplicativo funciona em Macs Apple Silicon e Intel de 64 bits."
           }
         }
       }
@@ -19559,161 +19559,161 @@
         }
       }
     },
-    "manual.bookmarkbridge091BetaBuild1" : {
+    "manual.bookmarkbridge092BetaBuild1" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "BookmarkBridge 0.9.1 Beta, Build 1."
+            "value" : "BookmarkBridge 0.9.2 Beta, Build 1."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "BookmarkBridge 0.9.1 Beta, build 1."
+            "value" : "BookmarkBridge 0.9.2 Beta, build 1."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "BookmarkBridge 0.9.1 Beta, compilación 1."
+            "value" : "BookmarkBridge 0.9.2 Beta, compilación 1."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "BookmarkBridge 0.9.1 Beta, build 1."
+            "value" : "BookmarkBridge 0.9.2 Beta, build 1."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "BookmarkBridge 0.9.1 Beta, build 1."
+            "value" : "BookmarkBridge 0.9.2 Beta, build 1."
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "BookmarkBridge 0.9.1 Bèta, build 1."
+            "value" : "BookmarkBridge 0.9.2 Bèta, build 1."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "BookmarkBridge 0.9.1 Beta, wersja 1."
+            "value" : "BookmarkBridge 0.9.2 Beta, wersja 1."
           }
         },
         "pt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "BookmarkBridge 0.9.1 Beta, compilação 1."
+            "value" : "BookmarkBridge 0.9.2 Beta, compilação 1."
           }
         }
       }
     },
-    "manual.bookmarkbridge091BetaOfflineUser" : {
+    "manual.bookmarkbridge092BetaOfflineUser" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "BookmarkBridge 0.9.1 Beta Offline-Benutzerhandbuch"
+            "value" : "BookmarkBridge 0.9.2 Beta Offline-Benutzerhandbuch"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "BookmarkBridge 0.9.1 Beta Offline User Manual"
+            "value" : "BookmarkBridge 0.9.2 Beta Offline User Manual"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Manual del usuario sin conexión de BookmarkBridge 0.9.1 Beta"
+            "value" : "Manual del usuario sin conexión de BookmarkBridge 0.9.2 Beta"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Manuel utilisateur hors ligne de BookmarkBridge 0.9.1 Beta"
+            "value" : "Manuel utilisateur hors ligne de BookmarkBridge 0.9.2 Beta"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "BookmarkBridge 0.9.1 Beta Manuale utente offline"
+            "value" : "BookmarkBridge 0.9.2 Beta Manuale utente offline"
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "BookmarkBridge 0.9.1 Bèta offline gebruikershandleiding"
+            "value" : "BookmarkBridge 0.9.2 Bèta offline gebruikershandleiding"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Podręcznik użytkownika BookmarkBridge 0.9.1 Beta offline"
+            "value" : "Podręcznik użytkownika BookmarkBridge 0.9.2 Beta offline"
           }
         },
         "pt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Manual do usuário off-line do BookmarkBridge 0.9.1 Beta"
+            "value" : "Manual do usuário off-line do BookmarkBridge 0.9.2 Beta"
           }
         }
       }
     },
-    "manual.bookmarkbridge091BetaRequiresMacOS" : {
+    "manual.bookmarkbridge092BetaRequiresMacOS" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "BookmarkBridge 0.9.1 Beta erfordert macOS 26.5 oder höher und läuft auf 64-Bit-Macs von Apple Silicon und Intel."
+            "value" : "BookmarkBridge 0.9.2 Beta erfordert macOS 26.5 oder höher und läuft auf 64-Bit-Macs von Apple Silicon und Intel."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "BookmarkBridge 0.9.1 Beta requires macOS 26.5 or later and runs on 64-bit Apple Silicon and Intel Macs."
+            "value" : "BookmarkBridge 0.9.2 Beta requires macOS 26.5 or later and runs on 64-bit Apple Silicon and Intel Macs."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "BookmarkBridge 0.9.1 Beta requiere macOS 26.5 o posterior y se ejecuta en Mac Apple Silicon e Intel de 64 bits."
+            "value" : "BookmarkBridge 0.9.2 Beta requiere macOS 26.5 o posterior y se ejecuta en Mac Apple Silicon e Intel de 64 bits."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "BookmarkBridge 0.9.1 Beta nécessite macOS 26.5 ou une version ultérieure et fonctionne sur les Mac Apple Silicon et Intel 64 bits."
+            "value" : "BookmarkBridge 0.9.2 Beta nécessite macOS 26.5 ou une version ultérieure et fonctionne sur les Mac Apple Silicon et Intel 64 bits."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "BookmarkBridge 0.9.1 Beta richiede macOS 26.5 o successivo e funziona su Mac Apple Silicon e Intel a 64 bit."
+            "value" : "BookmarkBridge 0.9.2 Beta richiede macOS 26.5 o successivo e funziona su Mac Apple Silicon e Intel a 64 bit."
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "BookmarkBridge 0.9.1 Bèta vereist macOS 26.5 of hoger en draait op 64-bit Apple Silicon en Intel Macs."
+            "value" : "BookmarkBridge 0.9.2 Bèta vereist macOS 26.5 of hoger en draait op 64-bit Apple Silicon en Intel Macs."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "BookmarkBridge 0.9.1 Beta wymaga systemu macOS 26.5 lub nowszego i działa na 64-bitowych komputerach Apple Silicon i Intel Mac."
+            "value" : "BookmarkBridge 0.9.2 Beta wymaga systemu macOS 26.5 lub nowszego i działa na 64-bitowych komputerach Apple Silicon i Intel Mac."
           }
         },
         "pt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "BookmarkBridge 0.9.1 Beta requer macOS 26.5 ou posterior e roda em Apple Silicon de 64 bits e Macs Intel."
+            "value" : "BookmarkBridge 0.9.2 Beta requer macOS 26.5 ou posterior e roda em Apple Silicon de 64 bits e Macs Intel."
           }
         }
       }
@@ -21255,55 +21255,55 @@
         }
       }
     },
-    "manual.downloadAndOpenBookmarkBridge091" : {
+    "manual.downloadAndOpenBookmarkBridge092" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Laden Sie BookmarkBridge-0.9.1-build-1.dmg herunter und öffnen Sie es."
+            "value" : "Laden Sie BookmarkBridge-0.9.2-build-1.dmg herunter und öffnen Sie es."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Download and open BookmarkBridge-0.9.1-build-1.dmg."
+            "value" : "Download and open BookmarkBridge-0.9.2-build-1.dmg."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Descargue y abra BookmarkBridge-0.9.1-build-1.dmg."
+            "value" : "Descargue y abra BookmarkBridge-0.9.2-build-1.dmg."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Téléchargez et ouvrez BookmarkBridge-0.9.1-build-1.dmg."
+            "value" : "Téléchargez et ouvrez BookmarkBridge-0.9.2-build-1.dmg."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Scarica e apri BookmarkBridge-0.9.1-build-1.dmg."
+            "value" : "Scarica e apri BookmarkBridge-0.9.2-build-1.dmg."
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Download en open BookmarkBridge-0.9.1-build-1.dmg."
+            "value" : "Download en open BookmarkBridge-0.9.2-build-1.dmg."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pobierz i otwórz BookmarkBridge-0.9.1-build-1.dmg."
+            "value" : "Pobierz i otwórz BookmarkBridge-0.9.2-build-1.dmg."
           }
         },
         "pt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Baixe e abra BookmarkBridge-0.9.1-build-1.dmg."
+            "value" : "Baixe e abra BookmarkBridge-0.9.2-build-1.dmg."
           }
         }
       }
@@ -25760,55 +25760,55 @@
         }
       }
     },
-    "manual.userGuide091Beta" : {
+    "manual.userGuide092Beta" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Benutzerhandbuch · 0.9.1 Beta"
+            "value" : "Benutzerhandbuch · 0.9.2 Beta"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "User Guide · 0.9.1 Beta"
+            "value" : "User Guide · 0.9.2 Beta"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Guía del usuario · 0.9.1 Beta"
+            "value" : "Guía del usuario · 0.9.2 Beta"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Guide de l’utilisateur · 0.9.1 Beta"
+            "value" : "Guide de l’utilisateur · 0.9.2 Beta"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Guida per l'utente · 0.9.1 Beta"
+            "value" : "Guida per l'utente · 0.9.2 Beta"
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Gebruikershandleiding · 0.9.1 Bèta"
+            "value" : "Gebruikershandleiding · 0.9.2 Bèta"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Podręcznik użytkownika · 0.9.1 Beta"
+            "value" : "Podręcznik użytkownika · 0.9.2 Beta"
           }
         },
         "pt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Guia do usuário · 0.9.1 Beta"
+            "value" : "Guia do usuário · 0.9.2 Beta"
           }
         }
       }
@@ -25866,55 +25866,55 @@
         }
       }
     },
-    "manual.version091Beta" : {
+    "manual.version092Beta" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "<b>Version</b><br/>0.9.1 Beta"
+            "value" : "<b>Version</b><br/>0.9.2 Beta"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "<b>Version</b><br/>0.9.1 Beta"
+            "value" : "<b>Version</b><br/>0.9.2 Beta"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "<b>Versión</b><br/>0.9.1 Beta"
+            "value" : "<b>Versión</b><br/>0.9.2 Beta"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "<b>Version</b><br/>0.9.1 Beta"
+            "value" : "<b>Version</b><br/>0.9.2 Beta"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "<b>Versione</b><br/>0.9.1 Beta"
+            "value" : "<b>Versione</b><br/>0.9.2 Beta"
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "<b>Versie</b><br/>0.9.1 Bèta"
+            "value" : "<b>Versie</b><br/>0.9.2 Bèta"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "<b>Wersja</b><br/>0.9.1 Beta"
+            "value" : "<b>Wersja</b><br/>0.9.2 Beta"
           }
         },
         "pt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "<b>Versão</b><br/>0.9.1 Beta"
+            "value" : "<b>Versão</b><br/>0.9.2 Beta"
           }
         }
       }

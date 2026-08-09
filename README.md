@@ -7,7 +7,7 @@
 
 [![macOS 26.5+](https://img.shields.io/badge/macOS-26.5%2B-111827?logo=apple)](https://bookmarkbridge.fr)
 [![Swift 6](https://img.shields.io/badge/Swift-6-F05138?logo=swift&logoColor=white)](https://www.swift.org/)
-[![Version bêta](https://img.shields.io/badge/version-0.9.1--beta-2563EB)](https://bookmarkbridge.fr/download.html)
+[![Version bêta](https://img.shields.io/badge/version-0.9.2--beta-2563EB)](https://bookmarkbridge.fr/download.html)
 [![Licence MIT](https://img.shields.io/badge/licence-MIT-16A34A)](LICENSE)
 
 ### [🌐 Site officiel — bookmarkbridge.fr](https://bookmarkbridge.fr)
@@ -16,7 +16,7 @@
 </div>
 
 > [!IMPORTANT]
-> BookmarkBridge 0.9.1 Beta est un logiciel bêta distribué gratuitement. Vérifiez toujours l’aperçu avant une synchronisation et conservez des sauvegardes de vos navigateurs. Cette version n’est pas encore signée ni notariée par Apple.
+> BookmarkBridge 0.9.2 Beta est un logiciel bêta distribué gratuitement. Vérifiez toujours l’aperçu avant une synchronisation et conservez des sauvegardes de vos navigateurs. Cette version n’est pas encore signée ni notariée par Apple.
 
 ## Présentation
 
@@ -57,7 +57,7 @@ L’interface suit les conventions de macOS et prend en charge les apparences cl
 ### Installation du DMG
 
 1. [Téléchargez BookmarkBridge gratuitement](https://bookmarkbridge.fr/download.html).
-2. Ouvrez `BookmarkBridge-0.9.1-build-1.dmg`.
+2. Ouvrez `BookmarkBridge-0.9.2-build-1.dmg`.
 3. Glissez `BookmarkBridge.app` sur le raccourci `Applications`.
 4. Éjectez l’image disque.
 5. Ouvrez BookmarkBridge depuis le dossier Applications.
@@ -65,10 +65,10 @@ L’interface suit les conventions de macOS et prend en charge les apparences cl
 Gatekeeper peut bloquer la première ouverture car la bêta n’est pas encore notariée. Le [guide illustré de téléchargement](https://bookmarkbridge.fr/download.html) explique comment ouvrir **Réglages Système > Confidentialité et sécurité**, puis utiliser **Ouvrir quand même**, sans désactiver Gatekeeper.
 
 - [Page de téléchargement et guide Gatekeeper](https://bookmarkbridge.fr/download.html)
-- [DMG direct](https://bookmarkbridge.fr/downloads/BookmarkBridge-0.9.1-build-1.dmg)
+- [DMG direct](https://bookmarkbridge.fr/downloads/BookmarkBridge-0.9.2-build-1.dmg)
 - [Somme SHA-256](https://bookmarkbridge.fr/downloads/SHA256.txt)
 - [Guide utilisateur PDF](BookmarkBridge/Documentation/Resources/BookmarkBridge-User-Guide.pdf)
-- [Notes de version](Documentation/RELEASE_NOTES_0.9.1-beta.md)
+- [Notes de version](Documentation/RELEASE_NOTES_0.9.2-beta.md)
 
 ## Première synchronisation
 
@@ -85,7 +85,7 @@ BookmarkBridge utilise l’App Sandbox et des autorisations persistantes `securi
 
 - [Guide utilisateur hors ligne](BookmarkBridge/Documentation/Resources/BookmarkBridge-User-Guide.pdf)
 - [FAQ en ligne](https://bookmarkbridge.fr/faq.html)
-- [Notes de version 0.9.1 Beta](Documentation/RELEASE_NOTES_0.9.1-beta.md)
+- [Notes de version 0.9.2 Beta](Documentation/RELEASE_NOTES_0.9.2-beta.md)
 - [Limitations connues](Documentation/KNOWN_ISSUES.md)
 - [État du projet](Documentation/PROJECT_STATUS.md)
 - [Architecture](Docs/ARCHITECTURE.md)
