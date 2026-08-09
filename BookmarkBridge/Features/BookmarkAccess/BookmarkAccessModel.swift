@@ -59,5 +59,5 @@ protocol BookmarkAccessManaging: Sendable {
 @MainActor
 protocol ChromeProfileSelectionStoring: Sendable {
     func selectedProfileDirectory() -> String?
-    func saveSelectedProfileDirectory(_ directory: String)
+    func saveSelectedProfileDirectory(_ directory: String?)
 }

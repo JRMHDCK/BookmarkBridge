@@ -25,20 +25,15 @@ struct SynchronizationSelectionScreen: View {
                     SynchronizationSummaryCard(source.source.displayName) {
                         sourceHeader(source)
                         Divider()
-                        OutlineGroup(
-                            source.tree.roots.map {
-                                SelectionTreeNode(
-                                    node: .folder($0),
+                        VStack(alignment: .leading, spacing: 0) {
+                            ForEach(source.tree.roots) { folder in
+                                SelectionTreeBranch(
+                                    model: model,
+                                    source: source,
+                                    node: .folder(folder),
                                     depth: 0
                                 )
-                            },
-                            children: \.outlineChildren
-                        ) { item in
-                            nodeRow(
-                                item.node,
-                                source: source,
-                                depth: item.depth
-                            )
+                            }
                         }
                     }
                 }
@@ -106,11 +101,65 @@ struct SynchronizationSelectionScreen: View {
         .accessibilityIdentifier("selection-source-\(source.source.id.profile ?? source.source.browser.displayName)")
     }
 
-    private func nodeRow(
-        _ node: BookmarkNode,
-        source: SearchableSource,
-        depth: Int
-    ) -> some View {
+    private func checkbox(selected: Bool, partial: Bool) -> some View {
+        Image(systemName: partial ? "minus.square.fill" : selected ? "checkmark.square.fill" : "square")
+            .foregroundStyle(partial || selected ? Color.accentColor : .secondary)
+            .accessibilityHidden(true)
+    }
+}
+
+private enum TreeLayout {
+    static let guideWidth: CGFloat = 12
+    static let rowHeight: CGFloat = 30
+    static let checkboxWidth: CGFloat = 16
+    static let iconWidth: CGFloat = 18
+    static let itemSpacing: CGFloat = Theme.Spacing.s
+}
+
+private struct SelectionTreeBranch: View {
+    @Bindable var model: SynchronizationSelectionViewModel
+    let source: SearchableSource
+    let node: BookmarkNode
+    let depth: Int
+
+    var body: some View {
+        if case .folder(let folder) = node, !folder.children.isEmpty {
+            DisclosureGroup(
+                isExpanded: Binding(
+                    get: {
+                        model.isExpanded(
+                            folder.id,
+                            in: source.source.id
+                        )
+                    },
+                    set: {
+                        model.setExpanded(
+                            $0,
+                            folderID: folder.id,
+                            in: source.source.id
+                        )
+                    }
+                )
+            ) {
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(folder.children) { child in
+                        SelectionTreeBranch(
+                            model: model,
+                            source: source,
+                            node: child,
+                            depth: depth + 1
+                        )
+                    }
+                }
+            } label: {
+                selectionButton
+            }
+        } else {
+            selectionButton
+        }
+    }
+
+    private var selectionButton: some View {
         let selected = model.isSelected(node, in: source.source.id)
         let partial = model.isPartiallySelected(node, in: source.source.id)
         return Button {
@@ -118,11 +167,16 @@ struct SynchronizationSelectionScreen: View {
         } label: {
             HStack(spacing: TreeLayout.itemSpacing) {
                 TreeGuides(depth: depth)
-                checkbox(
-                    selected: selected,
-                    partial: partial
+                Image(
+                    systemName: partial
+                        ? "minus.square.fill"
+                        : selected ? "checkmark.square.fill" : "square"
+                )
+                .foregroundStyle(
+                    partial || selected ? Color.accentColor : .secondary
                 )
                 .frame(width: TreeLayout.checkboxWidth)
+                .accessibilityHidden(true)
                 Image(systemName: node.isFolder ? "folder" : "bookmark")
                     .foregroundStyle(.secondary)
                     .frame(width: TreeLayout.iconWidth)
@@ -151,37 +205,6 @@ struct SynchronizationSelectionScreen: View {
                 ? "Active ou désactive ce dossier et son contenu"
                 : "Active ou désactive ce favori"
         )
-    }
-
-    private func checkbox(selected: Bool, partial: Bool) -> some View {
-        Image(systemName: partial ? "minus.square.fill" : selected ? "checkmark.square.fill" : "square")
-            .foregroundStyle(partial || selected ? Color.accentColor : .secondary)
-            .accessibilityHidden(true)
-    }
-}
-
-private enum TreeLayout {
-    static let guideWidth: CGFloat = 12
-    static let rowHeight: CGFloat = 30
-    static let checkboxWidth: CGFloat = 16
-    static let iconWidth: CGFloat = 18
-    static let itemSpacing: CGFloat = Theme.Spacing.s
-}
-
-private struct SelectionTreeNode: Identifiable, Hashable {
-    let node: BookmarkNode
-    let depth: Int
-
-    var id: BookmarkID { node.id }
-
-    var outlineChildren: [SelectionTreeNode]? {
-        guard case .folder(let folder) = node,
-              !folder.children.isEmpty else {
-            return nil
-        }
-        return folder.children.map {
-            SelectionTreeNode(node: $0, depth: depth + 1)
-        }
     }
 }
 

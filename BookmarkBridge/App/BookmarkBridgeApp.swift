@@ -59,8 +59,8 @@ struct BookmarkBridgeApp: App {
             fileController: fileController,
             requester: requester
         )
-        let profileSelectionStore =
-            UserDefaultsChromeProfileSelectionStore()
+        let preferencesStore =
+            UserDefaultsSynchronizationPreferencesStore()
         let bookmarkAccessService = BookmarkAccessService(
             store: dependencies.bookmarkStore,
             resolver: resolver,
@@ -77,7 +77,7 @@ struct BookmarkBridgeApp: App {
             ),
             bookmarkAccess: BookmarkAccessViewModel(
                 service: bookmarkAccessService,
-                selectionStore: profileSelectionStore
+                selectionStore: preferencesStore
             ),
             synchronization: SynchronizationViewModel(
                 previewService:
@@ -85,7 +85,8 @@ struct BookmarkBridgeApp: App {
                 requestProvider:
                     dependencies.synchronizationPreviewRequestProvider,
                 executionService:
-                    dependencies.synchronizationExecutionService
+                    dependencies.synchronizationExecutionService,
+                preferencesStore: preferencesStore
             ),
             browserOperationGuard: BrowserOperationGuard(
                 lifecycleController: SystemBrowserLifecycleController()

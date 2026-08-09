@@ -6,29 +6,69 @@
 import Foundation
 import Observation
 
-/// Session-only selection state for the trees displayed before a BSE preview.
+/// Persisted selection and expansion state for the trees displayed before a
+/// BSE preview.
 @MainActor
 @Observable
 final class SynchronizationSelectionViewModel {
     private(set) var sources: [SearchableSource] = []
     private var selectedIDs: [BookmarkSourceID: Set<BookmarkID>] = [:]
     private var knownIDs: [BookmarkSourceID: Set<BookmarkID>] = [:]
+    private var expandedFolderIDs: [BookmarkSourceID: Set<BookmarkID>] = [:]
     private var counterpartExclusions: Set<String> = []
+    private var restoredSourceIDs: Set<BookmarkSourceID> = []
+    private let preferencesStore: any SynchronizationPreferencesStoring
+
+    init(
+        preferencesStore: any SynchronizationPreferencesStoring =
+            InMemorySynchronizationPreferencesStore()
+    ) {
+        self.preferencesStore = preferencesStore
+        counterpartExclusions = preferencesStore.load()
+            .counterpartExclusions
+    }
 
     func configure(sources: [SearchableSource]) {
         self.sources = sources
+        let preferences = preferencesStore.load()
         for source in sources {
             let all = Set(Self.flatten(source.tree).map(\.id))
-            let previousKnown = knownIDs[source.source.id] ?? []
-            if var selected = selectedIDs[source.source.id] {
+            let folders = Set(Self.flatten(source.tree).compactMap {
+                $0.isFolder ? $0.id : nil
+            })
+            if !restoredSourceIDs.contains(source.source.id),
+               let persisted = preferences.sourceStates[
+                   Self.persistenceKey(for: source.source.id)
+               ] {
+                let persistedKnown = Set(
+                    persisted.knownNodeIDs.map(BookmarkID.init)
+                )
+                var selected = Set(
+                    persisted.selectedNodeIDs.map(BookmarkID.init)
+                )
+                selected.formIntersection(all)
+                selected.formUnion(all.subtracting(persistedKnown))
+                selectedIDs[source.source.id] = selected
+                expandedFolderIDs[source.source.id] = Set(
+                    persisted.expandedFolderIDs.map(BookmarkID.init)
+                ).intersection(folders)
+            } else if var selected = selectedIDs[source.source.id] {
+                let previousKnown = knownIDs[source.source.id] ?? []
                 selected.formIntersection(all)
                 selected.formUnion(all.subtracting(previousKnown))
                 selectedIDs[source.source.id] = selected
+                expandedFolderIDs[source.source.id]?.formIntersection(folders)
             } else {
                 selectedIDs[source.source.id] = all
             }
             knownIDs[source.source.id] = all
+            restoredSourceIDs.insert(source.source.id)
         }
+        let availableSemanticKeys = Set(sources.flatMap {
+            Self.flatten($0.tree).map(Self.semanticKey)
+        })
+        counterpartExclusions.formIntersection(availableSemanticKeys)
+        persist()
     }
 
     func isSelected(_ node: BookmarkNode, in sourceID: BookmarkSourceID) -> Bool {
@@ -71,6 +111,7 @@ final class SynchronizationSelectionViewModel {
         let all = Set(Self.flatten(source.tree).map(\.id))
         let shouldSelect = !all.isSubset(of: selectedIDs[source.source.id] ?? all)
         set(all, selected: shouldSelect, in: source.source.id)
+        persist()
     }
 
     func toggle(_ node: BookmarkNode, in source: SearchableSource) {
@@ -88,6 +129,29 @@ final class SynchronizationSelectionViewModel {
             selectAncestors(of: node.id, in: source)
         }
         propagateCounterparts(of: node, selected: shouldSelect, excluding: source.source.id)
+        persist()
+    }
+
+    func isExpanded(
+        _ folderID: BookmarkID,
+        in sourceID: BookmarkSourceID
+    ) -> Bool {
+        expandedFolderIDs[sourceID]?.contains(folderID) ?? false
+    }
+
+    func setExpanded(
+        _ expanded: Bool,
+        folderID: BookmarkID,
+        in sourceID: BookmarkSourceID
+    ) {
+        var current = expandedFolderIDs[sourceID] ?? []
+        if expanded {
+            current.insert(folderID)
+        } else {
+            current.remove(folderID)
+        }
+        expandedFolderIDs[sourceID] = current
+        persist()
     }
 
     func scope(for sourceID: BookmarkSourceID) -> SynchronizationSelectionScope {
@@ -175,6 +239,34 @@ final class SynchronizationSelectionViewModel {
                 : id.rawValue
             return "id:\(raw)"
         }
+    }
+
+    private func persist() {
+        var preferences = preferencesStore.load()
+        for source in sources {
+            let sourceID = source.source.id
+            preferences.sourceStates[Self.persistenceKey(for: sourceID)] =
+                SynchronizationPreferences.SourceState(
+                    selectedNodeIDs: Set(
+                        (selectedIDs[sourceID] ?? []).map(\.rawValue)
+                    ),
+                    knownNodeIDs: Set(
+                        (knownIDs[sourceID] ?? []).map(\.rawValue)
+                    ),
+                    expandedFolderIDs: Set(
+                        (expandedFolderIDs[sourceID] ?? []).map(\.rawValue)
+                    )
+                )
+        }
+        preferences.counterpartExclusions = counterpartExclusions
+        preferencesStore.save(preferences)
+    }
+
+    private static func persistenceKey(
+        for sourceID: BookmarkSourceID
+    ) -> String {
+        [sourceID.browser.rawValue, sourceID.profile ?? ""]
+            .joined(separator: ":")
     }
 
     private static func semanticKey(for node: BookmarkNode) -> String {

@@ -43,9 +43,23 @@ nonisolated enum SynchronizationDirectionOption:
 @Observable
 final class SynchronizationDirectionNavigation {
     private(set) var selectedDirection: SynchronizationDirectionOption?
+    private let preferencesStore: any SynchronizationPreferencesStoring
+
+    init(
+        preferencesStore: any SynchronizationPreferencesStoring =
+            InMemorySynchronizationPreferencesStore()
+    ) {
+        self.preferencesStore = preferencesStore
+        selectedDirection = SynchronizationDirectionOption(
+            rawValue: preferencesStore.load().selectedDirectionRawValue ?? ""
+        )
+    }
 
     func select(_ direction: SynchronizationDirectionOption) {
         selectedDirection = direction
+        var preferences = preferencesStore.load()
+        preferences.selectedDirectionRawValue = direction.rawValue
+        preferencesStore.save(preferences)
     }
 
     func goBack() {

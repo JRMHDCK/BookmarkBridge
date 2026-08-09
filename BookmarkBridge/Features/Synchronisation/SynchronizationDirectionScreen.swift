@@ -16,11 +16,10 @@ struct SynchronizationDirectionScreen: View {
         @MainActor (ProductionSynchronizationDirection) async -> Void
     let onSynchronize: @MainActor () async -> Bool
 
-    @State private var navigation = SynchronizationDirectionNavigation()
     @State private var showsPreview = false
 
     var body: some View {
-        switch navigation.selectedDirection {
+        switch model.directionNavigation.selectedDirection {
         case nil:
             directionChoice
         case .some(let direction) where !showsPreview:
@@ -31,7 +30,7 @@ struct SynchronizationDirectionScreen: View {
                     await onSelectDirection(direction.previewDirection)
                     showsPreview = true
                 },
-                onBack: { navigation.goBack() }
+                onBack: { model.directionNavigation.goBack() }
             )
         case .safariToChrome:
             previewScreen(direction: .safariToChrome)
@@ -89,7 +88,7 @@ struct SynchronizationDirectionScreen: View {
         _ direction: SynchronizationDirectionOption
     ) -> some View {
         Button {
-            navigation.select(direction)
+            model.directionNavigation.select(direction)
         } label: {
             HStack(spacing: Theme.Spacing.m) {
                 BrowserLogo(

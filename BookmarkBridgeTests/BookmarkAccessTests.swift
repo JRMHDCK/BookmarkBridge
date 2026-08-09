@@ -181,6 +181,29 @@ struct BookmarkAccessTests {
         #expect(selection.savedDirectories == ["Default"])
     }
 
+    @Test("A deleted Chrome profile falls back to the first available profile")
+    func deletedChromeProfileIsIgnored() async {
+        let available = ChromeProfileAccess(
+            directoryName: "Default",
+            profileName: "Personnel",
+            bookmarksURL: URL(fileURLWithPath: "/Chrome/Default/Bookmarks")
+        )
+        let selection = ChromeProfileSelectionStoreDouble(
+            selected: "Deleted Profile"
+        )
+        let viewModel = BookmarkAccessViewModel(
+            service: BookmarkAccessServiceDouble(
+                snapshot: snapshot(chromeProfiles: [available])
+            ),
+            selectionStore: selection
+        )
+
+        await viewModel.load()
+
+        #expect(viewModel.selectedChromeProfileDirectory == "Default")
+        #expect(selection.savedDirectories == ["Default"])
+    }
+
     @Test("Re-select delegates to the existing authorization requester")
     func reselectUsesExistingAuthorizationFlow() async throws {
         let requester = BookmarkAccessRequesterSpy()
@@ -307,7 +330,7 @@ private final class ChromeProfileSelectionStoreDouble:
     ChromeProfileSelectionStoring
 {
     private var selected: String?
-    private(set) var savedDirectories: [String] = []
+    private(set) var savedDirectories: [String?] = []
 
     init(selected: String?) {
         self.selected = selected
@@ -315,7 +338,7 @@ private final class ChromeProfileSelectionStoreDouble:
 
     func selectedProfileDirectory() -> String? { selected }
 
-    func saveSelectedProfileDirectory(_ directory: String) {
+    func saveSelectedProfileDirectory(_ directory: String?) {
         selected = directory
         savedDirectories.append(directory)
     }

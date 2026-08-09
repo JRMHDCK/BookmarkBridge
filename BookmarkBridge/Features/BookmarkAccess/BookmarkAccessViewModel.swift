@@ -82,6 +82,7 @@ final class BookmarkAccessViewModel {
         }
         guard let first = profiles.first else {
             selectedChromeProfileDirectory = nil
+            selectionStore.saveSelectedProfileDirectory(nil)
             return
         }
         selectedChromeProfileDirectory = first.directoryName

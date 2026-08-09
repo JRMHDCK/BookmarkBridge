@@ -112,7 +112,8 @@ final class SynchronizationViewModel {
     private(set) var state: State = .idle
     private(set) var executionState: ExecutionState = .idle
     private(set) var previewDirection: ProductionSynchronizationDirection?
-    let selection = SynchronizationSelectionViewModel()
+    let selection: SynchronizationSelectionViewModel
+    let directionNavigation: SynchronizationDirectionNavigation
 
     var isSynchronizing: Bool {
         switch executionState {
@@ -149,11 +150,19 @@ final class SynchronizationViewModel {
         previewService: any SynchronizationPreviewProviding,
         requestProvider: any SynchronizationPreviewRequestProviding,
         executionService:
-            (any SynchronizationProductionExecuting)? = nil
+            (any SynchronizationProductionExecuting)? = nil,
+        preferencesStore: any SynchronizationPreferencesStoring =
+            InMemorySynchronizationPreferencesStore()
     ) {
         self.previewService = previewService
         self.requestProvider = requestProvider
         self.executionService = executionService
+        selection = SynchronizationSelectionViewModel(
+            preferencesStore: preferencesStore
+        )
+        directionNavigation = SynchronizationDirectionNavigation(
+            preferencesStore: preferencesStore
+        )
     }
 
     func reset() {

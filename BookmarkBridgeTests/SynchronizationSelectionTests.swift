@@ -4,6 +4,186 @@ import Testing
 
 @Suite("Synchronization selection")
 struct SynchronizationSelectionTests {
+    @Test("First launch selects every item and starts with folders collapsed")
+    @MainActor
+    func firstLaunchUsesSafeDefaults() {
+        let chrome = Self.source(
+            .chrome,
+            profile: "Default",
+            name: "Chrome",
+            seed: "first"
+        )
+        let root = chrome.tree.roots[0]
+        let model = SynchronizationSelectionViewModel(
+            preferencesStore: InMemorySynchronizationPreferencesStore()
+        )
+
+        model.configure(sources: [chrome])
+
+        #expect(model.sourceIsSelected(chrome))
+        #expect(!model.isExpanded(root.id, in: chrome.source.id))
+    }
+
+    @Test("Checked items and expanded folders are saved and restored")
+    @MainActor
+    func savesAndRestoresCompleteTreeState() {
+        let chrome = Self.source(
+            .chrome,
+            profile: "Default",
+            name: "Chrome",
+            seed: "saved"
+        )
+        let root = chrome.tree.roots[0]
+        let unchecked = root.children[1]
+        let store = InMemorySynchronizationPreferencesStore()
+        let first = SynchronizationSelectionViewModel(
+            preferencesStore: store
+        )
+        first.configure(sources: [chrome])
+
+        first.toggle(unchecked, in: chrome)
+        first.setExpanded(
+            true,
+            folderID: root.id,
+            in: chrome.source.id
+        )
+
+        let restored = SynchronizationSelectionViewModel(
+            preferencesStore: store
+        )
+        restored.configure(sources: [chrome])
+
+        #expect(!restored.isSelected(unchecked, in: chrome.source.id))
+        #expect(restored.isSelected(root.children[0], in: chrome.source.id))
+        #expect(restored.isExpanded(root.id, in: chrome.source.id))
+    }
+
+    @Test("Missing folders and bookmarks are ignored during partial restoration")
+    @MainActor
+    func missingTreeItemsAreIgnored() {
+        let chrome = Self.source(
+            .chrome,
+            profile: "Default",
+            name: "Chrome",
+            seed: "partial"
+        )
+        let root = chrome.tree.roots[0]
+        let retained = root.children[0]
+        var preferences = SynchronizationPreferences()
+        preferences.sourceStates["chrome:Default"] = .init(
+            selectedNodeIDs: [
+                root.id.rawValue,
+                retained.id.rawValue,
+                "chrome:missing-bookmark",
+            ],
+            knownNodeIDs: Set(
+                ([root.id] + root.children.map(\.id)).map(\.rawValue)
+            ).union(["chrome:missing-bookmark"]),
+            expandedFolderIDs: [
+                root.id.rawValue,
+                "chrome:missing-folder",
+            ]
+        )
+        let model = SynchronizationSelectionViewModel(
+            preferencesStore: InMemorySynchronizationPreferencesStore(
+                preferences: preferences
+            )
+        )
+
+        model.configure(sources: [chrome])
+
+        #expect(model.isSelected(retained, in: chrome.source.id))
+        #expect(!model.isSelected(root.children[1], in: chrome.source.id))
+        #expect(model.isExpanded(root.id, in: chrome.source.id))
+    }
+
+    @Test("A deleted folder is discarded from restored expansion state")
+    @MainActor
+    func deletedFolderIsIgnored() {
+        let original = Self.source(
+            .chrome,
+            profile: "Default",
+            name: "Chrome",
+            seed: "deleted-folder"
+        )
+        let rootID = original.tree.roots[0].id
+        let store = InMemorySynchronizationPreferencesStore()
+        let first = SynchronizationSelectionViewModel(
+            preferencesStore: store
+        )
+        first.configure(sources: [original])
+        first.setExpanded(true, folderID: rootID, in: original.source.id)
+
+        let withoutFolder = SearchableSource(
+            source: original.source,
+            tree: BookmarkTree(
+                browser: .chrome,
+                roots: [],
+                capturedAt: .distantPast
+            )
+        )
+        let restored = SynchronizationSelectionViewModel(
+            preferencesStore: store
+        )
+
+        restored.configure(sources: [withoutFolder])
+
+        #expect(!restored.isExpanded(rootID, in: withoutFolder.source.id))
+        #expect(!restored.hasSelection(for: withoutFolder.source.id))
+    }
+
+    @Test("Selection remains compatible when synchronization changes the tree")
+    @MainActor
+    func restoresAfterSynchronizationChangesIdentifiers() {
+        let original = Self.source(
+            .chrome,
+            profile: "Default",
+            name: "Chrome",
+            seed: "sync"
+        )
+        let originalRoot = original.tree.roots[0]
+        let removed = originalRoot.children[1]
+        let store = InMemorySynchronizationPreferencesStore()
+        let first = SynchronizationSelectionViewModel(
+            preferencesStore: store
+        )
+        first.configure(sources: [original])
+        first.toggle(removed, in: original)
+        first.setExpanded(
+            true,
+            folderID: originalRoot.id,
+            in: original.source.id
+        )
+
+        let created = BookmarkNode.bookmark(Bookmark(
+            id: BookmarkID("chrome:created-by-sync"),
+            title: "Created",
+            url: URL(string: "https://created-by-sync.example")!
+        ))
+        let updatedRoot = BookmarkFolder(
+            id: originalRoot.id,
+            title: originalRoot.title,
+            children: [originalRoot.children[0], created]
+        )
+        let updated = SearchableSource(
+            source: original.source,
+            tree: BookmarkTree(
+                browser: .chrome,
+                roots: [updatedRoot],
+                capturedAt: .distantPast
+            )
+        )
+        let restored = SynchronizationSelectionViewModel(
+            preferencesStore: store
+        )
+
+        restored.configure(sources: [updated])
+
+        #expect(restored.isSelected(created, in: updated.source.id))
+        #expect(restored.isExpanded(updatedRoot.id, in: updated.source.id))
+        #expect(restored.scope(for: updated.source.id) == .all)
+    }
+
     @Test("All profiles and descendants start selected and profile toggles are independent")
     @MainActor
     func profileSelectionAndSessionPersistence() {

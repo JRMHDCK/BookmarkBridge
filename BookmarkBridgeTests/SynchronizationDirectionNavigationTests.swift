@@ -39,4 +39,33 @@ struct SynchronizationDirectionNavigationTests {
         navigation.goBack()
         #expect(navigation.selectedDirection == nil)
     }
+
+    @Test("The last direction is saved and restored")
+    func directionPersistence() {
+        let store = InMemorySynchronizationPreferencesStore()
+        let first = SynchronizationDirectionNavigation(
+            preferencesStore: store
+        )
+
+        #expect(first.selectedDirection == nil)
+        first.select(.chromeToSafari)
+
+        let restored = SynchronizationDirectionNavigation(
+            preferencesStore: store
+        )
+        #expect(restored.selectedDirection == .chromeToSafari)
+    }
+
+    @Test("An unknown persisted direction is ignored")
+    func invalidDirectionIsIgnored() {
+        var preferences = SynchronizationPreferences()
+        preferences.selectedDirectionRawValue = "unsupported"
+        let navigation = SynchronizationDirectionNavigation(
+            preferencesStore: InMemorySynchronizationPreferencesStore(
+                preferences: preferences
+            )
+        )
+
+        #expect(navigation.selectedDirection == nil)
+    }
 }
