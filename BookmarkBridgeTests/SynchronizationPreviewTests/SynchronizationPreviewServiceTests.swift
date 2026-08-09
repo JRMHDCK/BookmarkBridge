@@ -61,6 +61,133 @@ struct SynchronizationPreviewServiceTests {
         try fixture.expectNoFileSystemMutation()
     }
 
+    @Test("An empty production Baseline previews identical duplicates")
+    func emptyBaselinePreviewsIdenticalDuplicates() async throws {
+        let fixture = try await PreviewFixture.make(
+            scenario: .identicalDuplicates,
+            emptyBaseline: true
+        )
+        defer { fixture.remove() }
+
+        let result = try await fixture.service.preview(request: fixture.request)
+
+        #expect(result.totalOperationCount == 0)
+        try fixture.expectNoFileSystemMutation()
+    }
+
+    @Test(
+        "A 6-bookmark 3-folder source previews against 861 bookmarks and 29 folders"
+    )
+    func previewsObservedScale() async throws {
+        let trees = PreviewScenario.observedScale.trees
+        #expect(trees.source.flattened.count(where: \.isBookmark) == 6)
+        #expect(trees.source.flattened.count(where: \.isFolder) - 1 == 3)
+        #expect(trees.target.flattened.count(where: \.isBookmark) == 861)
+        #expect(trees.target.flattened.count(where: \.isFolder) - 1 == 29)
+        let fixture = try await PreviewFixture.make(
+            scenario: .observedScale,
+            emptyBaseline: true
+        )
+        defer { fixture.remove() }
+
+        let result = try await fixture.service.preview(request: fixture.request)
+
+        #expect(result.totalOperationCount == 881)
+        try fixture.expectNoFileSystemMutation()
+    }
+
+    @Test(
+        "Production-empty Baseline covers the complete preview matrix",
+        arguments: [
+            PreviewScenario.noChange,
+            .creation,
+            .reverseCreation,
+            .deletion,
+            .combined,
+            .identicalDuplicates,
+            .duplicateDeletion,
+            .reverseDuplicateCreation,
+            .nestedCreation,
+            .observedScale,
+        ]
+    )
+    private func emptyBaselineCoversPreviewMatrix(
+        _ scenario: PreviewScenario
+    ) async throws {
+        let fixture = try await PreviewFixture.make(
+            scenario: scenario,
+            emptyBaseline: true
+        )
+        defer { fixture.remove() }
+
+        _ = try await fixture.service.preview(request: fixture.request)
+
+        try fixture.expectNoFileSystemMutation()
+    }
+
+    @Test("Partial selection previews only checked bookmarks")
+    func partialSelectionPreviewsOnlyCheckedBookmarks() async throws {
+        let fixture = try await PreviewFixture.make(scenario: .creation)
+        defer { fixture.remove() }
+        let excluded = Set(["bookmark:https://example.com/existing"])
+        let request = fixture.request.selecting(
+            safari: .nativeIdentifiers(
+                ["safari-4"],
+                excludingSemanticKeys: excluded
+            ),
+            chrome: .nativeIdentifiers(
+                [],
+                includingSemanticKeys: ["folder:folder"],
+                excludingSemanticKeys: excluded
+            )
+        )
+
+        let result = try await fixture.service.preview(request: request)
+
+        #expect(result.creationCount == 1)
+        #expect(result.totalOperationCount == 1)
+        try fixture.expectNoFileSystemMutation()
+    }
+
+    @Test("Successive bidirectional previews remain stable")
+    func successiveBidirectionalPreviewsRemainStable() async throws {
+        let fixture = try await PreviewFixture.make(
+            scenario: .identicalDuplicates,
+            emptyBaseline: true
+        )
+        defer { fixture.remove() }
+        let reverse = fixture.request(direction: .chromeToSafari)
+
+        for request in [fixture.request, reverse, fixture.request, reverse] {
+            let result = try await fixture.service.preview(request: request)
+            #expect(result.totalOperationCount == 0)
+        }
+        try fixture.expectNoFileSystemMutation()
+    }
+
+    @Test("One preview service supports multiple Chrome profiles")
+    func multipleChromeProfilesRemainIndependent() async throws {
+        let fixture = try await PreviewFixture.make(
+            scenario: .noChange,
+            emptyBaseline: true
+        )
+        defer { fixture.remove() }
+        let additional = try fixture.addChromeProfile(
+            directory: "Profile 1",
+            sourceID: BSESourceID(previewUUID(9)),
+            tree: PreviewScenario.identicalDuplicates.trees.target
+        )
+
+        let first = try await fixture.service.preview(request: fixture.request)
+        let second = try await fixture.service.preview(request: additional.request)
+        let third = try await fixture.service.preview(request: fixture.request)
+
+        #expect(first.totalOperationCount == 0)
+        #expect(second.totalOperationCount > 0)
+        #expect(third == first)
+        #expect(try Data(contentsOf: additional.url) == additional.data)
+    }
+
     @Test(
         "Each shared-pipeline failure keeps its public preview category",
         arguments: PreviewPipelineFailureScenario.allCases
@@ -327,16 +454,28 @@ private enum PreviewScenario: String, CaseIterable, Sendable {
     case updateURL
     case deletion
     case combined
+    case identicalDuplicates
+    case duplicateDeletion
+    case reverseDuplicateCreation
+    case nestedCreation
+    case observedScale
 
     var direction: ProductionSynchronizationDirection {
-        self == .reverseCreation ? .chromeToSafari : .safariToChrome
+        switch self {
+        case .reverseCreation, .reverseDuplicateCreation:
+            .chromeToSafari
+        default:
+            .safariToChrome
+        }
     }
 
     var expectedOperationKinds: [PreviewOperationKind] {
         switch self {
         case .noChange:
             []
-        case .creation, .reverseCreation:
+        case .identicalDuplicates:
+            []
+        case .creation, .reverseCreation, .nestedCreation:
             [.create]
         case .rename:
             [.rename]
@@ -348,6 +487,12 @@ private enum PreviewScenario: String, CaseIterable, Sendable {
             [.delete]
         case .combined:
             [.create, .move, .rename, .updateURL, .delete]
+        case .duplicateDeletion:
+            [.delete]
+        case .reverseDuplicateCreation:
+            [.create]
+        case .observedScale:
+            Array(repeating: .delete, count: 881)
         }
     }
 
@@ -453,6 +598,100 @@ private enum PreviewScenario: String, CaseIterable, Sendable {
                     folder(3, "Second", []),
                 ])
             )
+        case .identicalDuplicates:
+            let tree = root([
+                folder(2, "Folder", [
+                    bookmark(3, "Duplicate", "https://example.com/duplicate"),
+                    bookmark(4, "Duplicate", "https://example.com/duplicate"),
+                ]),
+            ])
+            return (tree, tree)
+        case .duplicateDeletion:
+            return (
+                root([
+                    folder(2, "Folder", [
+                        bookmark(3, "Duplicate", "https://example.com/duplicate"),
+                    ]),
+                ]),
+                root([
+                    folder(2, "Folder", [
+                        bookmark(3, "Duplicate", "https://example.com/duplicate"),
+                        bookmark(4, "Duplicate", "https://example.com/duplicate"),
+                    ]),
+                ])
+            )
+        case .reverseDuplicateCreation:
+            return (
+                root([
+                    folder(2, "Folder", [
+                        bookmark(3, "Duplicate", "https://example.com/duplicate"),
+                        bookmark(4, "Duplicate", "https://example.com/duplicate"),
+                    ]),
+                ]),
+                root([
+                    folder(2, "Folder", [
+                        bookmark(3, "Duplicate", "https://example.com/duplicate"),
+                    ]),
+                ])
+            )
+        case .nestedCreation:
+            return (
+                root([
+                    folder(2, "Parent", [
+                        folder(3, "Child", [
+                            bookmark(4, "Nested", "https://example.com/nested"),
+                        ]),
+                    ]),
+                ]),
+                root([
+                    folder(2, "Parent", [
+                        folder(3, "Child", []),
+                    ]),
+                ])
+            )
+        case .observedScale:
+            let sharedFolders = (0..<3).map { folderIndex in
+                let folderID = 2 + folderIndex
+                return folder(
+                    folderID,
+                    "Shared \(folderIndex)",
+                    (0..<2).map { bookmarkIndex in
+                        let bookmarkID = 10 + (folderIndex * 2) + bookmarkIndex
+                        return bookmark(
+                            bookmarkID,
+                            "Shared \(bookmarkID)",
+                            "https://example.com/shared/\(bookmarkID)"
+                        )
+                    }
+                )
+            }
+            var targetSharedFolders = sharedFolders
+            targetSharedFolders[0] = folder(2, "Shared 0", [
+                bookmark(10, "Shared 10", "https://example.com/shared/10"),
+                bookmark(11, "Shared 11", "https://example.com/shared/11"),
+                bookmark(1_999, "Shared 10", "https://example.com/shared/10"),
+            ])
+            let extraBookmarks = (0..<854).map { index in
+                bookmark(
+                    1_000 + index,
+                    "Extra \(index)",
+                    "https://example.com/extra/\(index)"
+                )
+            }
+            let extraFolders = (0..<26).map { folderIndex in
+                let children = extraBookmarks.enumerated().compactMap {
+                    $0.offset % 26 == folderIndex ? $0.element : nil
+                }
+                return folder(
+                    100 + folderIndex,
+                    "Extra \(folderIndex)",
+                    children
+                )
+            }
+            return (
+                root(sharedFolders),
+                root(targetSharedFolders + extraFolders)
+            )
         }
     }
 }
@@ -475,6 +714,16 @@ private indirect enum PreviewNode: Sendable {
         case .bookmark:
             [self]
         }
+    }
+
+    var isBookmark: Bool {
+        if case .bookmark = self { return true }
+        return false
+    }
+
+    var isFolder: Bool {
+        if case .folder = self { return true }
+        return false
     }
 }
 
@@ -509,7 +758,10 @@ private final class PreviewFixture {
         self.initialRelativePaths = initialRelativePaths
     }
 
-    static func make(scenario: PreviewScenario) async throws -> PreviewFixture {
+    static func make(
+        scenario: PreviewScenario,
+        emptyBaseline: Bool = false
+    ) async throws -> PreviewFixture {
         let rootURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("BookmarkBridge-BSE780-\(UUID().uuidString)")
         let safariURL = rootURL
@@ -555,10 +807,12 @@ private final class PreviewFixture {
                 profileIdentifier: profile
             )
         ).read()
-        let baseline = try makeBaseline(
-            safari: (safariTree, safariRead.snapshot),
-            chrome: (chromeTree, chromeRead.snapshot)
-        )
+        let baseline = try emptyBaseline
+            ? Baseline.empty(baselineID: BaselineID(previewUUID(250)))
+            : makeBaseline(
+                safari: (safariTree, safariRead.snapshot),
+                chrome: (chromeTree, chromeRead.snapshot)
+            )
         let service = SynchronizationPreviewService(
             baselineRepository: BaselineRepository(
                 store: InMemoryBaselineStore(baseline: baseline)
@@ -590,6 +844,56 @@ private final class PreviewFixture {
         #expect(try Data(contentsOf: safariBookmarksURL) == safariData)
         #expect(try Data(contentsOf: chromeBookmarksURL) == chromeData)
         #expect(try Self.relativePaths(in: rootURL) == initialRelativePaths)
+    }
+
+    func request(
+        direction: ProductionSynchronizationDirection
+    ) -> SynchronizationPreviewRequest {
+        SynchronizationPreviewRequest(
+            direction: direction,
+            safariSourceID: request.safariSourceID,
+            chromeSourceID: request.chromeSourceID,
+            safariBookmarksURL: request.safariBookmarksURL,
+            chromeBookmarksURL: request.chromeBookmarksURL,
+            chromeProfileIdentifier: request.chromeProfileIdentifier,
+            safariSecurityScopeURL: request.safariSecurityScopeURL,
+            chromeSecurityScopeURL: request.chromeSecurityScopeURL,
+            safariSelection: request.safariSelection,
+            chromeSelection: request.chromeSelection
+        )
+    }
+
+    func addChromeProfile(
+        directory: String,
+        sourceID: BSESourceID,
+        tree: PreviewNode
+    ) throws -> (request: SynchronizationPreviewRequest, url: URL, data: Data) {
+        let url = chromeBookmarksURL
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent(directory, isDirectory: true)
+            .appendingPathComponent("Bookmarks", isDirectory: false)
+        try FileManager.default.createDirectory(
+            at: url.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
+        let data = try Self.chromeDocument(tree)
+        try data.write(to: url)
+        let profile = try ChromeProfileIdentifier(directory)
+        return (
+            SynchronizationPreviewRequest(
+                direction: .safariToChrome,
+                safariSourceID: request.safariSourceID,
+                chromeSourceID: sourceID,
+                safariBookmarksURL: safariBookmarksURL,
+                chromeBookmarksURL: url,
+                chromeProfileIdentifier: profile,
+                safariSecurityScopeURL: request.safariSecurityScopeURL,
+                chromeSecurityScopeURL: request.chromeSecurityScopeURL
+            ),
+            url,
+            data
+        )
     }
 
     func remove() {

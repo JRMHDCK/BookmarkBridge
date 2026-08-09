@@ -50,6 +50,8 @@ struct ProductionSynchronizationServiceTests {
         arguments: [
             ProductionScenario.creation,
             ProductionScenario.reverseCreation,
+            ProductionScenario.duplicateDeletion,
+            ProductionScenario.reverseDuplicateCreation,
         ]
     )
     func secondSynchronizationIsANoOp(
@@ -175,6 +177,8 @@ struct ProductionSynchronizationServiceTests {
         "An empty Baseline reuses written native identities on later passes",
         arguments: [
             ProductionScenario.hierarchicalCreation,
+            ProductionScenario.duplicateDeletion,
+            ProductionScenario.reverseDuplicateCreation,
         ]
     )
     func emptyBaselineIsStableAcrossThreePasses(
@@ -544,11 +548,15 @@ enum ProductionScenario: String, CaseIterable, Sendable {
     case multipleDeletions
     case reverseMultipleDeletions
     case combined
+    case identicalDuplicates
+    case duplicateDeletion
+    case reverseDuplicateCreation
 
     var direction: ProductionSynchronizationDirection {
         switch self {
         case .reverseCreation, .reverseHierarchicalCreation,
-             .reversePositionDependentCreation, .reverseMultipleDeletions:
+             .reversePositionDependentCreation, .reverseMultipleDeletions,
+             .reverseDuplicateCreation:
             .chromeToSafari
         default:
             .safariToChrome
@@ -557,7 +565,7 @@ enum ProductionScenario: String, CaseIterable, Sendable {
 
     var expectedOperationKinds: [SynchronizationOperation.Kind] {
         switch self {
-        case .noChange:
+        case .noChange, .identicalDuplicates:
             []
         case .creation, .reverseCreation:
             [.create]
@@ -577,6 +585,10 @@ enum ProductionScenario: String, CaseIterable, Sendable {
             [.delete, .delete]
         case .combined:
             [.create, .move, .rename, .updateURL, .delete]
+        case .duplicateDeletion:
+            [.delete]
+        case .reverseDuplicateCreation:
+            [.create]
         }
     }
 
@@ -599,6 +611,42 @@ enum ProductionScenario: String, CaseIterable, Sendable {
                 ]),
             ])
             return (tree, tree)
+        case .identicalDuplicates:
+            let tree = root([
+                folder(2, "Folder", [
+                    bookmark(3, "Duplicate", "https://example.com/duplicate"),
+                    bookmark(4, "Duplicate", "https://example.com/duplicate"),
+                ]),
+            ])
+            return (tree, tree)
+        case .duplicateDeletion:
+            return (
+                root([
+                    folder(2, "Folder", [
+                        bookmark(3, "Duplicate", "https://example.com/duplicate"),
+                    ]),
+                ]),
+                root([
+                    folder(2, "Folder", [
+                        bookmark(3, "Duplicate", "https://example.com/duplicate"),
+                        bookmark(4, "Duplicate", "https://example.com/duplicate"),
+                    ]),
+                ])
+            )
+        case .reverseDuplicateCreation:
+            return (
+                root([
+                    folder(2, "Folder", [
+                        bookmark(3, "Duplicate", "https://example.com/duplicate"),
+                        bookmark(4, "Duplicate", "https://example.com/duplicate"),
+                    ]),
+                ]),
+                root([
+                    folder(2, "Folder", [
+                        bookmark(3, "Duplicate", "https://example.com/duplicate"),
+                    ]),
+                ])
+            )
         case .creation, .reverseCreation:
             return (
                 root([

@@ -31,7 +31,8 @@ nonisolated struct SynchronizationPreviewService: Sendable {
             matchingPipeline: MatchingPipeline(
                 baselineRepository: baselineRepository,
                 matchingEngine: MatchingEngine(),
-                groupBuilder: DefaultIdentityMatchingGroupBuilder(),
+                groupBuilder:
+                    SynchronizationDuplicateIdentityMatchingGroupBuilder(),
                 reconciliationEngine: IdentityReconciliationEngine(
                     identityProvider: identityProvider,
                     matchingPolicy: StrictIdentityMatchingPolicy(),

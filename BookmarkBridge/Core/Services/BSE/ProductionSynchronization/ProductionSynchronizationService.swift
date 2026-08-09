@@ -311,7 +311,10 @@ nonisolated struct ProductionSynchronizationService: Sendable {
         let matchingPipeline = MatchingPipeline(
             baselineRepository: baselineRepository,
             matchingEngine: MatchingEngine(),
-            groupBuilder: DefaultIdentityMatchingGroupBuilder(),
+            // Execution and final verification must preserve the exact
+            // duplicate identities established by the confirmed preview.
+            groupBuilder:
+                SynchronizationDuplicateIdentityMatchingGroupBuilder(),
             reconciliationEngine: reconciliation
         )
         return Components(
