@@ -91,7 +91,7 @@ struct LocalizationTests {
         )
         #expect(root["sourceLanguage"] as? String == "en")
         let strings = try #require(root["strings"] as? [String: Any])
-        #expect(strings.count == 641)
+        #expect(strings.count == 642)
         let languageCodes = Set(AppLanguage.localizedLanguages.map(\.rawValue))
 
         for (key, rawEntry) in strings {
