@@ -96,7 +96,7 @@ final class BookmarkBridgeUITests: XCTestCase {
             "navigation.settings"
         ].firstMatch
         XCTAssertTrue(settingsDestination.waitForExistence(timeout: 5))
-        settingsDestination.click()
+        click(settingsDestination, in: app)
 
         let picker = app.popUpButtons["settings.language.picker"].firstMatch
         XCTAssertTrue(
@@ -122,7 +122,7 @@ final class BookmarkBridgeUITests: XCTestCase {
             "navigation.settings"
         ].firstMatch
         XCTAssertTrue(restoredSettings.waitForExistence(timeout: 5))
-        restoredSettings.click()
+        click(restoredSettings, in: relaunched)
         let restoredPicker = relaunched.popUpButtons[
             "settings.language.picker"
         ].firstMatch
@@ -142,6 +142,26 @@ final class BookmarkBridgeUITests: XCTestCase {
         if cancel.waitForExistence(timeout: 1) {
             cancel.click()
         }
+    }
+
+    @MainActor
+    private func click(
+        _ element: XCUIElement,
+        in app: XCUIApplication
+    ) {
+        app.activate()
+        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 5))
+        XCTAssertTrue(app.windows.firstMatch.waitForExistence(timeout: 5))
+        if element.isHittable {
+            element.click()
+            return
+        }
+
+        let frame = element.frame
+        XCTAssertFalse(frame.isEmpty)
+        app.coordinate(withNormalizedOffset: .zero)
+            .withOffset(CGVector(dx: frame.midX, dy: frame.midY))
+            .click()
     }
 
     @MainActor
