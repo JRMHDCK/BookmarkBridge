@@ -19,7 +19,7 @@ struct PermissionCard<Content: View>: View {
 
     var body: some View {
         StatusCard(
-            "Autorisations macOS",
+            DocumentationText.value("authorization.card.title"),
             systemImage: statusSymbol
         ) {
             content

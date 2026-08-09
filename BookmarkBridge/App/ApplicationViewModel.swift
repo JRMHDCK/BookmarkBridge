@@ -174,7 +174,9 @@ final class ApplicationViewModel {
         } catch AccessError.cancelled {
             return
         } catch {
-            browserClosureError = "Impossible d’enregistrer la nouvelle autorisation. Aucune source active n’a été remplacée."
+            browserClosureError = DocumentationText.value(
+                "browserClosure.authorizationSaveFailure"
+            )
         }
     }
 
@@ -225,13 +227,15 @@ final class ApplicationViewModel {
             )
             await resume(action)
         } catch is CancellationError {
-            browserClosureError = "La fermeture des navigateurs a été annulée. Aucune donnée n’a été lue ou écrite."
+            browserClosureError = DocumentationText.value(
+                "browserClosure.cancelled"
+            )
         } catch {
-            browserClosureError = [
-                "Impossible de fermer complètement les navigateurs.",
-                "Aucune donnée n’a été lue ou écrite.",
-                "\(String(reflecting: type(of: error))): \(String(describing: error))",
-            ].joined(separator: " ")
+            browserClosureError = DocumentationText.formatted(
+                "browserClosure.failure.message",
+                String(reflecting: type(of: error)),
+                String(describing: error)
+            )
         }
     }
 

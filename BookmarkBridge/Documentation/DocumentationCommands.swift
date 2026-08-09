@@ -9,8 +9,10 @@ struct DocumentationCommands: Commands {
     @Environment(\.openURL) private var openURL
 
     let router: DocumentationRouter
+    let localization: LocalizationController
 
     var body: some Commands {
+        let _ = localization.selectedLanguage
         CommandGroup(replacing: .newItem) { }
 
         CommandGroup(replacing: .appInfo) {
@@ -46,8 +48,9 @@ struct DocumentationCommands: Commands {
     }
 
     private func openUserGuide() {
+        let language = localization.resolvedLanguage.rawValue
         guard let url = Bundle.main.url(
-            forResource: "BookmarkBridge-User-Guide",
+            forResource: "BookmarkBridge-User-Guide-\(language)",
             withExtension: "pdf"
         ) else { return }
         openURL(url)

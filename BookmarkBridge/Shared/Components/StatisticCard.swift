@@ -49,6 +49,12 @@ struct StatisticCard: View {
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(label) : \(value)")
+        .accessibilityLabel(
+            DocumentationText.formatted(
+                "common.statistic.accessibility",
+                label,
+                value
+            )
+        )
     }
 }

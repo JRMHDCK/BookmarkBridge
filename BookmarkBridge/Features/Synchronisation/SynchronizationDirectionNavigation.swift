@@ -19,14 +19,17 @@ nonisolated enum SynchronizationDirectionOption:
 
     var id: Self { self }
 
-    var title: String {
+    var titleKey: String {
         switch self {
         case .safariToChrome:
-            "Safari → Chrome"
+            "synchronization.direction.safariToChrome"
         case .chromeToSafari:
-            "Chrome → Safari"
+            "synchronization.direction.chromeToSafari"
         }
     }
+
+    @MainActor
+    var title: String { DocumentationText.value(titleKey) }
 
     var previewDirection: ProductionSynchronizationDirection {
         switch self {

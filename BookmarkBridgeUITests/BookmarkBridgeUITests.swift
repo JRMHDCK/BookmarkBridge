@@ -68,6 +68,8 @@ final class BookmarkBridgeUITests: XCTestCase {
             "BOOKMARKBRIDGE_UI_TEST_SKIP_ONBOARDING"
         ] = "1"
         app.launch()
+        dismissBrowserClosureIfNeeded(in: app)
+        XCTAssertTrue(app.windows.firstMatch.waitForExistence(timeout: 5))
         XCTAssertEqual(app.windows.count, 1)
 
         app.typeKey("n", modifierFlags: .command)
@@ -79,6 +81,67 @@ final class BookmarkBridgeUITests: XCTestCase {
                 .waitForExistence(timeout: 2)
         )
         XCTAssertEqual(app.windows.count, 1)
+    }
+
+    @MainActor
+    func testLanguageChangesImmediatelyAndPersists() throws {
+        let app = XCUIApplication()
+        app.launchEnvironment[
+            "BOOKMARKBRIDGE_UI_TEST_SKIP_ONBOARDING"
+        ] = "1"
+        app.launch()
+        dismissBrowserClosureIfNeeded(in: app)
+
+        let settingsDestination = app.descendants(matching: .any)[
+            "navigation.settings"
+        ].firstMatch
+        XCTAssertTrue(settingsDestination.waitForExistence(timeout: 5))
+        settingsDestination.click()
+
+        let picker = app.popUpButtons["settings.language.picker"].firstMatch
+        XCTAssertTrue(
+            picker.waitForExistence(timeout: 3),
+            app.debugDescription
+        )
+        picker.click()
+        let german = app.descendants(matching: .any)[
+            "settings.language.option.de"
+        ].firstMatch
+        XCTAssertTrue(german.waitForExistence(timeout: 2))
+        german.click()
+        XCTAssertEqual(picker.value as? String, "Deutsch")
+        app.terminate()
+
+        let relaunched = XCUIApplication()
+        relaunched.launchEnvironment[
+            "BOOKMARKBRIDGE_UI_TEST_SKIP_ONBOARDING"
+        ] = "1"
+        relaunched.launch()
+        dismissBrowserClosureIfNeeded(in: relaunched)
+        let restoredSettings = relaunched.descendants(matching: .any)[
+            "navigation.settings"
+        ].firstMatch
+        XCTAssertTrue(restoredSettings.waitForExistence(timeout: 5))
+        restoredSettings.click()
+        let restoredPicker = relaunched.popUpButtons[
+            "settings.language.picker"
+        ].firstMatch
+        XCTAssertTrue(restoredPicker.waitForExistence(timeout: 3))
+        XCTAssertEqual(restoredPicker.value as? String, "Deutsch")
+
+        restoredPicker.click()
+        relaunched.menuItems.element(boundBy: 0).click()
+        relaunched.terminate()
+    }
+
+    @MainActor
+    private func dismissBrowserClosureIfNeeded(
+        in app: XCUIApplication
+    ) {
+        let cancel = app.buttons["action-button-2"].firstMatch
+        if cancel.waitForExistence(timeout: 1) {
+            cancel.click()
+        }
     }
 
     @MainActor

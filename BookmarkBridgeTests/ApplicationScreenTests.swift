@@ -7,6 +7,7 @@ import Testing
 @testable import BookmarkBridge
 
 @Suite("Application screens")
+@MainActor
 struct ApplicationScreenTests {
     @Test("The application exposes the five prepared destinations")
     func exposesPreparedDestinations() {
@@ -24,11 +25,12 @@ struct ApplicationScreenTests {
     @Test("Every destination has a unique title and SF Symbol")
     func destinationsHaveUniquePresentation() {
         let screens = ApplicationScreen.allCases
-        #expect(Set(screens.map(\.title)).count == screens.count)
+        #expect(Set(screens.map(\.titleKey)).count == screens.count)
         #expect(Set(screens.map(\.systemImage)).count == screens.count)
         #expect(
             screens.allSatisfy {
-                !$0.title.isEmpty && !$0.systemImage.isEmpty
+                !DocumentationText.value($0.titleKey).isEmpty
+                    && !$0.systemImage.isEmpty
             }
         )
     }

@@ -42,8 +42,14 @@ struct DocumentationTests {
 
     @Test("Help search indexes content and FAQ answers")
     func helpSearchIndexesContent() {
-        let backupResults = HelpCatalog.search("sauvegarde")
-        let permissionResults = HelpCatalog.search("autorisation")
+        let backupResults = HelpCatalog.search(
+            "sauvegarde",
+            language: .french
+        )
+        let permissionResults = HelpCatalog.search(
+            "autorisation",
+            language: .french
+        )
 
         #expect(backupResults.contains { $0.id == .backups })
         #expect(backupResults.contains { $0.id == .faq })
@@ -65,9 +71,12 @@ struct DocumentationTests {
         )
         #expect(
             OnboardingContent.steps.allSatisfy {
-                DocumentationText.value($0.titleKey)
+                DocumentationText.value($0.titleKey, language: .french)
                     != $0.titleKey
-                    && DocumentationText.value($0.bodyKey)
+                    && DocumentationText.value(
+                        $0.bodyKey,
+                        language: .french
+                    )
                         != $0.bodyKey
             }
         )
@@ -89,19 +98,22 @@ struct DocumentationTests {
 
     @Test("The offline user guide is bundled")
     func userGuideIsBundled() {
-        let guide = Bundle.main.url(
-            forResource: "BookmarkBridge-User-Guide",
-            withExtension: "pdf"
-        )
-
-        #expect(guide != nil)
+        for language in AppLanguage.localizedLanguages {
+            let guide = Bundle.main.url(
+                forResource: "BookmarkBridge-User-Guide-\(language.rawValue)",
+                withExtension: "pdf"
+            )
+            #expect(guide != nil)
+        }
     }
 
     @Test("Integrated guidance describes bidirectional synchronization")
     func guidanceIsBidirectional() throws {
         let keys = HelpCatalog.pages.flatMap(\.searchableKeys)
             + OnboardingContent.steps.flatMap { [$0.titleKey, $0.bodyKey] }
-        let text = keys.map(DocumentationText.value).joined(separator: "\n")
+        let text = keys.map {
+            DocumentationText.value($0, language: .french)
+        }.joined(separator: "\n")
         let obsoleteClaims = [
             "Safari reste en lecture seule",
             "Safari strictement en lecture seule",
@@ -122,7 +134,7 @@ struct DocumentationTests {
     @Test("The bundled PDF documents both synchronization directions")
     func userGuideIsCurrent() throws {
         let url = try #require(Bundle.main.url(
-            forResource: "BookmarkBridge-User-Guide",
+            forResource: "BookmarkBridge-User-Guide-fr",
             withExtension: "pdf"
         ))
         let document = try #require(PDFDocument(url: url))
@@ -135,6 +147,32 @@ struct DocumentationTests {
         #expect(!text.contains("Safari reste en lecture seule"))
         #expect(!text.contains("ne modifie pas Safari"))
         #expect(!text.contains("n’applique pas les suppressions"))
+    }
+
+    @Test("The bundled manual matches each selected language")
+    func userGuideLanguagesMatchSelection() throws {
+        let expectedTitles: [AppLanguage: String] = [
+            .english: "User Guide",
+            .french: "Guide de l’utilisateur",
+            .spanish: "Guía del usuario",
+            .german: "Benutzerhandbuch",
+            .italian: "Guida per l'utente",
+            .portuguese: "Guia do usuário",
+            .dutch: "Gebruikershandleiding",
+            .polish: "Podręcznik użytkownika",
+        ]
+
+        for (language, expectedTitle) in expectedTitles {
+            let url = try #require(Bundle.main.url(
+                forResource:
+                    "BookmarkBridge-User-Guide-\(language.rawValue)",
+                withExtension: "pdf"
+            ))
+            let document = try #require(PDFDocument(url: url))
+            let text = try #require(document.string)
+            #expect(text.contains(expectedTitle))
+            #expect(document.pageCount == 14)
+        }
     }
 
     @Test("Technical failures receive user-facing guidance")

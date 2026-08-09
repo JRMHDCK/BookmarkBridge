@@ -29,7 +29,7 @@ struct SyncPreviewView: View {
         Group {
             if model.isEmpty {
                 ContentUnavailableView(
-                    "Les deux profils sont déjà synchronisés",
+                    DocumentationText.value("legacyPreview.upToDate"),
                     systemImage: "checkmark.circle"
                 )
             } else {
@@ -40,15 +40,21 @@ struct SyncPreviewView: View {
                                 AdditionRow(addition: addition)
                             }
                         } header: {
-                            Label("À ajouter à \(direction.targetName) (\(direction.additions.count))",
-                                  systemImage: "arrow.down.circle")
+                            Label(
+                                DocumentationText.formatted(
+                                    "legacyPreview.addToTarget",
+                                    direction.targetName,
+                                    direction.additions.count
+                                ),
+                                systemImage: "arrow.down.circle"
+                            )
                         }
                     }
                 }
                 .listStyle(.inset)
             }
         }
-        .navigationTitle("Aperçu de la synchronisation")
+        .navigationTitle(DocumentationText.value("legacyPreview.title"))
         .safeAreaInset(edge: .top) { profilePicker }
         .safeAreaInset(edge: .bottom) { bottomBar }
         .task(id: model.selectedChromeID) {
@@ -62,12 +68,18 @@ struct SyncPreviewView: View {
     private var profilePicker: some View {
         if model.chromeCandidates.count > 1 {
             HStack(spacing: Theme.Spacing.m) {
-                Text("Profil Chrome cible")
+                Text(DocumentationText.value("legacyPreview.targetProfile"))
                 Spacer(minLength: 0)
-                Picker("Profil Chrome cible", selection: $model.selectedChromeID) {
+                Picker(
+                    DocumentationText.value("legacyPreview.targetProfile"),
+                    selection: $model.selectedChromeID
+                ) {
                     ForEach(model.chromeCandidates) { candidate in
                         Text(candidate.writable == nil
-                             ? "\(candidate.source.displayName) (lecture seule)"
+                             ? DocumentationText.formatted(
+                                 "legacyPreview.readOnlyProfile",
+                                 candidate.source.displayName
+                             )
                              : candidate.source.displayName)
                             .tag(Optional(candidate.id))
                     }
@@ -103,14 +115,20 @@ struct SyncPreviewView: View {
     private var readOnlyBar: some View {
         HStack(spacing: Theme.Spacing.m) {
             VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
-                Label("Ce profil est en lecture seule.", systemImage: "exclamationmark.triangle.fill")
+                Label(
+                    DocumentationText.value("legacyPreview.readOnly"),
+                    systemImage: "exclamationmark.triangle.fill"
+                )
                     .font(.callout).fontWeight(.medium)
                     .foregroundStyle(Theme.Palette.warning)
-                Text(model.chromeTargetName ?? "Chrome")
+                Text(
+                    model.chromeTargetName
+                        ?? DocumentationText.value("browser.chrome.shortName")
+                )
                     .font(.caption).foregroundStyle(.secondary)
             }
             Spacer(minLength: 0)
-            Button("Appliquer") {}
+            Button(DocumentationText.value("action.apply")) {}
                 .buttonStyle(.borderedProminent)
                 .disabled(true)
         }
@@ -122,7 +140,10 @@ struct SyncPreviewView: View {
 
     /// Read-only case: no writable Chrome target (or nothing to add).
     private var dryRunBanner: some View {
-        Label("Aperçu (dry-run) — aucune modification n'est appliquée.", systemImage: "eye")
+        Label(
+            DocumentationText.value("legacyPreview.dryRun"),
+            systemImage: "eye"
+        )
             .font(.callout)
             .foregroundStyle(.secondary)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -134,27 +155,35 @@ struct SyncPreviewView: View {
     /// Safari → Chrome apply action, reflecting the apply state.
     @ViewBuilder
     private var applyBar: some View {
-        let name = model.chromeTargetName ?? "Chrome"
+        let name = model.chromeTargetName
+            ?? DocumentationText.value("browser.chrome.shortName")
         Group {
             switch model.applyState {
             case .idle:
                 HStack(spacing: Theme.Spacing.m) {
                     VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
                         if model.canApplyToChrome {
-                            Text("Ajouter \(model.chromeAdditionsCount) \(favoriteWord(model.chromeAdditionsCount)) à \(name)")
+                            Text(additionText(count: model.chromeAdditionsCount, target: name))
                                 .font(.callout).fontWeight(.medium)
-                            Text("Safari et Chrome doivent être fermés. Une sauvegarde sera créée automatiquement.")
+                            Text(DocumentationText.value("sync.closeAndBackup"))
                                 .font(.caption).foregroundStyle(.secondary)
                         } else {
-                            Text("Une sauvegarde de \(name) est disponible.")
+                            Text(
+                                DocumentationText.formatted(
+                                    "legacyPreview.backupAvailable",
+                                    name
+                                )
+                            )
                                 .font(.callout).fontWeight(.medium)
-                            Text("Safari et Chrome doivent être fermés avant la restauration.")
+                            Text(DocumentationText.value("sync.closeBeforeRestore"))
                                 .font(.caption).foregroundStyle(.secondary)
                         }
                     }
                     Spacer(minLength: 0)
                     if model.canRestore {
-                        Button("Restaurer") { Task { await restoreAndReload() } }
+                        Button(DocumentationText.value("action.restore")) {
+                            Task { await restoreAndReload() }
+                        }
                             .help(
                                 DocumentationText.value(
                                     "tooltip.restore"
@@ -162,7 +191,9 @@ struct SyncPreviewView: View {
                             )
                     }
                     if model.canApplyToChrome {
-                        Button("Appliquer") { confirmingApply = true }
+                        Button(DocumentationText.value("action.apply")) {
+                            confirmingApply = true
+                        }
                             .buttonStyle(.borderedProminent)
                             .controlSize(.large)
                             .tint(.accentColor)
@@ -176,15 +207,21 @@ struct SyncPreviewView: View {
             case .applying:
                 HStack(spacing: Theme.Spacing.s) {
                     ProgressView().controlSize(.small)
-                    Text("Synchronisation en cours…").foregroundStyle(.secondary)
+                    Text(DocumentationText.value("sync.inProgress"))
+                        .foregroundStyle(.secondary)
                 }
             case .applied(let count):
                 HStack(spacing: Theme.Spacing.m) {
-                    Label("\(count) \(favoriteWord(count)) \(count == 1 ? "ajouté" : "ajoutés") à \(name).", systemImage: "checkmark.circle")
+                    Label(
+                        appliedText(count: count, target: name),
+                        systemImage: "checkmark.circle"
+                    )
                         .foregroundStyle(Theme.Palette.green)
                     Spacer(minLength: 0)
                     if model.canRestore {
-                        Button("Restaurer") { Task { await restoreAndReload() } }
+                        Button(DocumentationText.value("action.restore")) {
+                            Task { await restoreAndReload() }
+                        }
                             .help(
                                 DocumentationText.value(
                                     "tooltip.restore"
@@ -195,10 +232,14 @@ struct SyncPreviewView: View {
             case .restoring:
                 HStack(spacing: Theme.Spacing.s) {
                     ProgressView().controlSize(.small)
-                    Text("Restauration en cours…").foregroundStyle(.secondary)
+                    Text(DocumentationText.value("restore.inProgress"))
+                        .foregroundStyle(.secondary)
                 }
             case .restored:
-                Label("Restauration terminée.", systemImage: "checkmark.circle")
+                Label(
+                    DocumentationText.value("restore.completed"),
+                    systemImage: "checkmark.circle"
+                )
                     .foregroundStyle(Theme.Palette.green)
             case .failed(let message):
                 VStack(alignment: .leading, spacing: Theme.Spacing.m) {
@@ -211,7 +252,7 @@ struct SyncPreviewView: View {
                     HStack {
                         Spacer(minLength: 0)
                         if model.canRestore {
-                            Button("Restaurer") {
+                            Button(DocumentationText.value("action.restore")) {
                                 Task { await restoreAndReload() }
                             }
                             .help(
@@ -220,7 +261,7 @@ struct SyncPreviewView: View {
                                 )
                             )
                         } else if model.canRetry {
-                            Button("Réessayer") {
+                            Button(DocumentationText.value("action.retry")) {
                                 model.prepareRetry()
                                 confirmingApply = true
                             }
@@ -239,14 +280,19 @@ struct SyncPreviewView: View {
         .padding(.vertical, Theme.Spacing.s)
         .background(Theme.Materials.bar)
         .confirmationDialog(
-            "Ajouter \(model.chromeAdditionsCount) \(favoriteWord(model.chromeAdditionsCount)) à \(name) ?",
+            additionConfirmation(
+                count: model.chromeAdditionsCount,
+                target: name
+            ),
             isPresented: $confirmingApply,
             titleVisibility: .visible
         ) {
-            Button("Appliquer") { Task { await applyAndReload() } }
-            Button("Annuler", role: .cancel) {}
+            Button(DocumentationText.value("action.apply")) {
+                Task { await applyAndReload() }
+            }
+            Button(DocumentationText.value("action.cancel"), role: .cancel) {}
         } message: {
-            Text("Safari et Chrome doivent être fermés. Une sauvegarde automatique sera créée avant toute modification.")
+            Text(DocumentationText.value("sync.confirmation.message"))
         }
     }
 
@@ -282,8 +328,34 @@ struct SyncPreviewView: View {
         dismissAfterSuccess()
     }
 
-    private func favoriteWord(_ count: Int) -> String {
-        count == 1 ? "favori" : "favoris"
+    private func additionText(count: Int, target: String) -> String {
+        DocumentationText.formatted(
+            count == 1
+                ? "legacyPreview.addition.one"
+                : "legacyPreview.addition.other",
+            count,
+            target
+        )
+    }
+
+    private func appliedText(count: Int, target: String) -> String {
+        DocumentationText.formatted(
+            count == 1
+                ? "legacyPreview.applied.one"
+                : "legacyPreview.applied.other",
+            count,
+            target
+        )
+    }
+
+    private func additionConfirmation(count: Int, target: String) -> String {
+        DocumentationText.formatted(
+            count == 1
+                ? "legacyPreview.confirm.one"
+                : "legacyPreview.confirm.other",
+            count,
+            target
+        )
     }
 }
 
@@ -303,7 +375,7 @@ private struct AdditionRow: View {
                     if let subtitle = addition.subtitle {
                         Text(subtitle)
                             .truncationMode(.middle)
-                        Text("·")
+                        Text(DocumentationText.value("common.separator"))
                             .accessibilityHidden(true)
                     }
                     Text(addition.originPath)
@@ -318,7 +390,14 @@ private struct AdditionRow: View {
         }
         .padding(.vertical, Theme.Spacing.xs)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Ajouter \(addition.title), \(addition.subtitle ?? ""), depuis \(addition.originPath)")
+        .accessibilityLabel(
+            DocumentationText.formatted(
+                "legacyPreview.addition.accessibility",
+                addition.title,
+                addition.subtitle ?? "",
+                addition.originPath
+            )
+        )
     }
 }
 

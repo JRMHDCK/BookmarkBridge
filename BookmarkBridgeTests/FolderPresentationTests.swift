@@ -8,6 +8,7 @@ import Testing
 @testable import BookmarkBridge
 
 @Suite("FolderPresentation")
+@MainActor
 struct FolderPresentationTests {
 
     private func url(_ string: String) throws -> URL {
@@ -88,7 +89,7 @@ struct FolderPresentationTests {
 
     // MARK: - Friendly Safari root names
 
-    @Test("Translates Safari's technical root names to French")
+    @Test("Translates Safari's technical root names")
     func mapsSafariRootNames() throws {
         let roots = [
             BookmarkFolder(id: BookmarkID("bar"), title: "BookmarksBar"),
@@ -103,13 +104,20 @@ struct FolderPresentationTests {
             if case .folder(_, let title, _, _) = item { return title }
             return "?"
         }
-        #expect(titles == ["Barre des favoris", "Autres favoris", "Liste de lecture"])
+        #expect(titles == [
+            DocumentationText.value("folder.bookmarksBar"),
+            DocumentationText.value("folder.bookmarksMenu"),
+            DocumentationText.value("folder.readingList"),
+        ])
     }
 
     @Test("Uses the friendly name as the opened folder's title")
     func mapsFolderTitle() {
         let folder = BookmarkFolder(id: BookmarkID("bar"), title: "BookmarksBar")
-        #expect(FolderPresentation(folder: folder).title == "Barre des favoris")
+        #expect(
+            FolderPresentation(folder: folder).title
+                == DocumentationText.value("folder.bookmarksBar")
+        )
     }
 
     @Test("Leaves non-technical folder titles unchanged")

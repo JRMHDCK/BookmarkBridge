@@ -219,28 +219,42 @@ final class SyncPreviewViewModel {
             }
             applyState = .applied(count: result.addedCount)
         } catch ChromeWriteError.browserIsRunning {
-            applyState = .failed("Safari et Chrome doivent être fermés.")
+            applyState = .failed(
+                DocumentationText.value("sync.closeBrowsers.error")
+            )
         } catch ChromeWriteError.browserStartedDuringTransaction(let handle) {
             if let selectedChromeID {
                 backupHandlesBySource[selectedChromeID] = handle
             }
-            applyState = .failed("Safari et Chrome doivent être fermés.")
+            applyState = .failed(
+                DocumentationText.value("sync.closeBrowsers.error")
+            )
         } catch ChromeWriteError.bakCreationFailed(let handle, _) {
             if let selectedChromeID {
                 backupHandlesBySource[selectedChromeID] = handle
             }
-            applyState = .failed("Impossible de créer Bookmarks.bak.")
+            applyState = .failed(
+                DocumentationText.value("sync.backupBak.failure")
+            )
         } catch ChromeWriteError.transactionFailed(let handle, _) {
             if let selectedChromeID {
                 backupHandlesBySource[selectedChromeID] = handle
             }
-            applyState = .failed("Impossible de mettre à jour les favoris Chrome.")
+            applyState = .failed(
+                DocumentationText.value("sync.chromeUpdate.failure")
+            )
         } catch ChromeWriteError.backupFailed {
-            applyState = .failed("Impossible de créer la sauvegarde.")
+            applyState = .failed(
+                DocumentationText.value("sync.backup.failure")
+            )
         } catch ChromeWriteError.securityScopeDenied {
-            applyState = .failed("Impossible d'accéder au profil Chrome en écriture.")
+            applyState = .failed(
+                DocumentationText.value("sync.chromeWriteAccess.failure")
+            )
         } catch {
-            applyState = .failed("La synchronisation a échoué.")
+            applyState = .failed(
+                DocumentationText.value("sync.failure.short")
+            )
         }
     }
 
@@ -271,14 +285,18 @@ final class SyncPreviewViewModel {
               let handle = backupHandlesBySource[selectedChromeID],
               let scope = chromeScopeDirectory else { return }
         guard !browserDetector.isRunning(.chrome) else {
-            applyState = .failed("Safari et Chrome doivent être fermés.")
+            applyState = .failed(
+                DocumentationText.value("sync.closeBrowsers.error")
+            )
             return
         }
         applyState = .restoring
         let scopeURL = scope.fileURL
         let accessing = fileController.startAccessing(scopeURL)
         guard accessing else {
-            applyState = .failed("Impossible d'accéder au profil Chrome en écriture.")
+            applyState = .failed(
+                DocumentationText.value("sync.chromeWriteAccess.failure")
+            )
             return
         }
         defer { fileController.stopAccessing(scopeURL) }
@@ -287,7 +305,9 @@ final class SyncPreviewViewModel {
             backupHandlesBySource[selectedChromeID] = nil
             applyState = .restored
         } catch {
-            applyState = .failed("Impossible de restaurer la sauvegarde.")
+            applyState = .failed(
+                DocumentationText.value("restore.failure.short")
+            )
         }
     }
 
@@ -300,7 +320,9 @@ final class SyncPreviewViewModel {
             .joined(separator: " › ")
         return Addition(
             id: "\(sourceBrowser.rawValue)|\(bookmark.id.rawValue)",
-            title: bookmark.title.isEmpty ? "(Sans titre)" : bookmark.title,
+            title: bookmark.title.isEmpty
+                ? DocumentationText.value("bookmark.untitled.parenthesized")
+                : bookmark.title,
             subtitle: bookmark.url.host() ?? bookmark.url.absoluteString,
             originPath: origin
         )

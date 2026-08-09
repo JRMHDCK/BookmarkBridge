@@ -55,8 +55,8 @@ struct SyncPreviewViewModelTests {
 
         let toChrome = model.directions.first { $0.targetName == "Chrome — Perso" }
         let swift = toChrome?.additions.first { $0.title == "Swift" }
-        // Safari › (friendly) Barre des favoris › Dev
-        #expect(swift?.originPath == "Safari › Barre des favoris › Dev")
+        let bookmarksBar = DocumentationText.value("folder.bookmarksBar")
+        #expect(swift?.originPath == "Safari › \(bookmarksBar) › Dev")
         #expect(swift?.subtitle == "swift.org")
     }
 
@@ -279,7 +279,11 @@ struct SyncPreviewViewModelTests {
         await model.apply()
         await model.restore()
 
-        #expect(model.applyState == .failed("Impossible d'accéder au profil Chrome en écriture."))
+        #expect(
+            model.applyState == .failed(
+                DocumentationText.value("sync.chromeWriteAccess.failure")
+            )
+        )
         #expect(model.canRestore)
         #expect(backupStore.restored.isEmpty)
         #expect(controller.startCount == 1)

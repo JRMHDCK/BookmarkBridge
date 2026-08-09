@@ -10,7 +10,9 @@ struct SynchronizationSummaryCard<Content: View>: View {
     @ViewBuilder let content: Content
 
     init(
-        _ title: String = "Prévisualisation de la synchronisation",
+        _ title: String = DocumentationText.value(
+            "preview.card.defaultTitle"
+        ),
         @ViewBuilder content: () -> Content
     ) {
         self.title = title

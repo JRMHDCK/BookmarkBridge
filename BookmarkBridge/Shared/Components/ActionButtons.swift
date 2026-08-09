@@ -6,12 +6,12 @@
 import SwiftUI
 
 struct PrimaryActionButton: View {
-    let title: LocalizedStringKey
+    let title: String
     let systemImage: String?
     let action: () -> Void
 
     init(
-        _ title: LocalizedStringKey,
+        _ title: String,
         systemImage: String? = nil,
         action: @escaping () -> Void
     ) {
@@ -41,12 +41,12 @@ struct PrimaryActionButton: View {
 }
 
 struct SecondaryActionButton: View {
-    let title: LocalizedStringKey
+    let title: String
     let systemImage: String?
     let action: () -> Void
 
     init(
-        _ title: LocalizedStringKey,
+        _ title: String,
         systemImage: String? = nil,
         action: @escaping () -> Void
     ) {

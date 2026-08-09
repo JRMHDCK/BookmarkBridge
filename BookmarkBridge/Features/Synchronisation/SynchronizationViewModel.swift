@@ -268,7 +268,7 @@ final class SynchronizationViewModel {
             )
             #endif
             state = .failed(
-                "Impossible de calculer la prévisualisation."
+                DocumentationText.value("preview.calculationFailed")
             )
             latestPreviewResult = nil
             previewDirection = nil
@@ -302,7 +302,7 @@ final class SynchronizationViewModel {
             return true
         } catch is CancellationError {
             executionState = .failed(
-                "La synchronisation a été annulée."
+                DocumentationText.value("sync.cancelled")
             )
             return false
         } catch {
@@ -323,38 +323,51 @@ final class SynchronizationViewModel {
     ) -> String {
         guard let transactionError = error as? SynchronizationTransactionError
         else {
-            return [
-                "La synchronisation a échoué.",
-                "\(String(reflecting: type(of: error))): \(String(describing: error))",
-            ].joined(separator: " ")
+            return DocumentationText.formatted(
+                "sync.failure.generic",
+                String(reflecting: type(of: error)),
+                String(describing: error)
+            )
         }
         switch transactionError {
         case .finalValidationFailed(let failure):
-            return [
-                "La validation finale a détecté des différences résiduelles.",
-                "Cause : \(conciseCause(failure.cause))",
-                "La sauvegarde a été restaurée.",
-            ].joined(separator: " ")
+            return DocumentationText.formatted(
+                "sync.failure.finalValidation",
+                conciseCause(failure.cause)
+            )
         case .restorationFailed(let failure):
             let restorationFailures = failure.restorationFailures.map {
                 "\(restorationTargetDescription($0.target)) : "
                     + conciseCause($0.context)
             }.joined(separator: " ; ")
-            return [
-                "La synchronisation a échoué après \(failure.appliedOperationCount) opération(s).",
-                "Cause initiale : \(conciseCause(failure.cause))",
-                "La restauration automatique a échoué.",
-                restorationFailures.isEmpty
-                    ? "Le détail de restauration est indisponible."
-                    : "Détail : \(restorationFailures).",
-                "Fermez Safari et Chrome avant de réessayer.",
-            ].joined(separator: " ")
+            let details = restorationFailures.isEmpty
+                ? DocumentationText.value("sync.failure.noRestoreDetails")
+                : DocumentationText.formatted(
+                    "sync.failure.restoreDetails",
+                    restorationFailures
+                )
+            return DocumentationText.formatted(
+                "sync.failure.restoration",
+                failure.appliedOperationCount,
+                conciseCause(failure.cause),
+                details
+            )
         case .executionFailed(let failure):
-            return "L’écriture a échoué : \(conciseCause(failure.cause))"
+            return DocumentationText.formatted(
+                "sync.failure.execution",
+                conciseCause(failure.cause)
+            )
         case .backupCreationFailed(let context):
-            return "La sauvegarde obligatoire n’a pas pu être créée : \(conciseCause(context))"
+            return DocumentationText.formatted(
+                "sync.failure.backup",
+                conciseCause(context)
+            )
         case .participantCaptureFailed(let participant, let context):
-            return "Le point de restauration \(participant) n’a pas pu être créé : \(conciseCause(context))"
+            return DocumentationText.formatted(
+                "sync.failure.capture",
+                String(describing: participant),
+                conciseCause(context)
+            )
         }
     }
 
@@ -363,7 +376,7 @@ final class SynchronizationViewModel {
     ) -> String {
         if context.errorType.contains("EndToEndSynchronizationError"),
            context.description.hasPrefix("residualDiff") {
-            return "la relecture finale ne correspond pas à l’aperçu confirmé"
+            return DocumentationText.value("sync.failure.residualCause")
         }
         let maximumLength = 500
         guard context.description.count > maximumLength else {
@@ -377,9 +390,12 @@ final class SynchronizationViewModel {
     ) -> String {
         switch target {
         case .targetFile:
-            "fichier de favoris"
+            DocumentationText.value("sync.restoreTarget.bookmarksFile")
         case .participant(let participant):
-            "état \(participant)"
+            DocumentationText.formatted(
+                "sync.restoreTarget.participant",
+                String(describing: participant)
+            )
         }
     }
 

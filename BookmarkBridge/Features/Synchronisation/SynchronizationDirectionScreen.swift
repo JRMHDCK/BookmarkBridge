@@ -58,11 +58,15 @@ struct SynchronizationDirectionScreen: View {
         ScrollView {
             VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
                 ScreenHeader(
-                    "Synchronisation",
-                    subtitle: "Choisissez le sens de la synchronisation."
+                    DocumentationText.value("synchronization.title"),
+                    subtitle: DocumentationText.value(
+                        "synchronization.direction.subtitle"
+                    )
                 )
 
-                SynchronizationSummaryCard("Direction") {
+                SynchronizationSummaryCard(
+                    DocumentationText.value("synchronization.direction.title")
+                ) {
                     VStack(spacing: Theme.Spacing.m) {
                         directionButton(.safariToChrome)
                         directionButton(.chromeToSafari)
@@ -76,7 +80,7 @@ struct SynchronizationDirectionScreen: View {
             .padding(Theme.Spacing.xl)
             .frame(maxWidth: .infinity, alignment: .top)
         }
-        .navigationTitle("Synchronisation")
+        .navigationTitle(DocumentationText.value("synchronization.title"))
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 ContextualHelpButton(pageID: .synchronization)

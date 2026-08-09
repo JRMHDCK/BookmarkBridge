@@ -35,11 +35,12 @@ struct SynchronizationPreviewScreen: View {
         ScrollView {
             VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
                 ScreenHeader(
-                    "Synchronisation",
-                    subtitle:
-                        "Vérifiez chaque changement avant de l’appliquer."
+                    DocumentationText.value("synchronization.title"),
+                    subtitle: DocumentationText.value("preview.subtitle")
                 )
-                SynchronizationSummaryCard("Résumé") {
+                SynchronizationSummaryCard(
+                    DocumentationText.value("preview.summary")
+                ) {
                     executionStatus
                     previewContent
                 }
@@ -57,17 +58,20 @@ struct SynchronizationPreviewScreen: View {
             .padding(Theme.Spacing.xl)
             .frame(maxWidth: .infinity, alignment: .top)
         }
-        .navigationTitle("Synchronisation")
+        .navigationTitle(DocumentationText.value("synchronization.title"))
         .toolbar {
             if let onBack {
                 ToolbarItem(placement: .navigation) {
                     Button {
                         onBack()
                     } label: {
-                        Label("Retour", systemImage: "chevron.left")
+                        Label(
+                            DocumentationText.value("action.back"),
+                            systemImage: "chevron.left"
+                        )
                     }
                     .disabled(model.isSynchronizing)
-                    .help("Revenir au choix de direction")
+                    .help(DocumentationText.value("preview.back.tooltip"))
                 }
             }
 
@@ -76,7 +80,7 @@ struct SynchronizationPreviewScreen: View {
                     Task { await onReload() }
                 } label: {
                     Label(
-                        "Actualiser la prévisualisation",
+                        DocumentationText.value("preview.reload"),
                         systemImage: "arrow.clockwise"
                     )
                 }
@@ -98,16 +102,20 @@ struct SynchronizationPreviewScreen: View {
         case .idle:
             EmptyView()
         case .completed:
-            SuccessStateView(message: "Synchronisation terminée")
+            SuccessStateView(
+                message: DocumentationText.value("sync.completed")
+            )
         case .preparing:
             LoadingStateView(
-                message: "Préparation de la synchronisation…"
+                message: DocumentationText.value("sync.preparing")
             )
         case .writing:
-            LoadingStateView(message: "Synchronisation en cours…")
+            LoadingStateView(
+                message: DocumentationText.value("sync.inProgress")
+            )
         case .validating:
             LoadingStateView(
-                message: "Validation de la synchronisation…"
+                message: DocumentationText.value("sync.validating")
             )
         case .failed(let message):
             synchronizationFailure(message)
@@ -117,7 +125,7 @@ struct SynchronizationPreviewScreen: View {
     private func synchronizationFailure(_ message: String) -> some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.s) {
             Label(
-                "Synchronisation interrompue",
+                DocumentationText.value("sync.interrupted"),
                 systemImage: "exclamationmark.triangle.fill"
             )
             .font(.headline)
@@ -137,17 +145,17 @@ struct SynchronizationPreviewScreen: View {
         switch model.state {
         case .idle:
             EmptyStateView(
-                title: "Prévisualisation indisponible",
-                message: "Chargez Safari et Chrome pour préparer la synchronisation.",
+                title: DocumentationText.value("preview.unavailable.title"),
+                message: DocumentationText.value("preview.unavailable.message"),
                 systemImage: "bookmark.slash"
             )
             .frame(minHeight: Theme.Size.emptyStateMinimumHeight)
         case .loading:
             LoadingStateView(
-                message: "Calcul de la prévisualisation…"
+                message: DocumentationText.value("preview.calculating")
             )
                 .accessibilityLabel(
-                    "Calcul de la prévisualisation en cours"
+                    DocumentationText.value("preview.calculating.accessibility")
                 )
         case .loaded(let preview):
             detailedPreview(preview, isEmpty: false)
@@ -170,13 +178,11 @@ struct SynchronizationPreviewScreen: View {
 
             if isEmpty && model.executionState != .completed {
                 SuccessStateView(
-                    message: "Les navigateurs sont synchronisés"
+                    message: DocumentationText.value("preview.upToDate")
                 )
             } else {
                 if !isEmpty {
-                    Text(
-                        "\(preview.totalOperationCount) changement\(preview.totalOperationCount == 1 ? "" : "s") détecté\(preview.totalOperationCount == 1 ? "" : "s")"
-                    )
+                    Text(operationCount(preview.totalOperationCount))
                     .font(.callout.weight(.medium))
                 }
             }
@@ -186,20 +192,20 @@ struct SynchronizationPreviewScreen: View {
             if !isEmpty {
                 if allowsSynchronization {
                     PrimaryActionButton(
-                        "Synchroniser",
+                        DocumentationText.value("action.synchronize"),
                         systemImage: "arrow.triangle.2.circlepath"
                     ) {
                         Task { _ = await onSynchronize() }
                     }
                     .disabled(!isAuthorized || !model.canSynchronize)
                     .accessibilityHint(
-                        "Applique uniquement la prévisualisation affichée"
+                        DocumentationText.value("preview.apply.hint")
                     )
                     .help(synchronizationHelp)
                     .frame(maxWidth: .infinity, alignment: .trailing)
                 } else {
                     Label(
-                        "Écriture vers Safari bientôt disponible",
+                        DocumentationText.value("preview.safariWritingSoon"),
                         systemImage: "clock"
                     )
                     .font(.callout.weight(.medium))
@@ -215,19 +221,31 @@ struct SynchronizationPreviewScreen: View {
     ) -> some View {
         ViewThatFits(in: .horizontal) {
             HStack(spacing: Theme.Spacing.s) {
-                browserSummary(preview.source, role: "Source")
+                browserSummary(
+                    preview.source,
+                    role: DocumentationText.value("common.source")
+                )
                 Image(systemName: "arrow.right")
                     .foregroundStyle(.secondary)
                     .accessibilityHidden(true)
-                browserSummary(preview.target, role: "Cible")
+                browserSummary(
+                    preview.target,
+                    role: DocumentationText.value("common.target")
+                )
             }
 
             VStack(alignment: .leading, spacing: Theme.Spacing.s) {
-                browserSummary(preview.source, role: "Source")
+                browserSummary(
+                    preview.source,
+                    role: DocumentationText.value("common.source")
+                )
                 Image(systemName: "arrow.down")
                     .foregroundStyle(.secondary)
                     .accessibilityHidden(true)
-                browserSummary(preview.target, role: "Cible")
+                browserSummary(
+                    preview.target,
+                    role: DocumentationText.value("common.target")
+                )
             }
         }
     }
@@ -242,9 +260,7 @@ struct SynchronizationPreviewScreen: View {
                 .foregroundStyle(.secondary)
             Text(summary.name)
                 .font(.callout.weight(.medium))
-            Text(
-                "\(summary.bookmarkCount) favoris · \(summary.folderCount) dossiers"
-            )
+            Text(itemCounts(summary.bookmarkCount, summary.folderCount))
             .font(.caption)
             .foregroundStyle(.secondary)
         }
@@ -254,12 +270,27 @@ struct SynchronizationPreviewScreen: View {
 
     private var synchronizationHelp: String {
         if !isAuthorized {
-            return "Autorisez Safari et Chrome avant de synchroniser"
+            return DocumentationText.value("sync.authorizeFirst")
         }
         if model.isSynchronizing {
-            return "Une synchronisation est déjà en cours"
+            return DocumentationText.value("sync.alreadyInProgress")
         }
         return DocumentationText.value("tooltip.synchronize")
+    }
+
+    private func operationCount(_ count: Int) -> String {
+        DocumentationText.formatted(
+            count == 1 ? "preview.operation.one" : "preview.operation.other",
+            count
+        )
+    }
+
+    private func itemCounts(_ bookmarks: Int, _ folders: Int) -> String {
+        DocumentationText.formatted(
+            "common.itemCounts",
+            bookmarks,
+            folders
+        )
     }
 }
 
@@ -302,7 +333,7 @@ private struct SynchronizationStatistics: View {
     private var creation: some View {
         statistic(
             value: preview.creationCount,
-            label: "Créations",
+            label: DocumentationText.value("preview.stat.creations"),
             systemImage: "plus"
         )
     }
@@ -310,7 +341,7 @@ private struct SynchronizationStatistics: View {
     private var deletion: some View {
         statistic(
             value: preview.deletionCount,
-            label: "Suppressions",
+            label: DocumentationText.value("preview.stat.deletions"),
             systemImage: "trash"
         )
     }
@@ -318,7 +349,7 @@ private struct SynchronizationStatistics: View {
     private var move: some View {
         statistic(
             value: preview.moveCount,
-            label: "Déplacements",
+            label: DocumentationText.value("preview.stat.moves"),
             systemImage: "arrow.right"
         )
     }
@@ -326,7 +357,7 @@ private struct SynchronizationStatistics: View {
     private var rename: some View {
         statistic(
             value: preview.renameCount,
-            label: "Renommages",
+            label: DocumentationText.value("preview.stat.renames"),
             systemImage: "pencil"
         )
     }
@@ -334,7 +365,7 @@ private struct SynchronizationStatistics: View {
     private var update: some View {
         statistic(
             value: preview.urlModificationCount,
-            label: "Mises à jour",
+            label: DocumentationText.value("preview.stat.updates"),
             systemImage: "link"
         )
     }

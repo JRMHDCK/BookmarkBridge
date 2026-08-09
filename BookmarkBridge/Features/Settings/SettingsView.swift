@@ -8,25 +8,46 @@ import SwiftUI
 /// Explains the absence of configurable preferences without implying that the
 /// application is incomplete.
 struct SettingsView: View {
+    @Environment(LocalizationController.self) private var localization
     @AppStorage(DocumentationPreferences.onboardingCompletedKey)
     private var hasCompletedOnboarding = false
 
     var body: some View {
-        ScrollView {
+        @Bindable var localization = localization
+        return ScrollView {
             VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
                 ScreenHeader(
-                    "Réglages",
-                    subtitle:
-                        "BookmarkBridge privilégie des réglages sûrs et prévisibles."
+                    DocumentationText.value("settings.title"),
+                    subtitle: DocumentationText.value("settings.subtitle")
                 )
-                EmptyStateView(
-                    title: "Aucun réglage nécessaire",
-                    message: "La synchronisation utilise automatiquement les options recommandées.",
-                    systemImage: "checkmark.circle"
+
+                SectionHeader(
+                    DocumentationText.value("settings.language.title"),
+                    systemImage: "globe",
+                    subtitle: DocumentationText.value(
+                        "settings.language.subtitle"
+                    )
                 )
-                .frame(
-                    minHeight:
-                        Theme.Size.emptyStateMinimumHeight
+
+                Picker(
+                    DocumentationText.value("settings.language.picker"),
+                    selection: Binding(
+                        get: { localization.selectedLanguage },
+                        set: { localization.select($0) }
+                    )
+                ) {
+                    ForEach(AppLanguage.allCases, id: \.self) { language in
+                        Text(DocumentationText.value(language.localizationKey))
+                            .tag(language)
+                            .accessibilityIdentifier(
+                                "settings.language.option.\(language.rawValue)"
+                            )
+                    }
+                }
+                .pickerStyle(.menu)
+                .accessibilityIdentifier("settings.language.picker")
+                .accessibilityHint(
+                    DocumentationText.value("settings.language.hint")
                 )
 
                 SectionHeader(
@@ -40,10 +61,8 @@ struct SettingsView: View {
                 )
 
                 SecondaryActionButton(
-                    LocalizedStringKey(
-                        DocumentationText.value(
-                            "settings.guidance.replay"
-                        )
+                    DocumentationText.value(
+                        "settings.guidance.replay"
                     ),
                     systemImage: "arrow.counterclockwise"
                 ) {
@@ -62,7 +81,7 @@ struct SettingsView: View {
             .padding(Theme.Spacing.xl)
             .frame(maxWidth: .infinity, alignment: .top)
         }
-        .navigationTitle("Réglages")
+        .navigationTitle(DocumentationText.value("settings.title"))
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 ContextualHelpButton(pageID: .configuration)

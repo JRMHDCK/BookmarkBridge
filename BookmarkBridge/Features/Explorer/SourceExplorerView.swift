@@ -54,7 +54,11 @@ struct FolderContentsView: View {
     var body: some View {
         let presentation = FolderPresentation(folder: folder)
         FolderListView(presentation: presentation)
-            .navigationTitle(presentation.title.isEmpty ? "Dossier" : presentation.title)
+            .navigationTitle(
+                presentation.title.isEmpty
+                    ? DocumentationText.value("folder.untitled")
+                    : presentation.title
+            )
     }
 }
 
@@ -82,8 +86,8 @@ struct FolderListView: View {
         .overlay {
             if presentation.items.isEmpty {
                 EmptyStateView(
-                    title: "Dossier vide",
-                    message: "Ce dossier ne contient aucun favori.",
+                    title: DocumentationText.value("folder.empty.title"),
+                    message: DocumentationText.value("folder.empty.message"),
                     systemImage: "folder"
                 )
             }
@@ -94,8 +98,12 @@ struct FolderListView: View {
     private func folderRow(title: String, itemCount: Int) -> some View {
         Label {
             VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
-                Text(title.isEmpty ? "Dossier" : title)
-                Text("^[\(itemCount) élément](inflect: true)")
+                Text(
+                    title.isEmpty
+                        ? DocumentationText.value("folder.untitled")
+                        : title
+                )
+                Text(itemCountText(itemCount))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -107,14 +115,24 @@ struct FolderListView: View {
         }
         .frame(minHeight: Theme.Size.explorerRowMinimumHeight)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Dossier \(title.isEmpty ? "sans nom" : title), \(itemCount) élément(s)")
+        .accessibilityLabel(
+            DocumentationText.formatted(
+                "folder.accessibility",
+                title.isEmpty
+                    ? DocumentationText.value("folder.unnamed")
+                    : title,
+                itemCount
+            )
+        )
     }
 
     /// A read-only bookmark leaf: a neutral outline glyph keeps it visually
     /// quieter than the navigable folders.
     private func bookmarkRow(title: String, host: String?, url: URL) -> some View {
         let subtitle = url.absoluteString
-        let displayTitle = title.isEmpty ? "(Sans titre)" : title
+        let displayTitle = title.isEmpty
+            ? DocumentationText.value("bookmark.untitled.parenthesized")
+            : title
         return Label {
             VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
                 Text(displayTitle)
@@ -136,7 +154,18 @@ struct FolderListView: View {
         .help(subtitle)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(
-            "Favori \(displayTitle), \(host ?? subtitle)"
+            DocumentationText.formatted(
+                "bookmark.accessibility",
+                displayTitle,
+                host ?? subtitle
+            )
+        )
+    }
+
+    private func itemCountText(_ count: Int) -> String {
+        DocumentationText.formatted(
+            count == 1 ? "common.item.one" : "common.item.other",
+            count
         )
     }
 }

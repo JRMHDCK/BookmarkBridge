@@ -11,12 +11,15 @@ nonisolated enum BookmarkAccessStatus: Equatable, Sendable {
     case authorizationMissing
     case authorizationInvalid
 
+    @MainActor
     var label: String {
         switch self {
-        case .ok: "OK"
-        case .fileMissing: "Fichier introuvable"
-        case .authorizationMissing: "Autorisation manquante"
-        case .authorizationInvalid: "Autorisation invalide"
+        case .ok: DocumentationText.value("access.status.ok")
+        case .fileMissing: DocumentationText.value("access.status.fileMissing")
+        case .authorizationMissing:
+            DocumentationText.value("access.status.authorizationMissing")
+        case .authorizationInvalid:
+            DocumentationText.value("access.status.authorizationInvalid")
         }
     }
 }

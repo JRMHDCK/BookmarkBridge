@@ -6,7 +6,7 @@
 import SwiftUI
 
 struct LoadingStateView: View {
-    let message: LocalizedStringKey
+    let message: String
 
     var body: some View {
         HStack(spacing: Theme.Spacing.s) {
@@ -21,8 +21,8 @@ struct LoadingStateView: View {
 }
 
 struct EmptyStateView: View {
-    let title: LocalizedStringKey
-    let message: LocalizedStringKey
+    let title: String
+    let message: String
     let systemImage: String
 
     var body: some View {
@@ -37,7 +37,7 @@ struct EmptyStateView: View {
 
 struct ErrorStateView: View {
     let message: String
-    var retryTitle: LocalizedStringKey = "Réessayer"
+    var retryTitle: String = DocumentationText.value("action.retry")
     let onRetry: (() -> Void)?
 
     var body: some View {
@@ -62,7 +62,7 @@ struct ErrorStateView: View {
 }
 
 struct SuccessStateView: View {
-    let message: LocalizedStringKey
+    let message: String
 
     var body: some View {
         Label(message, systemImage: "checkmark.circle")

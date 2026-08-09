@@ -187,7 +187,9 @@ struct SynchronizationViewModelTests {
 
         #expect(
             viewModel.state
-                == .failed("Impossible de calculer la prévisualisation.")
+                == .failed(
+                    DocumentationText.value("preview.calculationFailed")
+                )
         )
     }
 
@@ -392,9 +394,16 @@ struct SynchronizationViewModelTests {
             Issue.record("Expected a visible restoration failure")
             return
         }
-        #expect(message.contains("relecture finale"))
-        #expect(message.contains("fichier de favoris"))
-        #expect(message.contains("Fermez Safari et Chrome"))
+        #expect(
+            message.contains(
+                DocumentationText.value("sync.failure.residualCause")
+            )
+        )
+        #expect(message.contains("BookmarkBridgeTests"))
+        let retryAdvice = DocumentationText.value(
+            "sync.failure.restoration"
+        ).components(separatedBy: "%@").last ?? ""
+        #expect(message.hasSuffix(retryAdvice))
         #expect(message.count < 1_500)
     }
 

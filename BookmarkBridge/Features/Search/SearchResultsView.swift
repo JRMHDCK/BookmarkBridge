@@ -30,7 +30,11 @@ struct SearchResultsView: View {
                             }
                             .buttonStyle(.plain)
                             .contentShape(Rectangle())
-                            .accessibilityHint("Ouvre l'emplacement dans l'explorateur")
+                            .accessibilityHint(
+                                DocumentationText.value(
+                                    "search.result.open.hint"
+                                )
+                            )
                         }
                     } header: {
                         Text(group.source.displayName)
@@ -79,7 +83,9 @@ private struct SearchResultRow: View {
     }
 
     private var displayTitle: String {
-        result.title.isEmpty ? "(Sans titre)" : result.title
+        result.title.isEmpty
+            ? DocumentationText.value("bookmark.untitled.parenthesized")
+            : result.title
     }
 
     /// Bookmarks expose the complete URL, truncated in the middle by the row.
@@ -97,12 +103,24 @@ private struct SearchResultRow: View {
     }
 
     private var accessibilityLabel: String {
-        let kind = result.isFolder ? "Dossier" : "Favori"
-        let where_ = "dans \(pathText)"
+        let kind = DocumentationText.value(
+            result.isFolder ? "common.folder" : "common.bookmark"
+        )
         if let subtitle {
-            return "\(kind) \(displayTitle), \(subtitle), \(where_)"
+            return DocumentationText.formatted(
+                "search.result.bookmark.accessibility",
+                kind,
+                displayTitle,
+                subtitle,
+                pathText
+            )
         }
-        return "\(kind) \(displayTitle), \(where_)"
+        return DocumentationText.formatted(
+            "search.result.folder.accessibility",
+            kind,
+            displayTitle,
+            pathText
+        )
     }
 }
 

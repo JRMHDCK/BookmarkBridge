@@ -16,8 +16,8 @@ struct BookmarkAccessView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
                 ScreenHeader(
-                    "Accès aux favoris",
-                    subtitle: "Vérifiez les fichiers autorisés et le profil Chrome utilisé."
+                    DocumentationText.value("access.title"),
+                    subtitle: DocumentationText.value("access.subtitle")
                 )
 
                 safariSection
@@ -27,31 +27,36 @@ struct BookmarkAccessView: View {
             .padding(Theme.Spacing.xl)
             .frame(maxWidth: .infinity, alignment: .top)
         }
-        .navigationTitle("Accès aux favoris")
+        .navigationTitle(DocumentationText.value("access.title"))
         .task { await onLoad() }
     }
 
     private var safariSection: some View {
-        GroupBox("Safari") {
+        GroupBox(DocumentationText.value("browser.safari.name")) {
             VStack(alignment: .leading, spacing: Theme.Spacing.m) {
                 pathRow(
-                    title: "Chemin détecté",
+                    title: DocumentationText.value("access.detectedPath"),
                     path: model.snapshot?.safari.detectedURL.path
                 )
                 pathRow(
-                    title: "Chemin autorisé",
+                    title: DocumentationText.value("access.authorizedPath"),
                     path: model.snapshot?.safari.authorizedURL?.path
                 )
                 statusRow(model.snapshot?.safari.status)
                 if let tested = model.safariTestStatus {
-                    Text("Test : \(tested.label)")
+                    Text(
+                        DocumentationText.formatted(
+                            "access.testResult",
+                            tested.label
+                        )
+                    )
                         .foregroundStyle(tested == .ok ? .green : .red)
                 }
                 HStack {
-                    Button("Tester l’accès") {
+                    Button(DocumentationText.value("access.test")) {
                         Task { await onTestAccess(.safari) }
                     }
-                    Button("Resélectionner…") {
+                    Button(DocumentationText.value("access.reselect")) {
                         Task { await onReselect(.safari) }
                     }
                 }
@@ -62,30 +67,44 @@ struct BookmarkAccessView: View {
     }
 
     private var chromeSection: some View {
-        GroupBox("Google Chrome") {
+        GroupBox(DocumentationText.value("browser.chrome.name")) {
             VStack(alignment: .leading, spacing: Theme.Spacing.m) {
                 pathRow(
-                    title: "Dossier autorisé",
+                    title: DocumentationText.value("access.authorizedFolder"),
                     path: model.snapshot?.chrome.authorizedDirectoryURL?.path
                 )
                 if let profile = model.selectedChromeProfile {
-                    valueRow(title: "Profil", value: profile.profileName)
-                    valueRow(title: "Dossier du profil", value: profile.directoryName)
-                    pathRow(title: "Fichier de favoris", path: profile.bookmarksURL.path)
+                    valueRow(
+                        title: DocumentationText.value("access.profile"),
+                        value: profile.profileName
+                    )
+                    valueRow(
+                        title: DocumentationText.value("access.profileFolder"),
+                        value: profile.directoryName
+                    )
+                    pathRow(
+                        title: DocumentationText.value("access.bookmarksFile"),
+                        path: profile.bookmarksURL.path
+                    )
                 } else {
-                    Text("Aucun profil Chrome disponible")
+                    Text(DocumentationText.value("access.noChromeProfile"))
                         .foregroundStyle(.secondary)
                 }
                 statusRow(model.snapshot?.chrome.status)
                 if let tested = model.chromeTestStatus {
-                    Text("Test : \(tested.label)")
+                    Text(
+                        DocumentationText.formatted(
+                            "access.testResult",
+                            tested.label
+                        )
+                    )
                         .foregroundStyle(tested == .ok ? .green : .red)
                 }
                 HStack {
-                    Button("Tester l’accès") {
+                    Button(DocumentationText.value("access.test")) {
                         Task { await onTestAccess(.chrome) }
                     }
-                    Menu("Changer de profil…") {
+                    Menu(DocumentationText.value("access.changeProfile")) {
                         ForEach(model.snapshot?.chrome.profiles ?? []) { profile in
                             Button(profile.profileName) {
                                 Task { await onChangeProfile(profile.directoryName) }
@@ -93,7 +112,7 @@ struct BookmarkAccessView: View {
                         }
                     }
                     .disabled(model.snapshot?.chrome.profiles.isEmpty != false)
-                    Button("Resélectionner…") {
+                    Button(DocumentationText.value("access.reselect")) {
                         Task { await onReselect(.chrome) }
                     }
                 }
@@ -105,15 +124,21 @@ struct BookmarkAccessView: View {
 
     private func statusRow(_ status: BookmarkAccessStatus?) -> some View {
         HStack(spacing: Theme.Spacing.s) {
-            Text("État")
+            Text(DocumentationText.value("common.status"))
                 .fontWeight(.semibold)
-            Text(status?.label ?? "Vérification…")
+            Text(
+                status?.label
+                    ?? DocumentationText.value("common.checking")
+            )
                 .foregroundStyle(status == .ok ? .green : .secondary)
         }
     }
 
     private func pathRow(title: String, path: String?) -> some View {
-        valueRow(title: title, value: path ?? "Non autorisé")
+        valueRow(
+            title: title,
+            value: path ?? DocumentationText.value("access.notAuthorized")
+        )
     }
 
     private func valueRow(title: String, value: String) -> some View {

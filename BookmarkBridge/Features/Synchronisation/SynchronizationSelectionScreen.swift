@@ -17,8 +17,11 @@ struct SynchronizationSelectionScreen: View {
         ScrollView {
             VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
                 ScreenHeader(
-                    "Éléments à synchroniser",
-                    subtitle: "Choisissez les profils, dossiers et favoris inclus dans \(direction.title.lowercased())."
+                    DocumentationText.value("selection.title"),
+                    subtitle: DocumentationText.formatted(
+                        "selection.subtitle",
+                        direction.title
+                    )
                 )
 
                 ForEach(model.sources, id: \.source.id) { source in
@@ -39,7 +42,10 @@ struct SynchronizationSelectionScreen: View {
                 }
 
                 HStack {
-                    Button("Retour", action: onBack)
+                    Button(
+                        DocumentationText.value("action.back"),
+                        action: onBack
+                    )
                     Spacer()
                     Button {
                         isLoadingPreview = true
@@ -52,7 +58,7 @@ struct SynchronizationSelectionScreen: View {
                             ProgressView()
                                 .controlSize(.small)
                         } else {
-                            Text("Afficher l’aperçu")
+                            Text(DocumentationText.value("selection.preview"))
                         }
                     }
                     .buttonStyle(.borderedProminent)
@@ -64,11 +70,14 @@ struct SynchronizationSelectionScreen: View {
             .padding(Theme.Spacing.xl)
             .frame(maxWidth: .infinity, alignment: .top)
         }
-        .navigationTitle("Synchronisation")
+        .navigationTitle(DocumentationText.value("synchronization.title"))
         .toolbar {
             ToolbarItem(placement: .navigation) {
                 Button(action: onBack) {
-                    Label("Retour", systemImage: "chevron.left")
+                    Label(
+                        DocumentationText.value("action.back"),
+                        systemImage: "chevron.left"
+                    )
                 }
                 .disabled(isLoadingPreview)
             }
@@ -180,7 +189,11 @@ private struct SelectionTreeBranch: View {
                 Image(systemName: node.isFolder ? "folder" : "bookmark")
                     .foregroundStyle(.secondary)
                     .frame(width: TreeLayout.iconWidth)
-                Text(node.title.isEmpty ? "Sans titre" : node.title)
+                Text(
+                    node.title.isEmpty
+                        ? DocumentationText.value("bookmark.untitled")
+                        : node.title
+                )
                     .font(
                         node.isFolder
                             ? .callout.weight(.medium)
@@ -194,16 +207,22 @@ private struct SelectionTreeBranch: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(node.title.isEmpty ? "Sans titre" : node.title)
+        .accessibilityLabel(
+            node.title.isEmpty
+                ? DocumentationText.value("bookmark.untitled")
+                : node.title
+        )
         .accessibilityValue(
             partial
-                ? "Partiellement sélectionné"
-                : selected ? "Sélectionné" : "Non sélectionné"
+                ? DocumentationText.value("selection.partiallySelected")
+                : selected
+                    ? DocumentationText.value("selection.selected")
+                    : DocumentationText.value("selection.notSelected")
         )
         .accessibilityHint(
             node.isFolder
-                ? "Active ou désactive ce dossier et son contenu"
-                : "Active ou désactive ce favori"
+                ? DocumentationText.value("selection.folder.hint")
+                : DocumentationText.value("selection.bookmark.hint")
         )
     }
 }

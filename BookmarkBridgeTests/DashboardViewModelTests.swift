@@ -144,7 +144,11 @@ struct DashboardViewModelTests {
 
         await viewModel.load()
 
-        #expect(status(viewModel, id(.safari)) == .failed("Format du fichier illisible."))
+        #expect(
+            status(viewModel, id(.safari)) == .failed(
+                DocumentationText.value("error.fileUnreadable.short")
+            )
+        )
     }
 
     // MARK: - Authorization flow
@@ -200,7 +204,11 @@ struct DashboardViewModelTests {
         await viewModel.load()
         await viewModel.authorize(id(.chrome))
 
-        #expect(status(viewModel, id(.chrome)) == .failed("Une erreur est survenue."))
+        #expect(
+            status(viewModel, id(.chrome)) == .failed(
+                DocumentationText.value("error.generic.short")
+            )
+        )
     }
 
     // MARK: - retry & reloadAll

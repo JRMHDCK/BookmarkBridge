@@ -52,9 +52,9 @@ struct OpenPanelFileAuthorizer: AccessAuthorizing {
         panel.allowsMultipleSelection = false
         panel.canCreateDirectories = false
         panel.allowedContentTypes = [.propertyList]
-        panel.title = "Autoriser l'accès aux favoris Safari"
-        panel.message = "Sélectionnez le fichier « Bookmarks.plist » dans ~/Library/Safari/."
-        panel.prompt = "Autoriser la lecture"
+        panel.title = DocumentationText.value("authorization.safari.title")
+        panel.message = DocumentationText.value("authorization.safari.message")
+        panel.prompt = DocumentationText.value("authorization.prompt")
         panel.directoryURL = FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent("Library", isDirectory: true)
             .appendingPathComponent("Safari", isDirectory: true)

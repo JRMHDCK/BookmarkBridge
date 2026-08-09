@@ -8,6 +8,7 @@ import Testing
 @testable import BookmarkBridge
 
 @Suite("Breadcrumb")
+@MainActor
 struct BreadcrumbTests {
 
     private let safari = BookmarkSource.singleProfile(.safari)
@@ -55,7 +56,10 @@ struct BreadcrumbTests {
     @Test("Folder crumbs use the friendly Safari root name")
     func friendlyRootName() {
         let path: [ExplorerStep] = [.source(safari, tree), .folder(folder("bar", "BookmarksBar"))]
-        #expect(Breadcrumb(path: path).items[1].title == "Barre des favoris")
+        #expect(
+            Breadcrumb(path: path).items[1].title
+                == DocumentationText.value("folder.bookmarksBar")
+        )
     }
 
     @Test("A deep path truncates each crumb to its prefix")

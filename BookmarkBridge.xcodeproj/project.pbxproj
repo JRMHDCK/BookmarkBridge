@@ -204,10 +204,17 @@
 				};
 			};
 			buildConfigurationList = 02FE5C6C300797AB00A2738F /* Build configuration list for PBXProject "BookmarkBridge" */;
-			developmentRegion = fr;
+			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
+				en,
 				fr,
+				es,
+				de,
+				it,
+				pt,
+				nl,
+				pl,
 				Base,
 			);
 			mainGroup = 02FE5C68300797AB00A2738F;

@@ -13,13 +13,13 @@ nonisolated enum ApplicationScreen: String, CaseIterable, Hashable, Identifiable
 
     var id: Self { self }
 
-    var title: String {
+    var titleKey: String {
         switch self {
-        case .dashboard: "Accueil"
-        case .synchronization: "Synchronisation"
-        case .bookmarkAccess: "Accès aux favoris"
-        case .settings: "Réglages"
-        case .about: "À propos"
+        case .dashboard: "navigation.dashboard"
+        case .synchronization: "navigation.synchronization"
+        case .bookmarkAccess: "navigation.bookmarkAccess"
+        case .settings: "navigation.settings"
+        case .about: "navigation.about"
         }
     }
 

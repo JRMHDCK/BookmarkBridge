@@ -213,21 +213,21 @@ final class DashboardViewModel {
     /// Maps an error to a simple, non-technical French message for the UI.
     private func message(for error: Error) -> String {
         guard let bookmarkError = error as? BookmarkError else {
-            return "Une erreur est survenue."
+            return DocumentationText.value("error.generic.short")
         }
         switch bookmarkError {
         case .sourceNotFound:
-            return "Fichier des favoris introuvable."
+            return DocumentationText.value("error.bookmarksFileMissing.short")
         case .accessDenied:
-            return "Accès refusé au fichier."
+            return DocumentationText.value("error.fileAccessDenied.short")
         case .decodingFailed:
-            return "Format du fichier illisible."
+            return DocumentationText.value("error.fileUnreadable.short")
         case .unsupportedBrowser:
-            return "Navigateur non pris en charge."
+            return DocumentationText.value("error.unsupportedBrowser.short")
         case .multipleBookmarkStores:
-            return "Deux stockages de favoris détectés (Bookmarks + AccountBookmarks). Choix non décidé en V1."
+            return DocumentationText.value("error.multipleStores.short")
         case .unknownNode, .authorizationRequired:
-            return "Une erreur est survenue."
+            return DocumentationText.value("error.generic.short")
         }
     }
 }

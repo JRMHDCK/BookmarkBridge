@@ -59,14 +59,14 @@ struct DashboardView: View {
                 .navigationDestination(for: ExplorerStep.self) { step in
                     explorerDestination(for: step, path: $path)
                 }
-                .navigationTitle("Accueil")
+                .navigationTitle(DocumentationText.value("dashboard.title"))
                 .toolbar {
                     ToolbarItemGroup(placement: .primaryAction) {
                         Button {
                             Task { await reloadDashboard() }
                         } label: {
                             Label(
-                                "Actualiser",
+                                DocumentationText.value("action.reload"),
                                 systemImage: "arrow.clockwise"
                             )
                         }
@@ -81,7 +81,7 @@ struct DashboardView: View {
                             onShowSynchronization?()
                         } label: {
                             Label(
-                                "Synchronisation",
+                                DocumentationText.value("synchronization.title"),
                                 systemImage:
                                     "arrow.triangle.2.circlepath"
                             )
@@ -98,7 +98,7 @@ struct DashboardView: View {
                 }
                 .searchable(
                     text: $searchModel.query,
-                    prompt: "Rechercher un favori"
+                    prompt: DocumentationText.value("dashboard.search.prompt")
                 )
                 .onChange(
                     of: viewModel.searchableSources,
@@ -134,9 +134,10 @@ struct DashboardView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
                 ScreenHeader(
-                    "Vue d’ensemble",
-                    subtitle:
-                        "État de vos favoris Safari et Chrome."
+                    DocumentationText.value("dashboard.overview.title"),
+                    subtitle: DocumentationText.value(
+                        "dashboard.overview.subtitle"
+                    )
                 )
 
                 DashboardSynchronizationCard(
@@ -154,13 +155,18 @@ struct DashboardView: View {
                 }
 
                 VStack(alignment: .leading, spacing: Theme.Spacing.s) {
-                    SectionHeader("Sources")
+                    SectionHeader(
+                        DocumentationText.value("dashboard.sources")
+                    )
 
                     if viewModel.sources.isEmpty {
                         EmptyStateView(
-                            title: "Aucun navigateur configuré",
-                            message:
-                                "Aucune source de favoris n'est disponible.",
+                            title: DocumentationText.value(
+                                "dashboard.empty.title"
+                            ),
+                            message: DocumentationText.value(
+                                "dashboard.empty.message"
+                            ),
                             systemImage: "bookmark.slash"
                         )
                         .frame(
@@ -254,7 +260,9 @@ private struct ApplicationAuthorizationCard: View {
                 PermissionCard(statusSymbol: statusSymbol) {
                     if model.isLoading {
                         LoadingStateView(
-                            message: "Vérification des autorisations…"
+                            message: DocumentationText.value(
+                                "authorization.checking"
+                            )
                         )
                     } else if model.state.status == .invalidBookmark
                         || model.state.status == .accessError {
@@ -289,15 +297,15 @@ private struct ApplicationAuthorizationCard: View {
     private var statusMessage: String {
         switch model.state.status {
         case .absent:
-            "BookmarkBridge a besoin d'accéder aux favoris Safari et au profil Chrome sélectionné."
+            DocumentationText.value("authorization.status.absent")
         case .partial:
-            "Une autorisation reste nécessaire."
+            DocumentationText.value("authorization.status.partial")
         case .complete:
-            "Les accès Safari et Chrome sont disponibles."
+            DocumentationText.value("authorization.status.complete")
         case .invalidBookmark:
-            "Une autorisation enregistrée n'est plus valide."
+            DocumentationText.value("authorization.status.invalid")
         case .accessError:
-            "Un emplacement autorisé n'est pas accessible."
+            DocumentationText.value("authorization.status.error")
         }
     }
 
@@ -331,7 +339,7 @@ private struct ApplicationAuthorizationCard: View {
                     )
                 )
             } else {
-                Text("Autorisé")
+                Text(DocumentationText.value("authorization.authorized"))
                     .font(.callout)
                     .foregroundStyle(.secondary)
             }
@@ -339,10 +347,12 @@ private struct ApplicationAuthorizationCard: View {
         .accessibilityElement(children: .contain)
     }
 
-    private func buttonTitle(for browser: Browser) -> LocalizedStringKey {
+    private func buttonTitle(for browser: Browser) -> String {
         switch browser {
-        case .safari: "Choisir les favoris Safari"
-        case .chrome: "Choisir le profil Chrome"
+        case .safari:
+            DocumentationText.value("authorization.chooseSafari")
+        case .chrome:
+            DocumentationText.value("authorization.chooseChrome")
         }
     }
 
@@ -373,19 +383,23 @@ private struct DashboardSynchronizationCard: View {
     let onShowSynchronization: (() -> Void)?
 
     var body: some View {
-        SynchronizationSummaryCard("État de la synchronisation") {
-            Text("Safari ↔ Chrome")
+        SynchronizationSummaryCard(
+            DocumentationText.value("dashboard.syncStatus.title")
+        ) {
+            Text(
+                DocumentationText.value("synchronization.bidirectional.short")
+            )
                 .font(Theme.Typography.metadata)
                 .foregroundStyle(.secondary)
             summaryContent
             if let onShowSynchronization {
                 PrimaryActionButton(
-                    "Examiner les changements",
+                    DocumentationText.value("dashboard.reviewChanges"),
                     systemImage: "arrow.right",
                     action: onShowSynchronization
                 )
                 .accessibilityHint(
-                    "Ouvre le détail de la synchronisation"
+                    DocumentationText.value("dashboard.reviewChanges.hint")
                 )
                 .help(
                     DocumentationText.value(
@@ -404,31 +418,40 @@ private struct DashboardSynchronizationCard: View {
         switch summary {
         case .idle:
             Label(
-                "Prévisualisation en attente.",
+                DocumentationText.value("dashboard.preview.pending"),
                 systemImage: "eye"
             )
             .foregroundStyle(.secondary)
         case .loading:
             LoadingStateView(
-                message: "Calcul de la prévisualisation…"
+                message: DocumentationText.value("preview.calculating")
             )
             .accessibilityLabel(
-                "Calcul de la prévisualisation en cours"
+                DocumentationText.value("preview.calculating.accessibility")
             )
         case .changes(let count):
             Label(
-                "\(count) changement\(count == 1 ? "" : "s") à vérifier",
+                changeCount(count),
                 systemImage: "exclamationmark.circle"
             )
         case .upToDate:
             Label(
-                "Les navigateurs sont synchronisés",
+                DocumentationText.value("preview.upToDate"),
                 systemImage: "checkmark.circle"
             )
             .foregroundStyle(Theme.Palette.green)
         case .failed(let message):
             ErrorStateView(message: message, onRetry: nil)
         }
+    }
+
+    private func changeCount(_ count: Int) -> String {
+        DocumentationText.formatted(
+            count == 1
+                ? "dashboard.change.one"
+                : "dashboard.change.other",
+            count
+        )
     }
 }
 
@@ -461,8 +484,12 @@ private struct SourceRow: View {
     private var content: some View {
         switch entry.status {
         case .loading:
-            LoadingStateView(message: "Lecture des favoris…")
-            .accessibilityLabel("Lecture des favoris en cours")
+            LoadingStateView(
+                message: DocumentationText.value("dashboard.reading")
+            )
+            .accessibilityLabel(
+                DocumentationText.value("dashboard.reading.accessibility")
+            )
         case .loaded(let summary):
             loadedState(summary)
         case .authorizationRequired:
@@ -470,7 +497,11 @@ private struct SourceRow: View {
         case .failed(let message):
             ErrorStateView(message: message, onRetry: onRetry)
                 .accessibilityLabel(
-                    "Erreur pour \(entry.source.displayName) : \(message)"
+                    DocumentationText.formatted(
+                        "dashboard.sourceError",
+                        entry.source.displayName,
+                        message
+                    )
                 )
         }
     }
@@ -480,23 +511,39 @@ private struct SourceRow: View {
     ) -> some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.m) {
             Text(
-                "\(summary.bookmarkCount) favoris · \(summary.folderCount) dossiers"
+                DocumentationText.formatted(
+                    "common.itemCounts",
+                    summary.bookmarkCount,
+                    summary.folderCount
+                )
             )
             .font(.callout)
             Text(
-                "Lu le \(summary.capturedAt.formatted(date: .abbreviated, time: .shortened))"
+                DocumentationText.formatted(
+                    "dashboard.readAt",
+                    summary.capturedAt.formatted(
+                        date: .abbreviated,
+                        time: .shortened
+                    )
+                )
             )
             .font(.caption)
             .foregroundStyle(.secondary)
             .accessibilityLabel(
-                "Dernière lecture le \(summary.capturedAt.formatted(date: .long, time: .standard))"
+                DocumentationText.formatted(
+                    "dashboard.lastRead.accessibility",
+                    summary.capturedAt.formatted(
+                        date: .long,
+                        time: .standard
+                    )
+                )
             )
             if let tree {
                 NavigationLink(
                     value: ExplorerStep.source(entry.source, tree)
                 ) {
                     Label(
-                        "Explorer les favoris",
+                        DocumentationText.value("dashboard.explore"),
                         systemImage: "arrow.right"
                     )
                     .font(.callout)
@@ -505,7 +552,10 @@ private struct SourceRow: View {
                     )
                 }
                 .accessibilityLabel(
-                    "Explorer les favoris de \(entry.source.displayName)"
+                    DocumentationText.formatted(
+                        "dashboard.explore.accessibility",
+                        entry.source.displayName
+                    )
                 )
             }
         }
@@ -514,15 +564,20 @@ private struct SourceRow: View {
     private var authorizationRequiredState: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.m) {
             Label(
-                "BookmarkBridge a besoin d'accéder aux favoris.",
+                DocumentationText.value("authorization.required"),
                 systemImage: "lock"
             )
             .foregroundStyle(.secondary)
-            SecondaryActionButton("Autoriser l'accès…") {
+            SecondaryActionButton(
+                DocumentationText.value("authorization.action")
+            ) {
                 onAuthorize()
             }
             .accessibilityLabel(
-                "Autoriser l'accès aux favoris \(entry.source.displayName)"
+                DocumentationText.formatted(
+                    "authorization.action.accessibility",
+                    entry.source.displayName
+                )
             )
             .help(
                 DocumentationText.value(

@@ -61,7 +61,12 @@ struct BreadcrumbView: View {
                             Theme.Size.breadcrumbItemMaximumWidth
                     )
                     .help(item.title)
-                    .accessibilityLabel("\(item.title), niveau courant")
+                    .accessibilityLabel(
+                        DocumentationText.formatted(
+                            "explorer.currentLevel",
+                            item.title
+                        )
+                    )
             } else {
                 Button {
                     path = item.path
@@ -76,7 +81,12 @@ struct BreadcrumbView: View {
                 }
                 .buttonStyle(.link)
                 .help(item.title)
-                .accessibilityLabel("Revenir à \(item.title)")
+                .accessibilityLabel(
+                    DocumentationText.formatted(
+                        "explorer.returnTo",
+                        item.title
+                    )
+                )
             }
         case .ellipsis(let hidden):
             Menu {
@@ -87,9 +97,11 @@ struct BreadcrumbView: View {
                 Image(systemName: "ellipsis")
             }
             .menuStyle(.button)
-            .help("Afficher les niveaux intermédiaires")
+            .help(DocumentationText.value("explorer.intermediate.tooltip"))
             .fixedSize()
-            .accessibilityLabel("Niveaux intermédiaires")
+            .accessibilityLabel(
+                DocumentationText.value("explorer.intermediate.accessibility")
+            )
         }
     }
 }

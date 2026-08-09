@@ -289,16 +289,18 @@ enum HelpCatalog {
         return pages[index + 1]
     }
 
-    static func search(_ query: String) -> [HelpPage] {
+    static func search(
+        _ query: String,
+        language: AppLanguage = DocumentationText.resolvedLanguage()
+    ) -> [HelpPage] {
         let normalized = query.trimmingCharacters(
             in: .whitespacesAndNewlines
         )
         guard !normalized.isEmpty else { return pages }
         return pages.filter { page in
             page.searchableKeys.contains { key in
-                DocumentationText.value(key).localizedCaseInsensitiveContains(
-                    normalized
-                )
+                DocumentationText.value(key, language: language)
+                    .localizedCaseInsensitiveContains(normalized)
             }
         }
     }

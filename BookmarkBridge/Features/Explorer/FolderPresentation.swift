@@ -8,7 +8,7 @@ import Foundation
 /// One displayable row inside a folder: either a sub-folder (navigable) or a
 /// bookmark (a leaf). Display fields are precomputed so the view never walks the
 /// tree; `destination` carries the sub-folder for drill-down navigation.
-nonisolated enum FolderItemPresentation: Identifiable, Equatable, Sendable {
+enum FolderItemPresentation: Identifiable, Equatable, Sendable {
     case folder(id: BookmarkID, title: String, itemCount: Int, destination: BookmarkFolder)
     case bookmark(id: BookmarkID, title: String, host: String?, url: URL)
 
@@ -23,7 +23,7 @@ nonisolated enum FolderItemPresentation: Identifiable, Equatable, Sendable {
 /// One level of a bookmark hierarchy, ready to display: a title and its ordered
 /// items. Built by a testable mapper from the immutable Core tree — read-only,
 /// one depth at a time (no recursion in the view).
-nonisolated struct FolderPresentation: Equatable, Sendable {
+struct FolderPresentation: Equatable, Sendable {
     let title: String
     let items: [FolderItemPresentation]
 

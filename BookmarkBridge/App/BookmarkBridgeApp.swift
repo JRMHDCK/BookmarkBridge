@@ -22,6 +22,7 @@ struct BookmarkBridgeApp: App {
     private var appDelegate
     private let applicationViewModel: ApplicationViewModel
     private let documentationRouter = DocumentationRouter()
+    @State private var localization = LocalizationController()
 
     init() {
         let dependencies = AppDependencies.bootstrap()
@@ -98,6 +99,9 @@ struct BookmarkBridgeApp: App {
         Window("BookmarkBridge", id: "main") {
             ApplicationNavigationView(model: applicationViewModel)
                 .environment(documentationRouter)
+                .environment(localization)
+                .environment(\.locale, localization.locale)
+                .id(localization.resolvedLanguage)
                 .onDisappear {
                     NSApp.terminate(nil)
                 }
@@ -108,7 +112,10 @@ struct BookmarkBridgeApp: App {
         )
         .windowResizability(.contentMinSize)
         .commands {
-            DocumentationCommands(router: documentationRouter)
+            DocumentationCommands(
+                router: documentationRouter,
+                localization: localization
+            )
         }
     }
 }

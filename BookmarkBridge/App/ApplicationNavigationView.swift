@@ -22,13 +22,21 @@ struct ApplicationNavigationView: View {
         NavigationSplitView {
             List(ApplicationScreen.allCases, selection: screenSelection) {
                 screen in
-                Label(screen.title, systemImage: screen.systemImage)
+                Label(
+                    DocumentationText.value(screen.titleKey),
+                    systemImage: screen.systemImage
+                )
                     .symbolRenderingMode(.hierarchical)
                     .tag(screen)
-                    .accessibilityLabel(screen.title)
+                    .accessibilityIdentifier(
+                        "navigation.\(screen.rawValue)"
+                    )
+                    .accessibilityLabel(
+                        DocumentationText.value(screen.titleKey)
+                    )
             }
             .listStyle(.sidebar)
-            .navigationTitle("BookmarkBridge")
+            .navigationTitle(DocumentationText.value("about.name"))
             .navigationSplitViewColumnWidth(
                 min: Theme.Size.sidebarMinimumWidth,
                 ideal: Theme.Size.sidebarIdealWidth,
@@ -66,30 +74,32 @@ struct ApplicationNavigationView: View {
             }
         }
         .alert(
-            "Fermez les navigateurs",
+            DocumentationText.value("browserClosure.title"),
             isPresented: Binding(
                 get: { model.browserClosurePrompt != nil },
                 set: { _ in }
             ),
             presenting: model.browserClosurePrompt
         ) { _ in
-            Button("Annuler", role: .cancel) {
+            Button(DocumentationText.value("action.cancel"), role: .cancel) {
                 model.cancelBrowserClosure()
             }
-            Button("Fermer les navigateurs et continuer") {
+            Button(DocumentationText.value("browserClosure.continue")) {
                 Task { await model.closeBrowsersAndContinue() }
             }
         } message: { prompt in
             Text(browserClosureMessage(prompt.browsers))
         }
         .alert(
-            "Fermeture impossible",
+            DocumentationText.value("browserClosure.failure.title"),
             isPresented: Binding(
                 get: { model.browserClosureError != nil },
                 set: { _ in }
             )
         ) {
-            Button("OK") { model.dismissBrowserClosureError() }
+            Button(DocumentationText.value("action.ok")) {
+                model.dismissBrowserClosureError()
+            }
         } message: {
             Text(model.browserClosureError ?? "")
         }
@@ -133,7 +143,10 @@ struct ApplicationNavigationView: View {
 
     private func browserClosureMessage(_ browsers: [Browser]) -> String {
         let names = browsers.map(\.displayName).joined(separator: ", ")
-        return "Pour éviter toute modification concurrente ou corruption des favoris, Safari et Chrome doivent être fermés avant cette opération. À fermer : \(names)."
+        return DocumentationText.formatted(
+            "browserClosure.message",
+            names
+        )
     }
 
     @ViewBuilder

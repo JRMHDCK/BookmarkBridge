@@ -7,7 +7,11 @@ import Foundation
 
 enum DocumentationText {
     static func value(_ key: String) -> String {
-        Bundle.main.localizedString(
+        value(key, language: resolvedLanguage())
+    }
+
+    static func value(_ key: String, language: AppLanguage) -> String {
+        localizedBundle(for: language).localizedString(
             forKey: key,
             value: key,
             table: "Localizable"
@@ -17,9 +21,48 @@ enum DocumentationText {
     static func formatted(_ key: String, _ arguments: CVarArg...) -> String {
         String(
             format: value(key),
-            locale: Locale.current,
+            locale: Locale(identifier: resolvedLanguage().rawValue),
             arguments: arguments
         )
+    }
+
+    static func formatted(
+        _ key: String,
+        language: AppLanguage,
+        _ arguments: CVarArg...
+    ) -> String {
+        String(
+            format: value(key, language: language),
+            locale: Locale(identifier: language.rawValue),
+            arguments: arguments
+        )
+    }
+
+    static func resolvedLanguage(
+        defaults: UserDefaults = .standard,
+        preferredLanguages: [String] = Locale.preferredLanguages
+    ) -> AppLanguage {
+        let selection = AppLanguage(
+            rawValue: defaults.string(
+                forKey: UserDefaultsLocalizationPreferencesStore.key
+            ) ?? ""
+        ) ?? .automatic
+        return LocalizationController.resolve(
+            selection,
+            preferredLanguages: preferredLanguages
+        )
+    }
+
+    static func localizedBundle(for language: AppLanguage) -> Bundle {
+        guard language != .automatic,
+              let path = Bundle.main.path(
+                  forResource: language.rawValue,
+                  ofType: "lproj"
+              ),
+              let bundle = Bundle(path: path) else {
+            return .main
+        }
+        return bundle
     }
 }
 

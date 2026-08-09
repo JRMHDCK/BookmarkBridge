@@ -10,7 +10,7 @@ import Foundation
 /// `path` is the navigation path to apply when the crumb is tapped (the prefix
 /// up to and including this level), so the view stays free of navigation logic.
 /// The last crumb (`isCurrent`) represents the current level and is not tappable.
-nonisolated struct BreadcrumbItem: Identifiable, Equatable, Sendable {
+struct BreadcrumbItem: Identifiable, Equatable, Sendable {
     let id: Int
     let title: String
     let isCurrent: Bool
@@ -19,7 +19,7 @@ nonisolated struct BreadcrumbItem: Identifiable, Equatable, Sendable {
 
 /// The breadcrumb trail for a given explorer path, built by a testable mapper.
 /// Root folder names use the same friendly titles as the explorer.
-nonisolated struct Breadcrumb: Equatable, Sendable {
+struct Breadcrumb: Equatable, Sendable {
     let items: [BreadcrumbItem]
 
     init(items: [BreadcrumbItem]) {
@@ -50,7 +50,7 @@ nonisolated struct Breadcrumb: Equatable, Sendable {
 extension Breadcrumb {
     /// How to lay out the trail when it is too long: keep the first crumb
     /// (source) and the trailing levels, folding the middle into a "…" menu.
-    nonisolated struct Layout: Equatable, Sendable {
+    struct Layout: Equatable, Sendable {
         /// Crumbs shown before the "…" (the source), empty when not collapsed.
         let leading: [BreadcrumbItem]
         /// Crumbs hidden inside the "…" menu.
