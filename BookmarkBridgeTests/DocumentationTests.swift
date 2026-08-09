@@ -4,6 +4,7 @@
 //
 
 import Foundation
+import PDFKit
 import Testing
 @testable import BookmarkBridge
 
@@ -94,6 +95,46 @@ struct DocumentationTests {
         )
 
         #expect(guide != nil)
+    }
+
+    @Test("Integrated guidance describes bidirectional synchronization")
+    func guidanceIsBidirectional() throws {
+        let keys = HelpCatalog.pages.flatMap(\.searchableKeys)
+            + OnboardingContent.steps.flatMap { [$0.titleKey, $0.bodyKey] }
+        let text = keys.map(DocumentationText.value).joined(separator: "\n")
+        let obsoleteClaims = [
+            "Safari reste en lecture seule",
+            "Safari strictement en lecture seule",
+            "n’écrit jamais",
+            "ne modifie pas Safari",
+            "ajoute à Chrome uniquement",
+            "n’applique pas les suppressions",
+        ]
+
+        #expect(text.contains("Safari vers Chrome"))
+        #expect(text.contains("Chrome vers Safari"))
+        #expect(text.contains("sauvegarde"))
+        #expect(text.contains("profils Chrome"))
+        #expect(obsoleteClaims.allSatisfy { !text.contains($0) })
+        #expect(BrowserLogo.chromeAssetName == "ChromeHomeSynchronizationLogo")
+    }
+
+    @Test("The bundled PDF documents both synchronization directions")
+    func userGuideIsCurrent() throws {
+        let url = try #require(Bundle.main.url(
+            forResource: "BookmarkBridge-User-Guide",
+            withExtension: "pdf"
+        ))
+        let document = try #require(PDFDocument(url: url))
+        let text = try #require(document.string)
+
+        #expect(text.contains("Safari vers Chrome"))
+        #expect(text.contains("Chrome vers Safari"))
+        #expect(text.contains("sauvegarde"))
+        #expect(text.contains("Plusieurs profils Chrome"))
+        #expect(!text.contains("Safari reste en lecture seule"))
+        #expect(!text.contains("ne modifie pas Safari"))
+        #expect(!text.contains("n’applique pas les suppressions"))
     }
 
     @Test("Technical failures receive user-facing guidance")

@@ -96,8 +96,7 @@ struct SynchronizationDirectionScreen: View {
                     browser: direction == .safariToChrome
                         ? .safari
                         : .chrome,
-                    size: 32,
-                    chromeArtwork: .homeAndSynchronization
+                    size: 32
                 )
                     .frame(width: Theme.Size.minimumInteractive)
 

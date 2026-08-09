@@ -374,7 +374,7 @@ private struct DashboardSynchronizationCard: View {
 
     var body: some View {
         SynchronizationSummaryCard("État de la synchronisation") {
-            Text("Safari → Chrome")
+            Text("Safari ↔ Chrome")
                 .font(Theme.Typography.metadata)
                 .foregroundStyle(.secondary)
             summaryContent
@@ -442,8 +442,7 @@ private struct SourceRow: View {
         HStack(alignment: .top, spacing: Theme.Spacing.l) {
             BrowserLogo(
                 browser: entry.source.browser,
-                size: 32,
-                chromeArtwork: .homeAndSynchronization
+                size: 32
             )
                 .frame(width: Theme.Size.minimumInteractive)
             VStack(alignment: .leading, spacing: Theme.Spacing.s) {

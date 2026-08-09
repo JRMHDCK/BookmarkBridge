@@ -18,9 +18,9 @@ enum HelpCatalog {
                     "help.introduction.principles.backup",
                 ]),
                 .note(
-                    titleKey: "help.callout.readonly.title",
-                    bodyKey: "help.callout.readonly.body",
-                    systemImage: "lock.shield"
+                    titleKey: "help.callout.bidirectional.title",
+                    bodyKey: "help.callout.bidirectional.body",
+                    systemImage: "arrow.left.arrow.right"
                 ),
             ]
         ),
@@ -69,9 +69,9 @@ enum HelpCatalog {
                     "help.safari.authorization.confirm",
                 ]),
                 .note(
-                    titleKey: "help.safari.readonly.title",
-                    bodyKey: "help.safari.readonly.body",
-                    systemImage: "eye"
+                    titleKey: "help.safari.writing.title",
+                    bodyKey: "help.safari.writing.body",
+                    systemImage: "arrow.down.doc"
                 ),
             ]
         ),
@@ -105,9 +105,9 @@ enum HelpCatalog {
                     "help.synchronization.step.verify",
                 ]),
                 .note(
-                    titleKey: "help.synchronization.additive.title",
-                    bodyKey: "help.synchronization.additive.body",
-                    systemImage: "plus.circle"
+                    titleKey: "help.synchronization.bidirectional.title",
+                    bodyKey: "help.synchronization.bidirectional.body",
+                    systemImage: "arrow.left.arrow.right.circle"
                 ),
             ]
         ),
@@ -251,8 +251,8 @@ enum HelpCatalog {
                     answerKey: "help.glossary.backup.definition"
                 ),
                 .question(
-                    questionKey: "help.glossary.additive.term",
-                    answerKey: "help.glossary.additive.definition"
+                    questionKey: "help.glossary.bidirectional.term",
+                    answerKey: "help.glossary.bidirectional.definition"
                 ),
                 .question(
                     questionKey: "help.glossary.securityScope.term",

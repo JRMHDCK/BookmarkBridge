@@ -74,8 +74,7 @@ struct OnboardingView: View {
                 case .browser(let browser):
                     BrowserLogo(
                         browser: browser,
-                        size: 76,
-                        chromeArtwork: .homeAndSynchronization
+                        size: 76
                     )
                 case .system(let name):
                     Image(systemName: name)

@@ -361,7 +361,7 @@ def build_story() -> list:
                             "Lit les bibliothèques Safari et les profils Chrome que vous autorisez.",
                             "Permet de sélectionner les profils, dossiers et favoris à synchroniser.",
                             "Présente les différences avant toute modification.",
-                            "Crée une sauvegarde restaurable avant chaque écriture.",
+                            "Crée une sauvegarde restaurable de Safari ou de Chrome avant chaque écriture.",
                         ]
                     ),
                     heading("Une approche prudente"),
@@ -492,8 +492,9 @@ def build_story() -> list:
                     ),
                     heading("Plusieurs profils Chrome"),
                     paragraph(
-                        "Chaque profil conserve sa propre bibliothèque. Sélectionnez le profil "
-                        "correspondant à votre usage courant. Un profil contenant simultanément "
+                        "Chaque profil conserve sa propre bibliothèque. La synchronisation utilise "
+                        "le profil local sélectionné comme source ou comme cible. Un profil "
+                        "contenant simultanément "
                         "un stockage local et un stockage de compte actifs reste en lecture seule."
                     ),
                 ],
@@ -521,6 +522,12 @@ def build_story() -> list:
                         "Sélection explicite",
                         "Un élément décoché est entièrement ignoré par la comparaison et la "
                         "transaction. Il n’est jamais supprimé uniquement parce qu’il est décoché.",
+                    ),
+                    heading("Opérations prises en charge"),
+                    paragraph(
+                        "Selon le sens et la sélection, l’aperçu peut proposer des créations, "
+                        "suppressions, déplacements, renommages et mises à jour d’adresse dans "
+                        "le navigateur cible. Rien n’est appliqué avant votre confirmation."
                     ),
                     heading("Après l’application"),
                     paragraph(
@@ -551,7 +558,7 @@ def build_story() -> list:
                         [
                             "Aucun favori n’est transmis sur le réseau.",
                             "Chrome AccountBookmarks reste en lecture seule.",
-                            "Une sauvegarde précède toute modification du navigateur cible.",
+                            "Une sauvegarde de Safari ou de Chrome précède toute modification du navigateur cible.",
                             "Safari et Chrome doivent être fermés pendant l’écriture ou la restauration.",
                         ]
                     ),
@@ -591,8 +598,17 @@ def build_story() -> list:
                     KeepTogether([
                         heading("Puis-je synchroniser plusieurs profils Chrome ?"),
                         paragraph(
-                            "Oui. La sélection permet de conserver ou d’exclure chaque profil Chrome, "
-                            "puis d’affiner le choix dossier par dossier et favori par favori."
+                            "Oui. Chaque synchronisation utilise un profil Chrome local précis "
+                            "comme source ou cible. Choisissez son nom, puis affinez la sélection "
+                            "dossier par dossier et favori par favori."
+                        ),
+                    ]),
+                    KeepTogether([
+                        heading("Que se passe-t-il si je supprime un favori ?"),
+                        paragraph(
+                            "L’aperçu peut proposer sa suppression dans le navigateur cible afin "
+                            "de refléter la source sélectionnée. Elle n’est appliquée qu’après "
+                            "confirmation et sauvegarde de la cible."
                         ),
                     ]),
                     KeepTogether([
@@ -649,7 +665,7 @@ def build_story() -> list:
                             "Fermez Safari et Chrome avant une synchronisation ou une restauration.",
                             "Ne déplacez pas les fichiers des navigateurs pendant une opération.",
                             "Commencez par un profil Chrome dont vous connaissez le contenu.",
-                            "Après une synchronisation, vérifiez quelques favoris dans le navigateur cible.",
+                            "Après une synchronisation, vérifiez quelques favoris dans Safari ou dans le profil Chrome cible.",
                             "Conservez l’application à jour et consultez Nouveautés après une mise à niveau.",
                         ]
                     ),
@@ -677,7 +693,8 @@ def build_story() -> list:
                             "<b>Aperçu</b> : simulation lisible des changements, sans écriture.",
                             "<b>Bibliothèque</b> : ensemble des favoris et dossiers d’un navigateur.",
                             "<b>Profil Chrome</b> : espace utilisateur Chrome possédant ses propres favoris.",
-                            "<b>Sauvegarde</b> : copie restaurable créée avant une écriture.",
+                            "<b>Sauvegarde</b> : copie restaurable de la bibliothèque cible créée avant une écriture.",
+                            "<b>Sens</b> : choix Safari vers Chrome ou Chrome vers Safari qui détermine la source et la cible.",
                             "<b>Sélection</b> : périmètre explicite des éléments inclus dans la synchronisation.",
                         ]
                     ),

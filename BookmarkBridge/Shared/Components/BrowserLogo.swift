@@ -5,45 +5,19 @@
 
 import SwiftUI
 
-enum ChromeLogoArtwork {
-    case standard
-    case homeAndSynchronization
-
-    var assetName: String {
-        switch self {
-        case .standard:
-            "ChromeLogo"
-        case .homeAndSynchronization:
-            "ChromeHomeSynchronizationLogo"
-        }
-    }
-
-    var displayScale: CGFloat {
-        switch self {
-        case .standard:
-            1
-        case .homeAndSynchronization:
-            // The source artwork occupies 441 of its 500 transparent pixels.
-            // Match Safari's existing 76% visible diameter without altering it.
-            380.0 / 441.0
-        }
-    }
-}
-
 /// Consistent Safari/Chrome artwork while preserving each official mark.
 struct BrowserLogo: View {
+    static let chromeAssetName = "ChromeHomeSynchronizationLogo"
+
     let browser: Browser
     let size: CGFloat
-    let chromeArtwork: ChromeLogoArtwork
 
     init(
         browser: Browser,
-        size: CGFloat,
-        chromeArtwork: ChromeLogoArtwork = .standard
+        size: CGFloat
     ) {
         self.browser = browser
         self.size = size
-        self.chromeArtwork = chromeArtwork
     }
 
     var body: some View {
@@ -57,7 +31,7 @@ struct BrowserLogo: View {
                     .foregroundStyle(.tint)
                     .padding(size * 0.12)
             case .chrome:
-                Image(chromeArtwork.assetName)
+                Image(Self.chromeAssetName)
                     .resizable()
                     .interpolation(.high)
                     .scaledToFit()
@@ -67,7 +41,8 @@ struct BrowserLogo: View {
                             style: .continuous
                         )
                     )
-                    .scaleEffect(chromeArtwork.displayScale)
+                    // The artwork occupies 441 of its 500 transparent pixels.
+                    .scaleEffect(380.0 / 441.0)
             }
         }
         .frame(width: size, height: size)

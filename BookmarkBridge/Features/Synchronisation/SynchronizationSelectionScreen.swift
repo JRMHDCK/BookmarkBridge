@@ -94,8 +94,7 @@ struct SynchronizationSelectionScreen: View {
                 )
                 BrowserLogo(
                     browser: source.source.browser,
-                    size: 26,
-                    chromeArtwork: .homeAndSynchronization
+                    size: 26
                 )
                 Text(source.source.displayName)
                     .font(.headline)
