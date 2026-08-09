@@ -190,13 +190,31 @@ final class BookmarkBridgeUITests: XCTestCase {
             "BOOKMARKBRIDGE_UI_TEST_SKIP_ONBOARDING"
         ] = "1"
         app.launch()
+        dismissBrowserClosureIfNeeded(in: app)
+        app.activate()
+        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 5))
 
         let appMenu = app.menuBars.menuBarItems["BookmarkBridge"]
+        XCTAssertTrue(appMenu.waitForExistence(timeout: 5))
         appMenu.click()
-        appMenu.menus.menuItems["À propos de BookmarkBridge"].click()
+        let aboutLabels = [
+            "About BookmarkBridge",
+            "À propos de BookmarkBridge",
+            "Acerca de BookmarkBridge",
+            "Über BookmarkBridge",
+            "Informazioni su BookmarkBridge",
+            "Sobre o BookmarkBridge",
+            "Over BookmarkBridge",
+            "Informacje o BookmarkBridge",
+        ]
+        let about = app.menuItems.matching(
+            NSPredicate(format: "title IN %@", aboutLabels)
+        ).firstMatch
+        XCTAssertTrue(about.waitForExistence(timeout: 3))
+        about.click()
 
         XCTAssertTrue(
-            app.images["Logo BookmarkBridge"]
+            app.images["about.applicationIcon"]
                 .waitForExistence(timeout: 3)
         )
     }

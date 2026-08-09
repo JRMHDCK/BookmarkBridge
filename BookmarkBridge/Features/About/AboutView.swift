@@ -21,6 +21,9 @@ struct AboutView: View {
                         .accessibilityLabel(
                             DocumentationText.value("about.logo")
                         )
+                        .accessibilityIdentifier(
+                            "about.applicationIcon"
+                        )
                     Text(DocumentationText.value("about.name"))
                         .font(Theme.Typography.screenTitle)
                     Text(versionDescription)
