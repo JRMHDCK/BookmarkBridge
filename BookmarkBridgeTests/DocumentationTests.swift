@@ -175,25 +175,36 @@ struct DocumentationTests {
         }
     }
 
-    @Test("Technical failures receive user-facing guidance")
+    @Test("Technical failures receive guidance in all eight languages")
     func errorsReceiveGuidance() {
-        let closedChrome =
-            UserFacingErrorPresentation.presentation(
-                for: "Safari et Chrome doivent être fermés."
-            )
-        let authorization =
-            UserFacingErrorPresentation.presentation(
-                for: "Accès refusé."
-            )
+        let expectations = [
+            ("sync.closeBrowsers.error", "error.chromeRunning.title"),
+            ("error.multipleStores.short", "error.multipleStores.title"),
+            ("error.bookmarksFileMissing.short", "error.sourceMissing.title"),
+            ("error.fileAccessDenied.short", "error.authorization.title"),
+            ("error.fileUnreadable.short", "error.unreadable.title"),
+            ("preview.calculationFailed", "error.preview.title"),
+            ("sync.cancelled", "error.cancelled.title"),
+            ("sync.backup.failure", "error.backup.title"),
+            ("restore.failure.short", "error.restore.title"),
+            ("sync.failure.short", "error.synchronization.title"),
+            ("error.unsupportedBrowser.short", "error.unsupportedBrowser.title"),
+        ]
 
-        #expect(
-            closedChrome.titleKey
-                == "error.chromeRunning.title"
-        )
-        #expect(
-            authorization.titleKey
-                == "error.authorization.title"
-        )
+        for language in AppLanguage.localizedLanguages {
+            for (messageKey, titleKey) in expectations {
+                let message = DocumentationText.value(
+                    messageKey,
+                    language: language
+                )
+                #expect(
+                    UserFacingErrorPresentation.presentation(
+                        for: message
+                    ).titleKey == titleKey,
+                    "\(messageKey) failed in \(language.rawValue)"
+                )
+            }
+        }
     }
 
     @Test("Documentation routes inside the main window")

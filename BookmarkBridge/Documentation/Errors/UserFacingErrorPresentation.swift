@@ -19,53 +19,82 @@ struct UserFacingErrorPresentation: Sendable {
     )
 
     static func presentation(for message: String) -> Self {
-        if message.localizedCaseInsensitiveContains(
-            "Safari et Chrome doivent être fermés"
-        ) {
+        if containsLocalized(message, keys: [
+            "sync.closeBrowsers.error",
+            "sync.closeBeforeRestore",
+        ]) {
             return preset("chromeRunning")
         }
-        if message.localizedCaseInsensitiveContains("Deux stockages") {
+        if containsLocalized(message, keys: ["error.multipleStores.short"]) {
             return preset("multipleStores")
         }
-        if message.localizedCaseInsensitiveContains("introuvable") {
+        if containsLocalized(
+            message,
+            keys: ["error.bookmarksFileMissing.short"]
+        ) {
             return preset("sourceMissing")
         }
-        if message.localizedCaseInsensitiveContains("Accès refusé")
-            || message.localizedCaseInsensitiveContains(
-                "profil Chrome en écriture"
-            ) {
+        if containsLocalized(message, keys: [
+            "error.fileAccessDenied.short",
+            "sync.chromeWriteAccess.failure",
+        ]) {
             return authorization
         }
-        if message.localizedCaseInsensitiveContains("Format") {
+        if containsLocalized(message, keys: ["error.fileUnreadable.short"]) {
             return preset("unreadable")
         }
-        if message.localizedCaseInsensitiveContains("prévisualisation") {
+        if containsLocalized(message, keys: ["preview.calculationFailed"]) {
             return preset("preview")
         }
-        if message.localizedCaseInsensitiveContains("annulée") {
+        if containsLocalized(message, keys: ["sync.cancelled"]) {
             return preset("cancelled")
         }
-        if message.localizedCaseInsensitiveContains("Bookmarks.bak")
-            || message.localizedCaseInsensitiveContains(
-                "créer la sauvegarde"
-            ) {
+        if containsLocalized(message, keys: [
+            "sync.backup.failure",
+            "sync.backupBak.failure",
+            "sync.failure.backup",
+        ]) {
             return preset("backup")
         }
-        if message.localizedCaseInsensitiveContains("restaurer") {
+        if containsLocalized(message, keys: [
+            "restore.failure.short",
+            "sync.failure.restoration",
+        ]) {
             return preset("restore")
         }
-        if message.localizedCaseInsensitiveContains("synchronisation")
-            || message.localizedCaseInsensitiveContains(
-                "favoris Chrome"
-            ) {
+        if containsLocalized(message, keys: [
+            "sync.failure.short",
+            "sync.failure.execution",
+            "sync.failure.finalValidation",
+            "sync.failure.generic",
+        ]) {
             return preset("synchronization")
         }
-        if message.localizedCaseInsensitiveContains(
-            "Navigateur non pris en charge"
+        if containsLocalized(
+            message,
+            keys: ["error.unsupportedBrowser.short"]
         ) {
             return preset("unsupportedBrowser")
         }
         return preset("generic")
+    }
+
+    private static func containsLocalized(
+        _ message: String,
+        keys: [String]
+    ) -> Bool {
+        AppLanguage.localizedLanguages.contains { language in
+            keys.contains { key in
+                let value = DocumentationText.value(
+                    key,
+                    language: language
+                )
+                let fragment = value.components(separatedBy: "%")[0]
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                return !fragment.isEmpty
+                    && message.localizedCaseInsensitiveContains(fragment)
+            }
+        }
     }
 
     private static func preset(_ identifier: String) -> Self {
