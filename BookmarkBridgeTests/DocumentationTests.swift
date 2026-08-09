@@ -60,6 +60,23 @@ struct DocumentationTests {
         )
     }
 
+    @Test("Help search uses the explicitly selected language")
+    func searchMatchingHelpSectionsReturnsRelevantHelpContent() {
+        let language = AppLanguage.english
+        let matchingKey = "help.profiles.ambiguous.title"
+        let query = DocumentationText.value(
+            matchingKey,
+            language: language
+        )
+
+        let results = HelpCatalog.search(query, language: language)
+
+        #expect(results.map(\.id) == [.chromeProfiles])
+        #expect(
+            results.first?.searchableKeys.contains(matchingKey) == true
+        )
+    }
+
     @Test("Onboarding has the complete eight-step journey")
     func onboardingIsComplete() {
         #expect(OnboardingContent.steps.count == 8)
@@ -204,6 +221,37 @@ struct DocumentationTests {
                     "\(messageKey) failed in \(language.rawValue)"
                 )
             }
+        }
+    }
+
+    @Test("Chrome profile ambiguity exposes a localized fix-it")
+    func localizationReturnsLocalizedChromeProfileAmbiguityFixIt() {
+        for language in AppLanguage.localizedLanguages {
+            let message = DocumentationText.value(
+                "error.multipleStores.short",
+                language: language
+            )
+            let presentation = UserFacingErrorPresentation.presentation(
+                for: message
+            )
+            let fixIt = DocumentationText.value(
+                presentation.solutionKey,
+                language: language
+            )
+
+            #expect(
+                presentation.solutionKey
+                    == "error.multipleStores.solution",
+                "Wrong fix-it key for \(language.rawValue)"
+            )
+            #expect(
+                fixIt != presentation.solutionKey,
+                "Unresolved fix-it for \(language.rawValue)"
+            )
+            #expect(
+                fixIt.localizedCaseInsensitiveContains("Chrome"),
+                "Fix-it lost its Chrome-profile meaning for \(language.rawValue)"
+            )
         }
     }
 

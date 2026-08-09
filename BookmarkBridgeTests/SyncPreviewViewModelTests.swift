@@ -162,7 +162,9 @@ struct SyncPreviewViewModelTests {
         await model.apply()
         #expect(
             model.applyState
-                == .failed("Safari et Chrome doivent être fermés.")
+                == .failed(
+                    DocumentationText.value("sync.closeBrowsers.error")
+                )
         )
         #expect(model.canRetry)
         #expect(model.canRestore == false)
@@ -190,7 +192,9 @@ struct SyncPreviewViewModelTests {
 
         #expect(
             model.applyState
-                == .failed("Safari et Chrome doivent être fermés.")
+                == .failed(
+                    DocumentationText.value("sync.closeBrowsers.error")
+                )
         )
         #expect(model.canRestore)
     }
@@ -252,7 +256,9 @@ struct SyncPreviewViewModelTests {
 
         #expect(
             model.applyState
-                == .failed("Safari et Chrome doivent être fermés.")
+                == .failed(
+                    DocumentationText.value("sync.closeBrowsers.error")
+                )
         )
         #expect(model.canRestore)
         #expect(backupStore.restored.isEmpty)
@@ -345,7 +351,12 @@ struct SyncPreviewViewModelTests {
         ])
 
         await model.apply()
-        #expect(model.applyState == .failed("Impossible de mettre à jour les favoris Chrome."))
+        #expect(
+            model.applyState
+                == .failed(
+                    DocumentationText.value("sync.chromeUpdate.failure")
+                )
+        )
         #expect(model.canRestore)
 
         await model.restore()
