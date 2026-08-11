@@ -54,6 +54,9 @@ struct ApplicationNavigationView: View {
             await model.loadIfNeeded()
         }
         .onAppear {
+            if opensHelpCenterForUITests {
+                documentationRouter.request(.introduction)
+            }
             if skipsOnboardingForUITests {
                 presentsOnboarding = false
             } else {
@@ -103,6 +106,23 @@ struct ApplicationNavigationView: View {
         } message: {
             Text(model.browserClosureError ?? "")
         }
+        .alert(
+            DocumentationText.value("bugReport.failure.title"),
+            isPresented: Binding(
+                get: { model.bugReporting.failure != nil },
+                set: { isPresented in
+                    if !isPresented {
+                        model.bugReporting.dismissFailure()
+                    }
+                }
+            )
+        ) {
+            Button(DocumentationText.value("action.ok")) {
+                model.bugReporting.dismissFailure()
+            }
+        } message: {
+            Text(bugReportFailureMessage)
+        }
     }
 
     private var screenSelection: Binding<ApplicationScreen> {
@@ -121,7 +141,14 @@ struct ApplicationNavigationView: View {
         case .application:
             destination(for: model.selection)
         case .helpCenter:
-            HelpCenterView()
+            HelpCenterView(
+                isReportingBug: model.bugReporting.isPreparing,
+                isBugReportDraftOpened:
+                    model.bugReporting.isDraftOpened,
+                onReportBug: {
+                    await model.reportBug(origin: .helpCenter)
+                }
+            )
         case .whatsNew:
             WhatsNewView()
         case .about:
@@ -138,6 +165,18 @@ struct ApplicationNavigationView: View {
     private var skipsOnboardingForUITests: Bool {
         ProcessInfo.processInfo.environment[
             DocumentationPreferences.onboardingUITestSkipEnvironmentKey
+        ] == "1"
+    }
+
+    private var opensHelpCenterForUITests: Bool {
+        ProcessInfo.processInfo.environment[
+            DocumentationPreferences.helpCenterUITestEnvironmentKey
+        ] == "1"
+    }
+
+    private var opensHelpAfterBugReportForUITests: Bool {
+        ProcessInfo.processInfo.environment[
+            DocumentationPreferences.helpAfterBugReportUITestEnvironmentKey
         ] == "1"
     }
 
@@ -162,6 +201,9 @@ struct ApplicationNavigationView: View {
                 onReload: { await model.reloadDashboard() },
                 onAuthorize: { await model.authorize($0) },
                 onRetry: { await model.retry($0) },
+                onReportError: { context in
+                    await reportContextualBug(context: context)
+                },
                 onShowSynchronization: {
                     model.showSynchronization()
                 }
@@ -177,7 +219,10 @@ struct ApplicationNavigationView: View {
                 onReloadDirection: {
                     await model.reload(direction: $0)
                 },
-                onSynchronize: { await model.synchronize() }
+                onSynchronize: { await model.synchronize() },
+                onReportError: {
+                    await reportContextualBug()
+                }
             )
         case .bookmarkAccess:
             BookmarkAccessView(
@@ -191,6 +236,34 @@ struct ApplicationNavigationView: View {
             SettingsView()
         case .about:
             AboutView()
+        }
+    }
+
+    private var bugReportFailureMessage: String {
+        switch model.bugReporting.failure {
+        case .reportGeneration:
+            DocumentationText.value("bugReport.failure.generation")
+        case .mailClientUnavailable:
+            DocumentationText.value("bugReport.failure.mailClient")
+        case nil:
+            ""
+        }
+    }
+
+    private func reportContextualBug(
+        context: DiagnosticContext? = nil
+    ) async {
+        if let context {
+            await model.reportBug(
+                origin: .contextualError,
+                context: context
+            )
+        } else {
+            await model.reportBug(origin: .contextualError)
+        }
+        if opensHelpAfterBugReportForUITests,
+           model.bugReporting.isDraftOpened {
+            documentationRouter.request(.introduction)
         }
     }
 }

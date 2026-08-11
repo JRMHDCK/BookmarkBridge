@@ -61,7 +61,7 @@ Utiliser `git log --oneline` pour l'historique complet et les commits de détail
 
 ## État actuel
 
-- Version configurée : `0.9.2` (build `1`), bêta publique `v0.9.2-beta`.
+- Version configurée : `0.9.3` (build `1`), bêta publique `v0.9.3-beta`.
 - Cible : macOS 26.5+, Swift 6, concurrence stricte.
 - Configurations Xcode : Debug et Release ; Release compile en whole-module,
   génère un dSYM, retire les symboles du produit installé et élimine le code mort.
@@ -73,6 +73,9 @@ Utiliser `git log --oneline` pour l'historique complet et les commits de détail
 - Aperçu obligatoire, fermeture du navigateur cible, sauvegarde, écriture atomique,
   validation, idempotence et restauration sont en place.
 - Chrome `AccountBookmarks` reste en lecture seule.
+- Le signalement de bugs est intégré : journal local borné, rapport privé,
+  identifiant `BB-XXXXXX`, boutons manuel et contextuel, brouillon Apple Mail
+  pré-rempli et pièce jointe lorsque le système le permet.
 - Interface, navigation, moteur BSE et logique métier sont gelés.
 - La plateforme QA s'exécute avec `QA/Scripts/run-qa.sh`.
 
@@ -111,7 +114,12 @@ l'idempotence, la réversibilité et les garde-fous liés aux navigateurs.
 
 ## Prochaines étapes
 
-La prochaine étape de livraison est la préparation opérationnelle de la bêta :
+Le lot prioritaire de
+[remontée des bugs utilisateurs](../Docs/LOT-REMONTEE-BUGS-UTILISATEURS.md)
+est terminé et validé. Il fournit un rapport local respectueux de la vie privée
+et un e-mail pré-rempli, sans télémétrie ni envoi automatique.
+
+La préparation opérationnelle de la bêta reprendra ensuite :
 
 1. configurer l'identité de signature et le profil de distribution ;
 2. produire, signer et notariser l'archive Release ;

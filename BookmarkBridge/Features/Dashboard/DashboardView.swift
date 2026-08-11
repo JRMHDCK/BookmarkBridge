@@ -27,6 +27,7 @@ struct DashboardView: View {
     let onReload: (@MainActor () async -> Void)?
     let onAuthorize: (@MainActor (Browser) async -> Void)?
     let onRetry: (@MainActor (BookmarkSourceID) async -> Void)?
+    let onReportError: (@MainActor (DiagnosticContext) async -> Void)?
     let onShowSynchronization: (() -> Void)?
 
     init(
@@ -38,6 +39,8 @@ struct DashboardView: View {
         onReload: (@MainActor () async -> Void)? = nil,
         onAuthorize: (@MainActor (Browser) async -> Void)? = nil,
         onRetry: (@MainActor (BookmarkSourceID) async -> Void)? = nil,
+        onReportError:
+            (@MainActor (DiagnosticContext) async -> Void)? = nil,
         onShowSynchronization: (() -> Void)? = nil
     ) {
         _viewModel = State(initialValue: viewModel)
@@ -50,6 +53,7 @@ struct DashboardView: View {
         self.onReload = onReload
         self.onAuthorize = onAuthorize
         self.onRetry = onRetry
+        self.onReportError = onReportError
         self.onShowSynchronization = onShowSynchronization
     }
 
@@ -142,6 +146,7 @@ struct DashboardView: View {
 
                 DashboardSynchronizationCard(
                     summary: synchronizationSummary,
+                    onReportError: reportPreviewError,
                     onShowSynchronization: onShowSynchronization
                 )
 
@@ -191,6 +196,9 @@ struct DashboardView: View {
                                     },
                                     onRetry: {
                                         Task { await retry(entry.id) }
+                                    },
+                                    onReportError: {
+                                        reportSourceError()
                                     }
                                 )
                                 if index < viewModel.sources.count - 1 {
@@ -244,6 +252,26 @@ struct DashboardView: View {
             await onRetry(sourceID)
         } else {
             await viewModel.retry(sourceID)
+        }
+    }
+
+    private func reportPreviewError() {
+        guard let onReportError else { return }
+        Task {
+            await onReportError(DiagnosticContext(stage: .preview))
+        }
+    }
+
+    private func reportSourceError() {
+        guard let onReportError else { return }
+        Task {
+            await onReportError(
+                DiagnosticContext(
+                    stage: .sourceRead,
+                    errorType: .reading,
+                    errorCode: .unknown
+                )
+            )
         }
     }
 }
@@ -380,6 +408,7 @@ private struct ApplicationAuthorizationCard: View {
 
 private struct DashboardSynchronizationCard: View {
     let summary: DashboardSynchronizationSummary
+    let onReportError: (() -> Void)?
     let onShowSynchronization: (() -> Void)?
 
     var body: some View {
@@ -441,7 +470,11 @@ private struct DashboardSynchronizationCard: View {
             )
             .foregroundStyle(Theme.Palette.green)
         case .failed(let message):
-            ErrorStateView(message: message, onRetry: nil)
+            ErrorStateView(
+                message: message,
+                onRetry: nil,
+                onReportError: onReportError
+            )
         }
     }
 
@@ -460,6 +493,7 @@ private struct SourceRow: View {
     let tree: BookmarkTree?
     let onAuthorize: () -> Void
     let onRetry: () -> Void
+    let onReportError: () -> Void
 
     var body: some View {
         HStack(alignment: .top, spacing: Theme.Spacing.l) {
@@ -495,7 +529,11 @@ private struct SourceRow: View {
         case .authorizationRequired:
             authorizationRequiredState
         case .failed(let message):
-            ErrorStateView(message: message, onRetry: onRetry)
+            ErrorStateView(
+                message: message,
+                onRetry: onRetry,
+                onReportError: onReportError
+            )
                 .accessibilityLabel(
                     DocumentationText.formatted(
                         "dashboard.sourceError",

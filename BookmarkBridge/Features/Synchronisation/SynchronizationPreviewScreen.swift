@@ -12,6 +12,7 @@ struct SynchronizationPreviewScreen: View {
     let isAuthorized: Bool
     let onReload: @MainActor () async -> Void
     let onSynchronize: @MainActor () async -> Bool
+    let onReportError: @MainActor () async -> Void
     let onBack: (() -> Void)?
     let allowsSynchronization: Bool
 
@@ -20,6 +21,7 @@ struct SynchronizationPreviewScreen: View {
         isAuthorized: Bool,
         onReload: @escaping @MainActor () async -> Void,
         onSynchronize: @escaping @MainActor () async -> Bool,
+        onReportError: @escaping @MainActor () async -> Void,
         onBack: (() -> Void)? = nil,
         allowsSynchronization: Bool = true
     ) {
@@ -27,6 +29,7 @@ struct SynchronizationPreviewScreen: View {
         self.isAuthorized = isAuthorized
         self.onReload = onReload
         self.onSynchronize = onSynchronize
+        self.onReportError = onReportError
         self.onBack = onBack
         self.allowsSynchronization = allowsSynchronization
     }
@@ -136,8 +139,29 @@ struct SynchronizationPreviewScreen: View {
                 .foregroundStyle(.secondary)
                 .textSelection(.enabled)
                 .fixedSize(horizontal: false, vertical: true)
+            HStack(spacing: Theme.Spacing.s) {
+                SecondaryActionButton(
+                    DocumentationText.value("action.retry")
+                ) {
+                    Task { _ = await onSynchronize() }
+                }
+                SecondaryActionButton(
+                    DocumentationText.value(
+                        "bugReport.action.reportError"
+                    ),
+                    systemImage: "ladybug"
+                ) {
+                    Task { await onReportError() }
+                }
+                .accessibilityIdentifier("bug-report.contextual")
+                .accessibilityHint(
+                    DocumentationText.value(
+                        "bugReport.accessibility.hint"
+                    )
+                )
+            }
         }
-        .accessibilityElement(children: .combine)
+        .accessibilityElement(children: .contain)
     }
 
     @ViewBuilder
@@ -164,7 +188,8 @@ struct SynchronizationPreviewScreen: View {
         case .failed(let message):
             ErrorStateView(
                 message: message,
-                onRetry: { Task { await onReload() } }
+                onRetry: { Task { await onReload() } },
+                onReportError: { Task { await onReportError() } }
             )
         }
     }

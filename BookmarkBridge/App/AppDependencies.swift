@@ -25,6 +25,10 @@ nonisolated struct AppDependencies {
         any SynchronizationPreviewRequestProviding
     let synchronizationExecutionService:
         any SynchronizationProductionExecuting
+    let diagnosticEventStore:
+        any DiagnosticEventRecording & DiagnosticEventReading
+    let diagnosticReportBuilder: any DiagnosticReportBuilding
+    let bugReportEmailComposer: any BugReportEmailComposing
 
     /// Shared store for the persisted security-scoped bookmarks. Exposed so the
     /// app-layer authorization flow persists to the same location the providers
@@ -43,6 +47,10 @@ nonisolated struct AppDependencies {
             any SynchronizationPreviewRequestProviding,
         synchronizationExecutionService:
             any SynchronizationProductionExecuting,
+        diagnosticEventStore:
+            any DiagnosticEventRecording & DiagnosticEventReading,
+        diagnosticReportBuilder: any DiagnosticReportBuilding,
+        bugReportEmailComposer: any BugReportEmailComposing,
         bookmarkStore: BookmarkStore,
         bookmarkCreator: SecurityScopedBookmarkCreating
     ) {
@@ -54,6 +62,9 @@ nonisolated struct AppDependencies {
             synchronizationPreviewRequestProvider
         self.synchronizationExecutionService =
             synchronizationExecutionService
+        self.diagnosticEventStore = diagnosticEventStore
+        self.diagnosticReportBuilder = diagnosticReportBuilder
+        self.bugReportEmailComposer = bugReportEmailComposer
         self.bookmarkStore = bookmarkStore
         self.bookmarkCreator = bookmarkCreator
     }
@@ -65,6 +76,13 @@ extension AppDependencies {
     /// bookmarks.
     static func bootstrap() -> AppDependencies {
         let store = ApplicationSupportBookmarkStore.inApplicationSupport()
+        let diagnosticEventStore =
+            FileDiagnosticEventStore.inApplicationSupport()
+        let diagnosticReportBuilder = DefaultDiagnosticReportBuilder(
+            eventReader: diagnosticEventStore,
+            application: DiagnosticEnvironment.applicationInfo(),
+            system: DiagnosticEnvironment.systemInfo()
+        )
         let creator = SystemSecurityScopedBookmarkCreator()
         let resolver = SystemSecurityScopedBookmarkResolver()
         let safariLocator = AuthorizedBookmarkSourceLocator(
@@ -155,6 +173,9 @@ extension AppDependencies {
                 ),
             synchronizationExecutionService:
                 synchronizationExecutionService,
+            diagnosticEventStore: diagnosticEventStore,
+            diagnosticReportBuilder: diagnosticReportBuilder,
+            bugReportEmailComposer: DefaultBugReportEmailComposer.systemDefault(),
             bookmarkStore: store,
             bookmarkCreator: creator
         )

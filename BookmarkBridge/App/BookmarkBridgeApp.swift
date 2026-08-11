@@ -68,6 +68,35 @@ struct BookmarkBridgeApp: App {
             fileController: fileController,
             requester: requester
         )
+        let bugReportEmailComposer: any BugReportEmailComposing
+        #if DEBUG
+        if ProcessInfo.processInfo.environment[
+            "BOOKMARKBRIDGE_UI_TEST_BUG_REPORT_COMPOSER"
+        ] == "1" {
+            bugReportEmailComposer = UITestBugReportEmailComposer()
+        } else {
+            bugReportEmailComposer = dependencies.bugReportEmailComposer
+        }
+        #else
+        bugReportEmailComposer = dependencies.bugReportEmailComposer
+        #endif
+        let synchronizationViewModel = SynchronizationViewModel(
+            previewService:
+                dependencies.synchronizationPreviewService,
+            requestProvider:
+                dependencies.synchronizationPreviewRequestProvider,
+            executionService:
+                dependencies.synchronizationExecutionService,
+            preferencesStore: preferencesStore,
+            diagnosticRecorder: dependencies.diagnosticEventStore
+        )
+        #if DEBUG
+        if ProcessInfo.processInfo.environment[
+            "BOOKMARKBRIDGE_UI_TEST_SYNC_FAILURE"
+        ] == "1" {
+            synchronizationViewModel.showFailureForUITesting()
+        }
+        #endif
         applicationViewModel = ApplicationViewModel(
             dashboard: DashboardViewModel(
                 providers: dependencies.providers,
@@ -80,14 +109,10 @@ struct BookmarkBridgeApp: App {
                 service: bookmarkAccessService,
                 selectionStore: preferencesStore
             ),
-            synchronization: SynchronizationViewModel(
-                previewService:
-                    dependencies.synchronizationPreviewService,
-                requestProvider:
-                    dependencies.synchronizationPreviewRequestProvider,
-                executionService:
-                    dependencies.synchronizationExecutionService,
-                preferencesStore: preferencesStore
+            synchronization: synchronizationViewModel,
+            bugReporting: BugReportViewModel(
+                reportBuilder: dependencies.diagnosticReportBuilder,
+                emailComposer: bugReportEmailComposer
             ),
             browserOperationGuard: BrowserOperationGuard(
                 lifecycleController: SystemBrowserLifecycleController()

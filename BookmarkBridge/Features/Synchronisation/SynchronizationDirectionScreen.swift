@@ -15,6 +15,7 @@ struct SynchronizationDirectionScreen: View {
     let onReloadDirection:
         @MainActor (ProductionSynchronizationDirection) async -> Void
     let onSynchronize: @MainActor () async -> Bool
+    let onReportError: @MainActor () async -> Void
 
     @State private var showsPreview = false
 
@@ -49,6 +50,7 @@ struct SynchronizationDirectionScreen: View {
                     await onReloadDirection(direction)
                 },
                 onSynchronize: onSynchronize,
+                onReportError: onReportError,
                 onBack: { showsPreview = false },
                 allowsSynchronization: true
             )

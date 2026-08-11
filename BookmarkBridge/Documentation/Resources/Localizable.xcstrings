@@ -4189,6 +4189,801 @@
         }
       }
     },
+    "bugReport.accessibility.hint" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erstellt einen datenschutzfreundlichen Diagnosebericht und öffnet einen E-Mail-Entwurf."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Creates a privacy-safe diagnostic report and opens an e-mail draft."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crea un informe de diagnóstico respetuoso con la privacidad y abre un borrador de correo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crée un rapport de diagnostic respectueux de la confidentialité et ouvre un brouillon d’e-mail."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crea un rapporto diagnostico rispettoso della privacy e apre una bozza e-mail."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maakt een privacyveilig diagnoserapport en opent een e-mailconcept."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tworzy bezpieczny dla prywatności raport diagnostyczny i otwiera szkic wiadomości."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cria um relatório de diagnóstico seguro para a privacidade e abre um rascunho de e-mail."
+          }
+        }
+      }
+    },
+    "bugReport.action.reportBug" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fehler melden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Report a Bug"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Informar de un error"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Signaler un bug"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Segnala un bug"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Een bug melden"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zgłoś błąd"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comunicar um erro"
+          }
+        }
+      }
+    },
+    "bugReport.action.reportError" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diesen Fehler melden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Report This Error"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Informar de este error"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Signaler cette erreur"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Segnala questo errore"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deze fout melden"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zgłoś ten błąd"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comunicar este erro"
+          }
+        }
+      }
+    },
+    "bugReport.email.attachmentNotice" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der vollständige technische Bericht ist dieser Nachricht beigefügt."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The complete technical report is attached to this message."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El informe técnico completo está adjunto a este mensaje."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le rapport technique complet est joint à ce message."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il rapporto tecnico completo è allegato a questo messaggio."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Het volledige technische rapport is bij dit bericht gevoegd."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pełny raport techniczny jest dołączony do tej wiadomości."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O relatório técnico completo está anexado a esta mensagem."
+          }
+        }
+      }
+    },
+    "bugReport.email.body" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hallo,\\n\\nBeschreiben Sie kurz, was Sie unmittelbar vor dem Problem beobachtet haben:\\n\\n\\n---\\nBerichts-ID: %@\\nBookmarkBridge: %@ (Build %@)\\nmacOS: %@ — %@\\nRichtung: %@\\nSchritt: %@\\nFehler: %@ / %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hello,\\n\\nBriefly describe what you observed just before the problem:\\n\\n\\n---\\nReport ID: %@\\nBookmarkBridge: %@ (build %@)\\nmacOS: %@ — %@\\nDirection: %@\\nStage: %@\\nError: %@ / %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hola,\\n\\nDescribe brevemente lo que observaste justo antes del problema:\\n\\n\\n---\\nIdentificador del informe: %@\\nBookmarkBridge: %@ (compilación %@)\\nmacOS: %@ — %@\\nSentido: %@\\nEtapa: %@\\nError: %@ / %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bonjour,\\n\\nDécrivez en une phrase ce que vous avez constaté juste avant le problème :\\n\\n\\n---\\nIdentifiant du rapport : %@\\nBookmarkBridge : %@ (build %@)\\nmacOS : %@ — %@\\nSens : %@\\nÉtape : %@\\nErreur : %@ / %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Salve,\\n\\nDescrivi brevemente ciò che hai osservato subito prima del problema:\\n\\n\\n---\\nID rapporto: %@\\nBookmarkBridge: %@ (build %@)\\nmacOS: %@ — %@\\nDirezione: %@\\nFase: %@\\nErrore: %@ / %@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hallo,\\n\\nBeschrijf kort wat u vlak vóór het probleem hebt waargenomen:\\n\\n\\n---\\nRapport-ID: %@\\nBookmarkBridge: %@ (build %@)\\nmacOS: %@ — %@\\nRichting: %@\\nStap: %@\\nFout: %@ / %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dzień dobry,\\n\\nKrótko opisz, co zaobserwowano bezpośrednio przed problemem:\\n\\n\\n---\\nIdentyfikator raportu: %@\\nBookmarkBridge: %@ (kompilacja %@)\\nmacOS: %@ — %@\\nKierunek: %@\\nEtap: %@\\nBłąd: %@ / %@"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Olá,\\n\\nDescreva brevemente o que observou imediatamente antes do problema:\\n\\n\\n---\\nID do relatório: %@\\nBookmarkBridge: %@ (build %@)\\nmacOS: %@ — %@\\nSentido: %@\\nEtapa: %@\\nErro: %@ / %@"
+          }
+        }
+      }
+    },
+    "bugReport.email.clipboardNotice" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der vollständige technische Bericht wurde in die Zwischenablage kopiert. Fügen Sie ihn vor dem Senden unter dieser Nachricht ein."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The complete technical report was copied to the clipboard. Paste it below this message before sending."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El informe técnico completo se ha copiado al portapapeles. Pégalo debajo de este mensaje antes de enviarlo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le rapport technique complet a été copié dans le presse-papiers. Collez-le sous ce message avant l’envoi."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il rapporto tecnico completo è stato copiato negli appunti. Incollalo sotto questo messaggio prima dell’invio."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Het volledige technische rapport is naar het klembord gekopieerd. Plak het vóór verzending onder dit bericht."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pełny raport techniczny skopiowano do schowka. Wklej go pod tą wiadomością przed wysłaniem."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O relatório técnico completo foi copiado para a área de transferência. Cole-o abaixo desta mensagem antes de enviar."
+          }
+        }
+      }
+    },
+    "bugReport.email.inlineNotice" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der vollständige technische Bericht ist unten enthalten."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The complete technical report is included below."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El informe técnico completo se incluye a continuación."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le rapport technique complet est inclus ci-dessous."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il rapporto tecnico completo è incluso di seguito."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Het volledige technische rapport staat hieronder."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pełny raport techniczny znajduje się poniżej."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O relatório técnico completo está incluído abaixo."
+          }
+        }
+      }
+    },
+    "bugReport.email.privacyNotice" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Bericht enthält automatisch keine Lesezeichen-URLs oder -Titel, Ordner-, Profil- oder Benutzernamen und keine vollständigen lokalen Pfade."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The report automatically contains no bookmark URLs or titles, folder, profile or user names, or complete local paths."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El informe no contiene automáticamente URL ni títulos de favoritos, nombres de carpetas, perfiles o usuarios, ni rutas locales completas."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le rapport ne contient automatiquement aucune URL, aucun titre de favori, aucun nom de dossier, de profil ou d’utilisateur, ni aucun chemin local complet."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il rapporto non contiene automaticamente URL o titoli dei preferiti, nomi di cartelle, profili o utenti, né percorsi locali completi."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Het rapport bevat automatisch geen bladwijzer-URL's of -titels, map-, profiel- of gebruikersnamen en geen volledige lokale paden."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Raport automatycznie nie zawiera adresów URL ani tytułów zakładek, nazw folderów, profili lub użytkowników ani pełnych ścieżek lokalnych."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O relatório não contém automaticamente URLs ou títulos de favoritos, nomes de pastas, perfis ou utilizadores, nem caminhos locais completos."
+          }
+        }
+      }
+    },
+    "bugReport.email.subject" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "[BookmarkBridge][%@] Fehlermeldung"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "[BookmarkBridge][%@] Bug report"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "[BookmarkBridge][%@] Informe de error"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "[BookmarkBridge][%@] Signalement de bug"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "[BookmarkBridge][%@] Segnalazione di bug"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "[BookmarkBridge][%@] Bugmelding"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "[BookmarkBridge][%@] Zgłoszenie błędu"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "[BookmarkBridge][%@] Comunicação de erro"
+          }
+        }
+      }
+    },
+    "bugReport.error.tooltip" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diesen Fehler mit einem Diagnosebericht melden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Report this error with a diagnostic report"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Informar de este error con un informe de diagnóstico"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Signaler cette erreur avec un rapport de diagnostic"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Segnala questo errore con un rapporto diagnostico"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deze fout met een diagnoserapport melden"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zgłoś ten błąd wraz z raportem diagnostycznym"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comunicar este erro com um relatório de diagnóstico"
+          }
+        }
+      }
+    },
+    "bugReport.failure.generation" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Diagnosebericht konnte nicht erstellt werden. Versuchen Sie es erneut."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The diagnostic report could not be created. Please try again."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se ha podido crear el informe de diagnóstico. Inténtalo de nuevo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le rapport de diagnostic n’a pas pu être créé. Réessayez."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile creare il rapporto diagnostico. Riprova."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Het diagnoserapport kon niet worden gemaakt. Probeer het opnieuw."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się utworzyć raportu diagnostycznego. Spróbuj ponownie."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível criar o relatório de diagnóstico. Tente novamente."
+          }
+        }
+      }
+    },
+    "bugReport.failure.mailClient" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kein E-Mail-Entwurf konnte geöffnet werden. Der Bericht bleibt lokal auf diesem Mac."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No e-mail draft could be opened. The report remains local on this Mac."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se ha podido abrir ningún borrador de correo. El informe permanece local en este Mac."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun brouillon d’e-mail n’a pu être ouvert. Le rapport reste local sur ce Mac."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non è stato possibile aprire una bozza e-mail. Il rapporto resta locale su questo Mac."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Er kon geen e-mailconcept worden geopend. Het rapport blijft lokaal op deze Mac."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się otworzyć szkicu wiadomości. Raport pozostaje lokalnie na tym Macu."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível abrir um rascunho de e-mail. O relatório permanece local neste Mac."
+          }
+        }
+      }
+    },
+    "bugReport.failure.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meldung nicht verfügbar"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reporting Unavailable"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Informe no disponible"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Signalement indisponible"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Segnalazione non disponibile"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Melden niet beschikbaar"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zgłaszanie niedostępne"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comunicação indisponível"
+          }
+        }
+      }
+    },
+    "bugReport.help.tooltip" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einen Fehler an den BookmarkBridge-Support melden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Report a problem to BookmarkBridge support"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Informar de un problema al soporte de BookmarkBridge"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Signaler un problème au support BookmarkBridge"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Segnala un problema all’assistenza BookmarkBridge"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Een probleem melden aan BookmarkBridge-ondersteuning"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zgłoś problem do pomocy technicznej BookmarkBridge"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comunicar um problema ao suporte do BookmarkBridge"
+          }
+        }
+      }
+    },
+    "bugReport.value.unavailable" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "nicht verfügbar"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "unavailable"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "no disponible"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "non disponible"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "non disponibile"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "niet beschikbaar"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "niedostępne"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "indisponível"
+          }
+        }
+      }
+    },
     "common.bookmark" : {
       "extractionState" : "manual",
       "localizations" : {

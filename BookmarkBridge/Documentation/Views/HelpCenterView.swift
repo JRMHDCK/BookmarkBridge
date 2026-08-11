@@ -8,6 +8,10 @@ import SwiftUI
 struct HelpCenterView: View {
     @Environment(DocumentationRouter.self) private var router
 
+    let isReportingBug: Bool
+    let isBugReportDraftOpened: Bool
+    let onReportBug: @MainActor () async -> Void
+
     @State private var selection: HelpPageID = .introduction
     @State private var query = ""
     @State private var history: [HelpPageID] = []
@@ -120,6 +124,25 @@ struct HelpCenterView: View {
         }
 
         ToolbarItemGroup(placement: .primaryAction) {
+            Button {
+                Task { await onReportBug() }
+            } label: {
+                Label(
+                    DocumentationText.value("bugReport.action.reportBug"),
+                    systemImage: "ladybug"
+                )
+            }
+            .disabled(isReportingBug)
+            .help(DocumentationText.value("bugReport.help.tooltip"))
+            .accessibilityIdentifier(
+                isBugReportDraftOpened
+                    ? "bug-report.help.ready"
+                    : "bug-report.help"
+            )
+            .accessibilityHint(
+                DocumentationText.value("bugReport.accessibility.hint")
+            )
+
             Button {
                 if let page = HelpCatalog.page(before: selection) {
                     navigate(to: page.id)

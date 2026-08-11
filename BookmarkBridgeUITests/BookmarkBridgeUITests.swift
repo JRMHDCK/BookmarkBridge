@@ -84,6 +84,63 @@ final class BookmarkBridgeUITests: XCTestCase {
     }
 
     @MainActor
+    func testHelpCenterPreparesManualBugReport() throws {
+        let app = XCUIApplication()
+        app.launchEnvironment[
+            "BOOKMARKBRIDGE_UI_TEST_SKIP_ONBOARDING"
+        ] = "1"
+        app.launchEnvironment[
+            "BOOKMARKBRIDGE_UI_TEST_BUG_REPORT_COMPOSER"
+        ] = "1"
+        app.launchEnvironment[
+            "BOOKMARKBRIDGE_UI_TEST_HELP_CENTER"
+        ] = "1"
+        app.launch()
+        dismissBrowserClosureIfNeeded(in: app)
+
+        let reportButton = app.buttons["bug-report.help"].firstMatch
+        XCTAssertTrue(reportButton.waitForExistence(timeout: 3))
+        reportButton.click()
+
+        XCTAssertTrue(
+            app.buttons["bug-report.help.ready"].firstMatch
+                .waitForExistence(timeout: 3)
+        )
+        XCTAssertEqual(app.windows.count, 1)
+    }
+
+    @MainActor
+    func testContextualErrorPreparesBugReport() throws {
+        let app = XCUIApplication()
+        app.launchEnvironment[
+            "BOOKMARKBRIDGE_UI_TEST_SKIP_ONBOARDING"
+        ] = "1"
+        app.launchEnvironment[
+            "BOOKMARKBRIDGE_UI_TEST_BUG_REPORT_COMPOSER"
+        ] = "1"
+        app.launchEnvironment[
+            "BOOKMARKBRIDGE_UI_TEST_SYNC_FAILURE"
+        ] = "1"
+        app.launchEnvironment[
+            "BOOKMARKBRIDGE_UI_TEST_HELP_AFTER_BUG_REPORT"
+        ] = "1"
+        app.launch()
+        dismissBrowserClosureIfNeeded(in: app)
+
+        let reportButton = app.buttons[
+            "bug-report.contextual"
+        ].firstMatch
+        XCTAssertTrue(reportButton.waitForExistence(timeout: 3))
+        reportButton.click()
+
+        XCTAssertTrue(
+            app.buttons["bug-report.help.ready"].firstMatch
+                .waitForExistence(timeout: 3)
+        )
+        XCTAssertEqual(app.windows.count, 1)
+    }
+
+    @MainActor
     func testLanguageChangesImmediatelyAndPersists() throws {
         let app = XCUIApplication()
         app.launchEnvironment[

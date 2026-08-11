@@ -39,6 +39,7 @@ struct ErrorStateView: View {
     let message: String
     var retryTitle: String = DocumentationText.value("action.retry")
     let onRetry: (() -> Void)?
+    var onReportError: (() -> Void)? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.m) {
@@ -48,13 +49,37 @@ struct ErrorStateView: View {
                         for: message
                     )
             )
-            if let onRetry {
-                SecondaryActionButton(retryTitle, action: onRetry)
-                    .help(
-                        DocumentationText.value(
-                            "error.retry.tooltip"
+            if onRetry != nil || onReportError != nil {
+                HStack(spacing: Theme.Spacing.s) {
+                    if let onRetry {
+                        SecondaryActionButton(retryTitle, action: onRetry)
+                            .help(
+                                DocumentationText.value(
+                                    "error.retry.tooltip"
+                                )
+                            )
+                    }
+                    if let onReportError {
+                        SecondaryActionButton(
+                            DocumentationText.value(
+                                "bugReport.action.reportError"
+                            ),
+                            systemImage: "ladybug",
+                            action: onReportError
                         )
-                    )
+                        .help(
+                            DocumentationText.value(
+                                "bugReport.error.tooltip"
+                            )
+                        )
+                        .accessibilityIdentifier("bug-report.contextual")
+                        .accessibilityHint(
+                            DocumentationText.value(
+                                "bugReport.accessibility.hint"
+                            )
+                        )
+                    }
+                }
             }
         }
         .accessibilityElement(children: .contain)

@@ -5,14 +5,18 @@
 
 import Foundation
 import Observation
-#if DEBUG
 import OSLog
-
+#if DEBUG
 private let synchronizationViewModelLogger = Logger(
     subsystem: "fr.jerome.BookmarkBridge",
     category: "Synchronization.ViewModel"
 )
 #endif
+
+private let synchronizationDiagnosticLogger = Logger(
+    subsystem: "fr.jerome.BookmarkBridge",
+    category: "Diagnostics"
+)
 
 /// Read-only boundary used by the UI. The concrete BSE preview service
 /// conforms without introducing a UI dependency into Core.
@@ -23,6 +27,14 @@ nonisolated protocol SynchronizationPreviewProviding: Sendable {
 }
 
 extension SynchronizationPreviewService: SynchronizationPreviewProviding {}
+
+nonisolated enum SynchronizationPreviewRequestError:
+    Error,
+    Equatable,
+    Sendable
+{
+    case readOnlyChromeDestination
+}
 
 /// Executes exactly the BSE preview that the user has seen. The concrete app
 /// implementation confirms the plan and delegates to
@@ -112,6 +124,7 @@ final class SynchronizationViewModel {
     private(set) var state: State = .idle
     private(set) var executionState: ExecutionState = .idle
     private(set) var previewDirection: ProductionSynchronizationDirection?
+    private(set) var diagnosticContext = DiagnosticContext()
     let selection: SynchronizationSelectionViewModel
     let directionNavigation: SynchronizationDirectionNavigation
 
@@ -137,6 +150,8 @@ final class SynchronizationViewModel {
     private let previewService: any SynchronizationPreviewProviding
     private let requestProvider: any SynchronizationPreviewRequestProviding
     private let executionService: (any SynchronizationProductionExecuting)?
+    private let diagnosticRecorder: (any DiagnosticEventRecording)?
+    private let nowProvider: @MainActor @Sendable () -> Date
     private var latestPreviewResult: SynchronizationPreviewResult?
     private var latestSources: (
         safari: SynchronizationSourceSummary,
@@ -152,11 +167,15 @@ final class SynchronizationViewModel {
         executionService:
             (any SynchronizationProductionExecuting)? = nil,
         preferencesStore: any SynchronizationPreferencesStoring =
-            InMemorySynchronizationPreferencesStore()
+            InMemorySynchronizationPreferencesStore(),
+        diagnosticRecorder: (any DiagnosticEventRecording)? = nil,
+        nowProvider: @escaping @MainActor @Sendable () -> Date = Date.init
     ) {
         self.previewService = previewService
         self.requestProvider = requestProvider
         self.executionService = executionService
+        self.diagnosticRecorder = diagnosticRecorder
+        self.nowProvider = nowProvider
         selection = SynchronizationSelectionViewModel(
             preferencesStore: preferencesStore
         )
@@ -166,6 +185,14 @@ final class SynchronizationViewModel {
     }
 
     func reset() {
+        #if DEBUG
+        if ProcessInfo.processInfo.environment[
+            "BOOKMARKBRIDGE_UI_TEST_SYNC_FAILURE"
+        ] == "1" {
+            showFailureForUITesting()
+            return
+        }
+        #endif
         state = .idle
         executionState = .idle
         latestPreviewResult = nil
@@ -214,6 +241,17 @@ final class SynchronizationViewModel {
         chrome: SynchronizationSourceSummary,
         direction: ProductionSynchronizationDirection
     ) async {
+        let startedAt = nowProvider()
+        await recordDiagnosticEvent(DiagnosticEvent(
+            timestamp: startedAt,
+            level: .information,
+            component: .synchronization,
+            stage: .preview,
+            outcome: .started,
+            direction: Self.diagnosticDirection(direction),
+            source: direction == .safariToChrome ? .safariBookmarks : nil,
+            counts: Self.sourceCounts(safari: safari, chrome: chrome)
+        ))
         #if DEBUG
         synchronizationViewModelLogger.debug(
             "\(PreviewDiagnosticsContext.prefix, privacy: .public) stage=load-preview status=starting safariState=loaded safariFolders=\(safari.folderCount, privacy: .public) safariBookmarks=\(safari.bookmarkCount, privacy: .public) safariSource=\(String(describing: safari.source.id), privacy: .public) chromeState=loaded chromeFolders=\(chrome.folderCount, privacy: .public) chromeBookmarks=\(chrome.bookmarkCount, privacy: .public) chromeProfile=\(chrome.source.id.profile ?? "none", privacy: .public) chromeSource=\(String(describing: chrome.source.id), privacy: .public)"
@@ -221,6 +259,8 @@ final class SynchronizationViewModel {
         #endif
         state = .loading
         latestSources = (safari, chrome)
+        var diagnosticSource: DiagnosticSourceCategory? =
+            direction == .safariToChrome ? .safariBookmarks : nil
         do {
             let baseRequest = try await requestProvider.makeRequest(
                 safariSource: safari.source,
@@ -230,6 +270,10 @@ final class SynchronizationViewModel {
             let request = baseRequest.selecting(
                 safari: selection.scope(for: safari.source.id),
                 chrome: selection.scope(for: chrome.source.id)
+            )
+            diagnosticSource = Self.diagnosticSource(
+                direction: direction,
+                request: request
             )
             #if DEBUG
             synchronizationViewModelLogger.debug(
@@ -247,12 +291,38 @@ final class SynchronizationViewModel {
             state = result.totalOperationCount == 0
                 ? .empty(preview)
                 : .loaded(preview)
+            await recordDiagnosticEvent(DiagnosticEvent(
+                timestamp: nowProvider(),
+                level: .information,
+                component: .synchronization,
+                stage: .preview,
+                outcome: .succeeded,
+                direction: Self.diagnosticDirection(direction),
+                source: diagnosticSource,
+                durationMilliseconds: durationSince(startedAt),
+                counts: DiagnosticCounts(
+                    bookmarks: safari.bookmarkCount + chrome.bookmarkCount,
+                    folders: safari.folderCount + chrome.folderCount,
+                    changes: result.logicalDiff.changes.count
+                )
+            ))
             #if DEBUG
             synchronizationViewModelLogger.debug(
                 "\(PreviewDiagnosticsContext.prefix, privacy: .public) stage=load-preview status=success operations=\(result.totalOperationCount, privacy: .public)"
             )
             #endif
         } catch is CancellationError {
+            await recordDiagnosticEvent(DiagnosticEvent(
+                timestamp: nowProvider(),
+                level: .warning,
+                component: .synchronization,
+                stage: .preview,
+                outcome: .cancelled,
+                direction: Self.diagnosticDirection(direction),
+                source: diagnosticSource,
+                durationMilliseconds: durationSince(startedAt),
+                counts: Self.sourceCounts(safari: safari, chrome: chrome)
+            ))
             #if DEBUG
             synchronizationViewModelLogger.debug(
                 "\(PreviewDiagnosticsContext.prefix, privacy: .public) stage=load-preview status=cancelled replacementActive=\(self.activePreviewAttempts.count > 1, privacy: .public)"
@@ -261,7 +331,40 @@ final class SynchronizationViewModel {
             state = .idle
             latestPreviewResult = nil
             previewDirection = nil
+        } catch SynchronizationPreviewRequestError
+            .readOnlyChromeDestination {
+            await recordDiagnosticEvent(DiagnosticEvent(
+                timestamp: nowProvider(),
+                level: .error,
+                component: .synchronization,
+                stage: .preview,
+                outcome: .failed,
+                direction: Self.diagnosticDirection(direction),
+                source: diagnosticSource,
+                errorType: .unsupportedOperation,
+                errorCode: .readOnlyDestination,
+                durationMilliseconds: durationSince(startedAt),
+                counts: Self.sourceCounts(safari: safari, chrome: chrome)
+            ))
+            state = .failed(
+                DocumentationText.value("legacyPreview.readOnly")
+            )
+            latestPreviewResult = nil
+            previewDirection = nil
         } catch {
+            await recordDiagnosticEvent(DiagnosticEvent(
+                timestamp: nowProvider(),
+                level: .error,
+                component: .synchronization,
+                stage: .preview,
+                outcome: .failed,
+                direction: Self.diagnosticDirection(direction),
+                source: diagnosticSource,
+                errorType: Self.diagnosticErrorType(for: error),
+                errorCode: Self.diagnosticErrorCode(for: error),
+                durationMilliseconds: durationSince(startedAt),
+                counts: Self.sourceCounts(safari: safari, chrome: chrome)
+            ))
             #if DEBUG
             synchronizationViewModelLogger.error(
                 "\(PreviewDiagnosticsContext.prefix, privacy: .public) stage=load-preview status=failure \(PreviewDiagnosticsContext.errorDescription(error), privacy: .public)"
@@ -289,6 +392,16 @@ final class SynchronizationViewModel {
         }
 
         executionState = .preparing
+        let startedAt = nowProvider()
+        await recordDiagnosticEvent(DiagnosticEvent(
+            timestamp: startedAt,
+            level: .information,
+            component: .synchronization,
+            stage: .writing,
+            outcome: .started,
+            direction: Self.diagnosticDirection(preview.direction),
+            counts: DiagnosticCounts(changes: preview.totalOperationCount)
+        ))
         do {
             executionState = .writing
             try await executionService.synchronize(preview: preview)
@@ -299,13 +412,51 @@ final class SynchronizationViewModel {
                 direction: preview.direction
             )
             executionState = .completed
+            await recordDiagnosticEvent(DiagnosticEvent(
+                timestamp: nowProvider(),
+                level: .information,
+                component: .synchronization,
+                stage: .validation,
+                outcome: .succeeded,
+                direction: Self.diagnosticDirection(preview.direction),
+                durationMilliseconds: durationSince(startedAt),
+                counts: DiagnosticCounts(
+                    changes: preview.totalOperationCount
+                )
+            ))
             return true
         } catch is CancellationError {
+            await recordDiagnosticEvent(DiagnosticEvent(
+                timestamp: nowProvider(),
+                level: .warning,
+                component: .synchronization,
+                stage: .writing,
+                outcome: .cancelled,
+                direction: Self.diagnosticDirection(preview.direction),
+                durationMilliseconds: durationSince(startedAt),
+                counts: DiagnosticCounts(
+                    changes: preview.totalOperationCount
+                )
+            ))
             executionState = .failed(
                 DocumentationText.value("sync.cancelled")
             )
             return false
         } catch {
+            await recordDiagnosticEvent(DiagnosticEvent(
+                timestamp: nowProvider(),
+                level: .error,
+                component: .synchronization,
+                stage: Self.diagnosticStage(for: error),
+                outcome: .failed,
+                direction: Self.diagnosticDirection(preview.direction),
+                errorType: Self.diagnosticErrorType(for: error),
+                errorCode: Self.diagnosticErrorCode(for: error),
+                durationMilliseconds: durationSince(startedAt),
+                counts: DiagnosticCounts(
+                    changes: preview.totalOperationCount
+                )
+            ))
             #if DEBUG
             synchronizationViewModelLogger.error(
                 "stage=synchronize status=failure \(PreviewDiagnosticsContext.errorDescription(error), privacy: .public)"
@@ -315,6 +466,149 @@ final class SynchronizationViewModel {
                 Self.executionFailureDescription(error)
             )
             return false
+        }
+    }
+
+    private func recordDiagnosticEvent(_ event: DiagnosticEvent) async {
+        diagnosticContext = DiagnosticContext(
+            direction: event.direction,
+            stage: event.stage,
+            errorType: event.errorType,
+            errorCode: event.errorCode,
+            durationMilliseconds: event.durationMilliseconds,
+            counts: event.counts
+        )
+        guard let diagnosticRecorder else { return }
+        do {
+            try await diagnosticRecorder.record(event, now: event.timestamp)
+        } catch {
+            synchronizationDiagnosticLogger.error(
+                "Diagnostic event persistence failed"
+            )
+        }
+    }
+
+    private func durationSince(_ start: Date) -> UInt64? {
+        let milliseconds = nowProvider().timeIntervalSince(start) * 1_000
+        guard milliseconds.isFinite else { return nil }
+        return UInt64(min(max(0, milliseconds), Double(Int.max)))
+    }
+
+    private static func sourceCounts(
+        safari: SynchronizationSourceSummary,
+        chrome: SynchronizationSourceSummary
+    ) -> DiagnosticCounts {
+        DiagnosticCounts(
+            bookmarks: safari.bookmarkCount + chrome.bookmarkCount,
+            folders: safari.folderCount + chrome.folderCount
+        )
+    }
+
+    private static func diagnosticDirection(
+        _ direction: ProductionSynchronizationDirection
+    ) -> DiagnosticSynchronizationDirection {
+        switch direction {
+        case .safariToChrome:
+            return .safariToChrome
+        case .chromeToSafari:
+            return .chromeToSafari
+        }
+    }
+
+    private static func diagnosticSource(
+        direction: ProductionSynchronizationDirection,
+        request: SynchronizationPreviewRequest
+    ) -> DiagnosticSourceCategory {
+        if direction == .safariToChrome {
+            return .safariBookmarks
+        }
+        return request.chromeBookmarksURL.lastPathComponent
+            == "AccountBookmarks"
+            ? .chromeAccount
+            : .chromeLocal
+    }
+
+    private static func diagnosticStage(for error: any Error) -> DiagnosticStage {
+        guard let transactionError = error as? SynchronizationTransactionError else {
+            return .writing
+        }
+        switch transactionError {
+        case .backupCreationFailed, .participantCaptureFailed:
+            return .backup
+        case .executionFailed:
+            return .writing
+        case .finalValidationFailed:
+            return .validation
+        case .restorationFailed:
+            return .restoration
+        }
+    }
+
+    private static func diagnosticErrorCode(
+        for error: any Error
+    ) -> DiagnosticErrorCode {
+        if let bookmarkError = error as? BookmarkError {
+            switch bookmarkError {
+            case .sourceNotFound:
+                return .sourceNotFound
+            case .accessDenied:
+                return .accessDenied
+            case .authorizationRequired:
+                return .authorizationRequired
+            case .decodingFailed:
+                return .decodingFailed
+            case .unsupportedBrowser:
+                return .unsupportedBrowser
+            case .multipleBookmarkStores:
+                return .multipleBookmarkStores
+            case .unknownNode:
+                return .unknown
+            }
+        }
+        guard let transactionError = error as? SynchronizationTransactionError else {
+            return .unknown
+        }
+        switch transactionError {
+        case .backupCreationFailed, .participantCaptureFailed:
+            return .backupFailed
+        case .executionFailed:
+            return .transactionFailed
+        case .finalValidationFailed:
+            return .validationFailed
+        case .restorationFailed:
+            return .restorationFailed
+        }
+    }
+
+    private static func diagnosticErrorType(
+        for error: any Error
+    ) -> DiagnosticErrorType {
+        if let bookmarkError = error as? BookmarkError {
+            switch bookmarkError {
+            case .accessDenied, .authorizationRequired:
+                return .authorization
+            case .sourceNotFound:
+                return .reading
+            case .decodingFailed:
+                return .decoding
+            case .unsupportedBrowser, .multipleBookmarkStores:
+                return .unsupportedOperation
+            case .unknownNode:
+                return .unknown
+            }
+        }
+        guard let transactionError = error as? SynchronizationTransactionError else {
+            return .unknown
+        }
+        switch transactionError {
+        case .backupCreationFailed, .participantCaptureFailed:
+            return .backup
+        case .executionFailed:
+            return .writing
+        case .finalValidationFailed:
+            return .validation
+        case .restorationFailed:
+            return .restoration
         }
     }
 
@@ -436,4 +730,18 @@ final class SynchronizationViewModel {
             folderCount: source.folderCount
         )
     }
+
+    #if DEBUG
+    func showFailureForUITesting() {
+        state = .failed(
+            DocumentationText.value("preview.calculationFailed")
+        )
+        diagnosticContext = DiagnosticContext(
+            direction: .chromeToSafari,
+            stage: .preview,
+            errorType: .synchronization,
+            errorCode: .previewFailed
+        )
+    }
+    #endif
 }

@@ -193,6 +193,29 @@ struct SynchronizationViewModelTests {
         )
     }
 
+    @Test("Explains that an account-backed Chrome destination is read-only")
+    func accountChromeDestinationIsReadOnly() async {
+        let viewModel = makeViewModel(
+            service: PreviewServiceDouble(error: TestFailure.preview),
+            requestProvider: FailingPreviewRequestProvider(
+                error: SynchronizationPreviewRequestError
+                    .readOnlyChromeDestination
+            )
+        )
+
+        await viewModel.loadPreview(
+            safari: safariSummary,
+            chrome: chromeSummary
+        )
+
+        #expect(
+            viewModel.state
+                == .failed(
+                    DocumentationText.value("legacyPreview.readOnly")
+                )
+        )
+    }
+
     @Test("Cancellation returns to idle")
     func cancellation() async {
         let viewModel = makeViewModel(
@@ -205,6 +228,114 @@ struct SynchronizationViewModelTests {
         )
 
         #expect(viewModel.state == .idle)
+    }
+
+    @Test("Records privacy-safe preview lifecycle events")
+    func previewDiagnostics() async throws {
+        let recorder = DiagnosticRecorderDouble()
+        let result = try makeResult(operations: [
+            .delete(DeleteNodeOperation(logicalNodeID: logicalID(1))),
+        ])
+        let fixedDate = Date(timeIntervalSince1970: 1_786_464_000)
+        let viewModel = makeViewModel(
+            service: PreviewServiceDouble(result: result),
+            diagnosticRecorder: recorder,
+            nowProvider: { fixedDate }
+        )
+
+        await viewModel.loadPreview(
+            safari: safariSummary,
+            chrome: chromeSummary,
+            direction: .safariToChrome
+        )
+
+        let events = await recorder.events
+        #expect(events.count == 2)
+        #expect(events.map(\.outcome) == [.started, .succeeded])
+        #expect(events.allSatisfy { $0.stage == .preview })
+        #expect(events.allSatisfy { $0.direction == .safariToChrome })
+        #expect(events.allSatisfy { $0.source == .safariBookmarks })
+        #expect(events.last?.counts.bookmarks == 20)
+        #expect(events.last?.counts.folders == 5)
+        #expect(events.last?.durationMilliseconds == 0)
+    }
+
+    @Test("Maps a path-bearing error to a stable private diagnostic code")
+    func previewDiagnosticDoesNotRetainErrorPath() async throws {
+        let recorder = DiagnosticRecorderDouble()
+        let privatePath = "/Users/private/Library/Safari/Bookmarks.plist"
+        let viewModel = makeViewModel(
+            service: PreviewServiceDouble(
+                error: BookmarkError.accessDenied(BrowserLocation(
+                    browser: .safari,
+                    fileURL: URL(fileURLWithPath: privatePath)
+                ))
+            ),
+            diagnosticRecorder: recorder
+        )
+
+        await viewModel.loadPreview(
+            safari: safariSummary,
+            chrome: chromeSummary
+        )
+
+        let events = await recorder.events
+        let failure = try #require(events.last)
+        #expect(failure.outcome == .failed)
+        #expect(failure.errorType == .authorization)
+        #expect(failure.errorCode == .accessDenied)
+        let data = try JSONEncoder().encode(events)
+        let encoded = try #require(String(data: data, encoding: .utf8))
+        #expect(!encoded.contains(privatePath))
+        #expect(!encoded.contains("private"))
+    }
+
+    @Test("Records synchronization start and successful validation")
+    func synchronizationDiagnostics() async throws {
+        let recorder = DiagnosticRecorderDouble()
+        let initial = try makeResult(operations: [
+            .delete(DeleteNodeOperation(logicalNodeID: logicalID(1))),
+        ])
+        let synchronized = try makeResult(operations: [])
+        let viewModel = makeViewModel(
+            service: SequencedPreviewService([initial, synchronized]),
+            executionService: ExecutionServiceDouble(),
+            diagnosticRecorder: recorder
+        )
+        await viewModel.loadPreview(
+            safari: safariSummary,
+            chrome: chromeSummary
+        )
+
+        #expect(await viewModel.synchronize())
+
+        let events = await recorder.events
+        let executionEvents = events.filter {
+            $0.stage == .writing || $0.stage == .validation
+        }
+        #expect(executionEvents.map(\.outcome) == [.started, .succeeded])
+        #expect(executionEvents.last?.counts.changes == 1)
+    }
+
+    @Test("A journal failure never changes the preview result")
+    func diagnosticFailureIsObservational() async throws {
+        let result = try makeResult(operations: [
+            .delete(DeleteNodeOperation(logicalNodeID: logicalID(1))),
+        ])
+        let viewModel = makeViewModel(
+            service: PreviewServiceDouble(result: result),
+            diagnosticRecorder: FailingDiagnosticRecorder()
+        )
+
+        await viewModel.loadPreview(
+            safari: safariSummary,
+            chrome: chromeSummary
+        )
+
+        guard case .loaded = viewModel.state else {
+            Issue.record("Expected diagnostics to remain observational")
+            return
+        }
     }
 
     @Test("Production preview request preserves authorized roots and stable source IDs")
@@ -232,6 +363,13 @@ struct SynchronizationViewModelTests {
                         browser: .chrome,
                         fileURL: chromeDirectoryURL
                     )
+                )
+            ),
+            chromeBookmarkFileResolver: PreviewChromeBookmarkFileResolver(
+                result: ResolvedChromeBookmarkFile(
+                    url: chromeDirectoryURL
+                        .appendingPathComponent("Default/Bookmarks"),
+                    kind: .local
                 )
             )
         )
@@ -269,6 +407,90 @@ struct SynchronizationViewModelTests {
             direction: .chromeToSafari
         )
         #expect(reverse.direction == .chromeToSafari)
+    }
+
+    @Test("Chrome to Safari reads the selected account bookmark store")
+    func productionRequestUsesAccountStoreAsSource() async throws {
+        let safariURL = URL(fileURLWithPath: "/tmp/Safari/Bookmarks.plist")
+        let chromeDirectoryURL = URL(fileURLWithPath: "/tmp/Chrome")
+        let accountURL = chromeDirectoryURL
+            .appendingPathComponent("Profile 6/AccountBookmarks")
+        let provider = DashboardSynchronizationPreviewRequestProvider(
+            safariLocator: StubBookmarkSourceLocator(
+                result: .success(BrowserLocation(
+                    browser: .safari,
+                    fileURL: safariURL
+                ))
+            ),
+            chromeLocator: StubBookmarkSourceLocator(
+                result: .success(BrowserLocation(
+                    browser: .chrome,
+                    fileURL: chromeDirectoryURL
+                ))
+            ),
+            chromeBookmarkFileResolver: PreviewChromeBookmarkFileResolver(
+                result: ResolvedChromeBookmarkFile(
+                    url: accountURL,
+                    kind: .account
+                )
+            )
+        )
+        let chromeSource = BookmarkSource(
+            browser: .chrome,
+            profile: "Profile 6",
+            displayName: "BRICKS PRO"
+        )
+
+        let request = try await provider.makeRequest(
+            safariSource: .singleProfile(.safari),
+            chromeSource: chromeSource,
+            direction: .chromeToSafari
+        )
+
+        #expect(request.chromeBookmarksURL == accountURL)
+        #expect(request.direction == .chromeToSafari)
+    }
+
+    @Test("Safari to Chrome refuses an account bookmark destination")
+    func productionRequestRefusesAccountStoreAsDestination() async {
+        let chromeDirectoryURL = URL(fileURLWithPath: "/tmp/Chrome")
+        let provider = DashboardSynchronizationPreviewRequestProvider(
+            safariLocator: StubBookmarkSourceLocator(
+                result: .success(BrowserLocation(
+                    browser: .safari,
+                    fileURL: URL(fileURLWithPath: "/tmp/Safari.plist")
+                ))
+            ),
+            chromeLocator: StubBookmarkSourceLocator(
+                result: .success(BrowserLocation(
+                    browser: .chrome,
+                    fileURL: chromeDirectoryURL
+                ))
+            ),
+            chromeBookmarkFileResolver: PreviewChromeBookmarkFileResolver(
+                result: ResolvedChromeBookmarkFile(
+                    url: chromeDirectoryURL
+                        .appendingPathComponent("Profile 6/AccountBookmarks"),
+                    kind: .account
+                )
+            )
+        )
+        let chromeSource = BookmarkSource(
+            browser: .chrome,
+            profile: "Profile 6",
+            displayName: "BRICKS PRO"
+        )
+
+        await #expect(
+            throws: SynchronizationPreviewRequestError
+                .readOnlyChromeDestination
+        ) {
+            _ = try await provider.makeRequest(
+                safariSource: .singleProfile(.safari),
+                chromeSource: chromeSource,
+                direction: .safariToChrome
+            )
+        }
     }
 
     @Test("A successful synchronization automatically refreshes the preview")
@@ -343,6 +565,7 @@ struct SynchronizationViewModelTests {
 
     @Test("A restoration failure exposes a concise cause and recovery detail")
     func restorationFailureIsVisible() async throws {
+        let recorder = DiagnosticRecorderDouble()
         let initial = try makeResult(operations: [
             .rename(RenameNodeOperation(
                 logicalNodeID: logicalID(1),
@@ -381,7 +604,8 @@ struct SynchronizationViewModelTests {
         )
         let viewModel = makeViewModel(
             service: PreviewServiceDouble(result: initial),
-            executionService: executionService
+            executionService: executionService,
+            diagnosticRecorder: recorder
         )
         await viewModel.loadPreview(
             safari: safariSummary,
@@ -405,6 +629,10 @@ struct SynchronizationViewModelTests {
         ).components(separatedBy: "%@").last ?? ""
         #expect(message.hasSuffix(retryAdvice))
         #expect(message.count < 1_500)
+        let diagnosticFailure = try #require(await recorder.events.last)
+        #expect(diagnosticFailure.stage == .restoration)
+        #expect(diagnosticFailure.errorType == .restoration)
+        #expect(diagnosticFailure.errorCode == .restorationFailed)
     }
 
     @Test("A second click is ignored while synchronization is suspended")
@@ -490,13 +718,19 @@ struct SynchronizationViewModelTests {
 
     private func makeViewModel(
         service: any SynchronizationPreviewProviding,
+        requestProvider: any SynchronizationPreviewRequestProviding =
+            PreviewRequestProviderDouble(),
         executionService:
-            (any SynchronizationProductionExecuting)? = nil
+            (any SynchronizationProductionExecuting)? = nil,
+        diagnosticRecorder: (any DiagnosticEventRecording)? = nil,
+        nowProvider: @escaping @MainActor @Sendable () -> Date = Date.init
     ) -> SynchronizationViewModel {
         SynchronizationViewModel(
             previewService: service,
-            requestProvider: PreviewRequestProviderDouble(),
-            executionService: executionService
+            requestProvider: requestProvider,
+            executionService: executionService,
+            diagnosticRecorder: diagnosticRecorder,
+            nowProvider: nowProvider
         )
     }
 
@@ -649,6 +883,33 @@ nonisolated private struct PreviewRequestProviderDouble:
     }
 }
 
+nonisolated private struct FailingPreviewRequestProvider:
+    SynchronizationPreviewRequestProviding
+{
+    let error: SynchronizationPreviewRequestError
+
+    func makeRequest(
+        safariSource: BookmarkSource,
+        chromeSource: BookmarkSource,
+        direction: ProductionSynchronizationDirection
+    ) async throws -> SynchronizationPreviewRequest {
+        throw error
+    }
+}
+
+nonisolated private struct PreviewChromeBookmarkFileResolver:
+    ChromeProfileBookmarkFileResolving
+{
+    let result: ResolvedChromeBookmarkFile
+
+    func resolve(
+        profileDirectory: String,
+        in chromeDirectory: BrowserLocation
+    ) throws -> ResolvedChromeBookmarkFile {
+        result
+    }
+}
+
 nonisolated private struct PreviewServiceDouble:
     SynchronizationPreviewProviding
 {
@@ -750,5 +1011,21 @@ private actor SuspendedExecutionService:
     func complete() {
         continuation?.resume()
         continuation = nil
+    }
+}
+
+private actor DiagnosticRecorderDouble: DiagnosticEventRecording {
+    private(set) var events: [DiagnosticEvent] = []
+
+    func record(_ event: DiagnosticEvent, now: Date) {
+        events.append(event)
+    }
+}
+
+nonisolated private struct FailingDiagnosticRecorder:
+    DiagnosticEventRecording
+{
+    func record(_ event: DiagnosticEvent, now: Date) async throws {
+        throw DiagnosticEventStoreError.persistenceFailed
     }
 }

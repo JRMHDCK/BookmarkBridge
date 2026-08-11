@@ -1,7 +1,7 @@
 # Limitations connues
 
 Ce document recense uniquement les limitations confirmées de BookmarkBridge
-0.9.2 Beta.
+0.9.3 Beta.
 
 ## Sources en lecture seule
 
@@ -20,4 +20,4 @@ Ce document recense uniquement les limitations confirmées de BookmarkBridge
 
 ## Compatibilité système
 
-BookmarkBridge 0.9.2 Beta nécessite macOS 26.5 ou une version ultérieure.
+BookmarkBridge 0.9.3 Beta nécessite macOS 26.5 ou une version ultérieure.

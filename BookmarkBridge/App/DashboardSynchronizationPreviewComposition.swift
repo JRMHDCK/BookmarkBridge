@@ -16,13 +16,19 @@ nonisolated struct DashboardSynchronizationPreviewRequestProvider:
 {
     private let safariLocator: any BookmarkSourceLocating
     private let chromeLocator: any BookmarkSourceLocating
+    private let chromeBookmarkFileResolver:
+        any ChromeProfileBookmarkFileResolving
 
     init(
         safariLocator: any BookmarkSourceLocating,
-        chromeLocator: any BookmarkSourceLocating
+        chromeLocator: any BookmarkSourceLocating,
+        chromeBookmarkFileResolver:
+            any ChromeProfileBookmarkFileResolving =
+                DefaultChromeProfileBookmarkFileResolver()
     ) {
         self.safariLocator = safariLocator
         self.chromeLocator = chromeLocator
+        self.chromeBookmarkFileResolver = chromeBookmarkFileResolver
     }
 
     func makeRequest(
@@ -39,16 +45,22 @@ nonisolated struct DashboardSynchronizationPreviewRequestProvider:
         let safariLocation = try safariLocator.locate(.safari)
         let chromeDirectory = try chromeLocator.locate(.chrome)
         let profileIdentifier = try ChromeProfileIdentifier(profile)
-        let chromeBookmarksURL = chromeDirectory.fileURL
-            .appendingPathComponent(profile, isDirectory: true)
-            .appendingPathComponent("Bookmarks", isDirectory: false)
+        let chromeBookmarkFile = try chromeBookmarkFileResolver.resolve(
+            profileDirectory: profile,
+            in: chromeDirectory
+        )
+        if direction == .safariToChrome,
+           chromeBookmarkFile.kind == .account {
+            throw SynchronizationPreviewRequestError
+                .readOnlyChromeDestination
+        }
 
         return SynchronizationPreviewRequest(
             direction: direction,
             safariSourceID: Self.sourceID(for: safariSource.id),
             chromeSourceID: Self.sourceID(for: chromeSource.id),
             safariBookmarksURL: safariLocation.fileURL,
-            chromeBookmarksURL: chromeBookmarksURL,
+            chromeBookmarksURL: chromeBookmarkFile.url,
             chromeProfileIdentifier: profileIdentifier,
             safariSecurityScopeURL: safariLocation.fileURL,
             chromeSecurityScopeURL: chromeDirectory.fileURL

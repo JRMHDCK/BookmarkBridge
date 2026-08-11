@@ -73,4 +73,8 @@ enum DocumentationPreferences {
         "BOOKMARKBRIDGE_UI_TEST_ONBOARDING"
     static let onboardingUITestSkipEnvironmentKey =
         "BOOKMARKBRIDGE_UI_TEST_SKIP_ONBOARDING"
+    static let helpCenterUITestEnvironmentKey =
+        "BOOKMARKBRIDGE_UI_TEST_HELP_CENTER"
+    static let helpAfterBugReportUITestEnvironmentKey =
+        "BOOKMARKBRIDGE_UI_TEST_HELP_AFTER_BUG_REPORT"
 }

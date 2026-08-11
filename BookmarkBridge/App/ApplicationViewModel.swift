@@ -36,6 +36,7 @@ final class ApplicationViewModel {
     let authorization: ApplicationAuthorizationViewModel
     let bookmarkAccess: BookmarkAccessViewModel
     let synchronization: SynchronizationViewModel
+    let bugReporting: BugReportViewModel
     private(set) var browserClosurePrompt: BrowserClosurePrompt?
     private(set) var browserClosureError: String?
 
@@ -48,12 +49,14 @@ final class ApplicationViewModel {
         authorization: ApplicationAuthorizationViewModel,
         bookmarkAccess: BookmarkAccessViewModel,
         synchronization: SynchronizationViewModel,
+        bugReporting: BugReportViewModel,
         browserOperationGuard: BrowserOperationGuard
     ) {
         self.dashboard = dashboard
         self.authorization = authorization
         self.bookmarkAccess = bookmarkAccess
         self.synchronization = synchronization
+        self.bugReporting = bugReporting
         self.browserOperationGuard = browserOperationGuard
     }
 
@@ -247,6 +250,30 @@ final class ApplicationViewModel {
         selection = .synchronization
     }
 
+    func reportBug(
+        origin: DiagnosticReportOrigin,
+        context: DiagnosticContext? = nil
+    ) async {
+        let baseContext = context ?? synchronization.diagnosticContext
+        await bugReporting.report(
+            origin: origin,
+            context: DiagnosticContext(
+                direction: baseContext.direction,
+                stage: baseContext.stage,
+                errorType: baseContext.errorType,
+                errorCode: baseContext.errorCode,
+                durationMilliseconds: baseContext.durationMilliseconds,
+                counts: baseContext.counts,
+                safariAuthorization: diagnosticAuthorization(
+                    authorization.state.safari
+                ),
+                chromeAuthorization: diagnosticAuthorization(
+                    authorization.state.chrome
+                )
+            )
+        )
+    }
+
     func selectSynchronizationDirection(
         _ direction: ProductionSynchronizationDirection
     ) async {
@@ -325,6 +352,21 @@ final class ApplicationViewModel {
             return false
         }
         return true
+    }
+
+    private func diagnosticAuthorization(
+        _ state: BrowserAuthorizationState
+    ) -> DiagnosticAuthorizationState {
+        switch state {
+        case .valid:
+            .granted
+        case .missing:
+            .notDetermined
+        case .invalidBookmark:
+            .invalid
+        case .accessError:
+            .denied
+        }
     }
 
     private func resume(_ action: BrowserProtectedAction) async {
