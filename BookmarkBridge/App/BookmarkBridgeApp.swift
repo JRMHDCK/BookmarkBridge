@@ -9,10 +9,35 @@ import AppKit
 import SwiftUI
 
 final class BookmarkBridgeAppDelegate: NSObject, NSApplicationDelegate {
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(mainWindowWillClose(_:)),
+            name: NSWindow.willCloseNotification,
+            object: nil
+        )
+    }
+
     func applicationShouldTerminateAfterLastWindowClosed(
         _ sender: NSApplication
     ) -> Bool {
         true
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        NotificationCenter.default.removeObserver(self)
+    }
+
+    @objc
+    private func mainWindowWillClose(_ notification: Notification) {
+        guard let window = notification.object as? NSWindow else { return }
+        guard window.title == "BookmarkBridge" else { return }
+        perform(#selector(terminateApplication), with: nil, afterDelay: 0)
+    }
+
+    @objc
+    private func terminateApplication() {
+        NSApp.terminate(nil)
     }
 }
 
@@ -127,9 +152,6 @@ struct BookmarkBridgeApp: App {
                 .environment(localization)
                 .environment(\.locale, localization.locale)
                 .id(localization.resolvedLanguage)
-                .onDisappear {
-                    NSApp.terminate(nil)
-                }
         }
         .defaultSize(
             width: Theme.Size.windowIdealWidth,

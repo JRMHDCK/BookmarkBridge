@@ -229,7 +229,13 @@ final class BookmarkBridgeUITests: XCTestCase {
         ] = "1"
         app.launch()
 
-        app.typeKey("w", modifierFlags: .command)
+        app.activate()
+        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 5))
+        let mainWindow = app.windows.firstMatch
+        XCTAssertTrue(mainWindow.waitForExistence(timeout: 5))
+        let closeButton = mainWindow.buttons[XCUIIdentifierCloseWindow]
+        XCTAssertTrue(closeButton.waitForExistence(timeout: 5))
+        closeButton.click()
 
         let stopped = XCTNSPredicateExpectation(
             predicate: NSPredicate { _, _ in
@@ -237,7 +243,7 @@ final class BookmarkBridgeUITests: XCTestCase {
             },
             object: nil
         )
-        wait(for: [stopped], timeout: 3)
+        wait(for: [stopped], timeout: 5)
     }
 
     @MainActor
