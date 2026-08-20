@@ -120,9 +120,72 @@ struct SynchronizationPreviewScreen: View {
             LoadingStateView(
                 message: DocumentationText.value("sync.validating")
             )
+        case .awaitingSafariImport(let importPresentation):
+            safariImportInstructions(importPresentation)
         case .failed(let message):
             synchronizationFailure(message)
         }
+    }
+
+    private func safariImportInstructions(
+        _ importPresentation: SafariImportPresentation
+    ) -> some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.s) {
+            Label(
+                DocumentationText.value("safariImport.ready.title"),
+                systemImage: "safari"
+            )
+            .font(.headline)
+            .foregroundStyle(Theme.Palette.green)
+
+            Text(DocumentationText.formatted(
+                "safariImport.ready.summary",
+                importPresentation.bookmarkCount,
+                importPresentation.folderCount
+            ))
+            .font(.callout)
+
+            Text(DocumentationText.value("safariImport.ready.instructions"))
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            if importPresentation.skippedBookmarkCount > 0
+                    || importPresentation.unsupportedOperationCount > 0 {
+                Label(
+                    DocumentationText.formatted(
+                        "safariImport.ready.limitations",
+                        importPresentation.skippedBookmarkCount,
+                        importPresentation.unsupportedOperationCount
+                    ),
+                    systemImage: "exclamationmark.triangle"
+                )
+                .font(.caption)
+                .foregroundStyle(Theme.Palette.warning)
+            }
+
+            HStack(spacing: Theme.Spacing.s) {
+                PrimaryActionButton(
+                    DocumentationText.value("safariImport.action.openSafari"),
+                    systemImage: "safari"
+                ) {
+                    model.openSafariForPreparedImport()
+                }
+                SecondaryActionButton(
+                    DocumentationText.value("safariImport.action.showFile"),
+                    systemImage: "folder"
+                ) {
+                    model.revealPreparedSafariImport()
+                }
+                SecondaryActionButton(
+                    DocumentationText.value("preview.reload"),
+                    systemImage: "arrow.clockwise"
+                ) {
+                    Task { await onReload() }
+                }
+            }
+        }
+        .accessibilityElement(children: .contain)
     }
 
     private func synchronizationFailure(_ message: String) -> some View {
@@ -217,8 +280,10 @@ struct SynchronizationPreviewScreen: View {
             if !isEmpty {
                 if allowsSynchronization {
                     PrimaryActionButton(
-                        DocumentationText.value("action.synchronize"),
-                        systemImage: "arrow.triangle.2.circlepath"
+                        synchronizationActionTitle,
+                        systemImage: model.previewDirection == .chromeToSafari
+                            ? "square.and.arrow.down"
+                            : "arrow.triangle.2.circlepath"
                     ) {
                         Task { _ = await onSynchronize() }
                     }
@@ -300,7 +365,17 @@ struct SynchronizationPreviewScreen: View {
         if model.isSynchronizing {
             return DocumentationText.value("sync.alreadyInProgress")
         }
+        if model.previewDirection == .chromeToSafari {
+            return DocumentationText.value("safariImport.action.help")
+        }
         return DocumentationText.value("tooltip.synchronize")
+    }
+
+    private var synchronizationActionTitle: String {
+        if model.previewDirection == .chromeToSafari {
+            return DocumentationText.value("safariImport.action.prepare")
+        }
+        return DocumentationText.value("action.synchronize")
     }
 
     private func operationCount(_ count: Int) -> String {

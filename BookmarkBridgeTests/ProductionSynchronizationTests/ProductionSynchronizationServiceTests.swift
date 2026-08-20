@@ -10,9 +10,46 @@ import Testing
 
 @Suite("BSE-770 Production Synchronization")
 struct ProductionSynchronizationServiceTests {
+    @Test("Production synchronization records its complete lifecycle")
+    func recordsLifecycle() async throws {
+        let recorder = ProductionDiagnosticRecorder()
+        let fixture = try await ProductionFixture.make(
+            scenario: .creation,
+            diagnosticRecorder: recorder
+        )
+        defer { fixture.remove() }
+
+        _ = try await fixture.synchronizeConfirmedPlan()
+
+        let events = await recorder.events
+        #expect(events.first?.stage == .planning)
+        #expect(events.first?.outcome == .started)
+        #expect(events.contains { $0.stage == .backup && $0.outcome == .started })
+        #expect(events.contains { $0.stage == .backup && $0.outcome == .succeeded })
+        #expect(events.contains { $0.stage == .writing && $0.outcome == .started })
+        #expect(events.contains { $0.stage == .writing && $0.outcome == .succeeded })
+        #expect(events.last?.stage == .validation)
+        #expect(events.last?.outcome == .succeeded)
+        #expect(events.allSatisfy { $0.direction == .safariToChrome })
+        let before = try #require(events.first?.fileEvidence)
+        let after = try #require(
+            events.last(where: {
+                $0.stage == .writing && $0.outcome == .succeeded
+            })?.fileEvidence
+        )
+        #expect(before.location == .alternateBookmarks)
+        #expect(before.fileSize > 0)
+        #expect(before.sha256.count == 32)
+        #expect(before.fileSystemNumber > 0)
+        #expect(before.inode > 0)
+        #expect(after == before)
+    }
+
     @Test(
         "Concrete production composition applies supported changes",
-        arguments: ProductionScenario.allCases
+        arguments: ProductionScenario.allCases.filter {
+            $0.direction == .safariToChrome
+        }
     )
     func appliesScenario(_ scenario: ProductionScenario) async throws {
         let fixture = try await ProductionFixture.make(scenario: scenario)
@@ -49,9 +86,7 @@ struct ProductionSynchronizationServiceTests {
         "A second production synchronization is a no-op",
         arguments: [
             ProductionScenario.creation,
-            ProductionScenario.reverseCreation,
             ProductionScenario.duplicateDeletion,
-            ProductionScenario.reverseDuplicateCreation,
         ]
     )
     func secondSynchronizationIsANoOp(
@@ -79,10 +114,7 @@ struct ProductionSynchronizationServiceTests {
 
     @Test(
         "A filtered creation remains visible to final validation and is stable",
-        arguments: [
-            ProductionScenario.creation,
-            ProductionScenario.reverseCreation,
-        ]
+        arguments: [ProductionScenario.creation]
     )
     func filteredCreationIsStable(
         _ scenario: ProductionScenario
@@ -178,7 +210,6 @@ struct ProductionSynchronizationServiceTests {
         arguments: [
             ProductionScenario.hierarchicalCreation,
             ProductionScenario.duplicateDeletion,
-            ProductionScenario.reverseDuplicateCreation,
         ]
     )
     func emptyBaselineIsStableAcrossThreePasses(
@@ -319,31 +350,25 @@ struct ProductionSynchronizationServiceTests {
         try fixture.expectOriginalFixturesUnchanged()
     }
 
-    @Test("An open Safari blocks the transaction before backup or write")
-    func reverseTargetSaveFailure() async throws {
+    @Test("Direct Chrome to Safari writing is unavailable")
+    func directChromeToSafariWritingIsUnavailable() async throws {
         let fixture = try await ProductionFixture.make(
-            scenario: .reverseCreation,
-            safariIsOpen: true
+            scenario: .reverseCreation
         )
         defer { fixture.remove() }
         let confirmedPlan = try await fixture.confirmedPlan()
         let targetBefore = try Data(contentsOf: fixture.safariBookmarksURL)
-        let baselineBefore = try await fixture.baselineRepository.load()
-        let identitiesBefore =
-            try fixture.nativeIdentityRepository.transactionSnapshot()
-
-        await #expect(throws: ProductionSynchronizationError.self) {
+        await #expect(
+            throws: ProductionSynchronizationError.unsupportedDirection(
+                .chromeToSafari
+            )
+        ) {
             _ = try await fixture.service.synchronize(
                 confirmedPlan: confirmedPlan
             )
         }
 
         #expect(try Data(contentsOf: fixture.safariBookmarksURL) == targetBefore)
-        #expect(try await fixture.baselineRepository.load() == baselineBefore)
-        #expect(
-            try fixture.nativeIdentityRepository.transactionSnapshot()
-                == identitiesBefore
-        )
         #expect(try fixture.backupCount == 0)
         try fixture.expectOriginalFixturesUnchanged()
     }
@@ -377,33 +402,6 @@ struct ProductionSynchronizationServiceTests {
         )
     }
 
-    @Test("Chrome to Safari later failure rolls back prior native registrations")
-    func laterSafariFailureRollsBackPersistentState() async throws {
-        let fixture = try await ProductionFixture.make(
-            scenario: .reverseHierarchicalCreation,
-            safariOpenOnSaveAttempt: 3
-        )
-        defer { fixture.remove() }
-        let confirmedPlan = try await fixture.confirmedPlan()
-        let targetBefore = try Data(contentsOf: fixture.safariBookmarksURL)
-        let baselineBefore = try await fixture.baselineRepository.load()
-        let identitiesBefore =
-            try fixture.nativeIdentityRepository.transactionSnapshot()
-
-        await #expect(throws: SynchronizationTransactionError.self) {
-            _ = try await fixture.service.synchronize(
-                confirmedPlan: confirmedPlan
-            )
-        }
-
-        #expect(try Data(contentsOf: fixture.safariBookmarksURL) == targetBefore)
-        #expect(try await fixture.baselineRepository.load() == baselineBefore)
-        #expect(
-            try fixture.nativeIdentityRepository.transactionSnapshot()
-                == identitiesBefore
-        )
-    }
-
     @Test(
         "Safari to Chrome later delete failure restores removed identities"
     )
@@ -426,33 +424,6 @@ struct ProductionSynchronizationServiceTests {
         }
 
         #expect(try Data(contentsOf: fixture.chromeBookmarksURL) == targetBefore)
-        #expect(try await fixture.baselineRepository.load() == baselineBefore)
-        #expect(
-            try fixture.nativeIdentityRepository.transactionSnapshot()
-                == identitiesBefore
-        )
-    }
-
-    @Test("Chrome to Safari later delete failure restores removed identities")
-    func laterSafariDeleteFailureRollsBackPersistentState() async throws {
-        let fixture = try await ProductionFixture.make(
-            scenario: .reverseMultipleDeletions,
-            safariOpenOnSaveAttempt: 3
-        )
-        defer { fixture.remove() }
-        let confirmedPlan = try await fixture.confirmedPlan()
-        let targetBefore = try Data(contentsOf: fixture.safariBookmarksURL)
-        let baselineBefore = try await fixture.baselineRepository.load()
-        let identitiesBefore =
-            try fixture.nativeIdentityRepository.transactionSnapshot()
-
-        await #expect(throws: SynchronizationTransactionError.self) {
-            _ = try await fixture.service.synchronize(
-                confirmedPlan: confirmedPlan
-            )
-        }
-
-        #expect(try Data(contentsOf: fixture.safariBookmarksURL) == targetBefore)
         #expect(try await fixture.baselineRepository.load() == baselineBefore)
         #expect(
             try fixture.nativeIdentityRepository.transactionSnapshot()
@@ -883,8 +854,8 @@ private final class ProductionFixture {
         chromeIsOpen: Bool = false,
         safariIsOpen: Bool = false,
         chromeOpenOnSaveAttempt: Int? = nil,
-        safariOpenOnSaveAttempt: Int? = nil,
-        emptyBaseline: Bool = false
+        emptyBaseline: Bool = false,
+        diagnosticRecorder: (any DiagnosticEventRecording)? = nil
     ) async throws -> ProductionFixture {
         let rootURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("BookmarkBridge-BSE770-\(UUID().uuidString)")
@@ -961,7 +932,6 @@ private final class ProductionFixture {
         )
         let identityProvider = SequentialIdentityProvider()
         let nativeIdentityRepository = InMemoryNativeIdentityRepository()
-        let safariSaveCheckCount = Mutex(0)
         let chromeSaveCheckCount = Mutex(0)
         let service = ProductionSynchronizationService(
             baselineRepository: baselineRepository,
@@ -969,16 +939,7 @@ private final class ProductionFixture {
             nativeIdentityRepository: nativeIdentityRepository,
             nativeIdentifierProvider: SequentialNativeIdentifierProvider(),
             safariApplicationStateChecker: SafariApplicationStateChecker {
-                if safariIsOpen {
-                    return true
-                }
-                guard let safariOpenOnSaveAttempt else {
-                    return false
-                }
-                return safariSaveCheckCount.withLock {
-                    $0 += 1
-                    return $0 == safariOpenOnSaveAttempt
-                }
+                safariIsOpen
             },
             chromeApplicationStateChecker: ChromeApplicationStateChecker {
                 if chromeIsOpen {
@@ -992,8 +953,8 @@ private final class ProductionFixture {
                     return $0 == chromeOpenOnSaveAttempt
                 }
             },
-            safariAdapterIdentifier: WriteAdapterIdentifier(testUUID(240)),
-            chromeAdapterIdentifier: WriteAdapterIdentifier(testUUID(241))
+            chromeAdapterIdentifier: WriteAdapterIdentifier(testUUID(241)),
+            diagnosticRecorder: diagnosticRecorder
         )
         let previewService = SynchronizationPreviewService(
             baselineRepository: baselineRepository,
@@ -1276,6 +1237,14 @@ private final class ProductionFixture {
 private enum ProductionTestError: Error {
     case fixtureSnapshotMismatch
     case identityProviderExhausted
+}
+
+private actor ProductionDiagnosticRecorder: DiagnosticEventRecording {
+    private(set) var events: [DiagnosticEvent] = []
+
+    func record(_ event: DiagnosticEvent, now: Date) {
+        events.append(event)
+    }
 }
 
 private final class SequentialIdentityProvider: IdentityProvider {

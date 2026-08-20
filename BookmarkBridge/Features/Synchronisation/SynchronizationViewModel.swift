@@ -42,7 +42,26 @@ nonisolated enum SynchronizationPreviewRequestError:
 nonisolated protocol SynchronizationProductionExecuting: Sendable {
     func synchronize(
         preview: SynchronizationPreviewResult
-    ) async throws
+    ) async throws -> SynchronizationProductionExecutionOutcome
+}
+
+nonisolated enum SynchronizationProductionExecutionOutcome:
+    Hashable,
+    Sendable
+{
+    case synchronized
+    case safariImportPrepared(SafariImportPresentation)
+}
+
+nonisolated protocol SafariImportPresenting: Sendable {
+    @MainActor
+    func present(_ importPresentation: SafariImportPresentation)
+
+    @MainActor
+    func reveal(_ importPresentation: SafariImportPresentation)
+
+    @MainActor
+    func openSafari()
 }
 
 /// Builds the file- and profile-specific BSE request outside the ViewModel.
@@ -117,6 +136,7 @@ final class SynchronizationViewModel {
         case preparing
         case writing
         case validating
+        case awaitingSafariImport(SafariImportPresentation)
         case completed
         case failed(String)
     }
@@ -132,7 +152,7 @@ final class SynchronizationViewModel {
         switch executionState {
         case .preparing, .writing, .validating:
             true
-        case .idle, .completed, .failed:
+        case .idle, .awaitingSafariImport, .completed, .failed:
             false
         }
     }
@@ -141,8 +161,15 @@ final class SynchronizationViewModel {
         guard executionService != nil, !isSynchronizing else {
             return false
         }
+        if case .awaitingSafariImport = executionState {
+            return false
+        }
         if case .loaded = state {
-            return latestPreviewResult != nil
+            guard let latestPreviewResult else { return false }
+            if latestPreviewResult.direction == .chromeToSafari {
+                return latestPreviewResult.creationCount > 0
+            }
+            return true
         }
         return false
     }
@@ -150,6 +177,7 @@ final class SynchronizationViewModel {
     private let previewService: any SynchronizationPreviewProviding
     private let requestProvider: any SynchronizationPreviewRequestProviding
     private let executionService: (any SynchronizationProductionExecuting)?
+    private let safariImportPresenter: (any SafariImportPresenting)?
     private let diagnosticRecorder: (any DiagnosticEventRecording)?
     private let nowProvider: @MainActor @Sendable () -> Date
     private var latestPreviewResult: SynchronizationPreviewResult?
@@ -166,6 +194,7 @@ final class SynchronizationViewModel {
         requestProvider: any SynchronizationPreviewRequestProviding,
         executionService:
             (any SynchronizationProductionExecuting)? = nil,
+        safariImportPresenter: (any SafariImportPresenting)? = nil,
         preferencesStore: any SynchronizationPreferencesStoring =
             InMemorySynchronizationPreferencesStore(),
         diagnosticRecorder: (any DiagnosticEventRecording)? = nil,
@@ -174,6 +203,7 @@ final class SynchronizationViewModel {
         self.previewService = previewService
         self.requestProvider = requestProvider
         self.executionService = executionService
+        self.safariImportPresenter = safariImportPresenter
         self.diagnosticRecorder = diagnosticRecorder
         self.nowProvider = nowProvider
         selection = SynchronizationSelectionViewModel(
@@ -291,6 +321,11 @@ final class SynchronizationViewModel {
             state = result.totalOperationCount == 0
                 ? .empty(preview)
                 : .loaded(preview)
+            if case .awaitingSafariImport = executionState {
+                executionState = result.totalOperationCount == 0
+                    ? .completed
+                    : .idle
+            }
             await recordDiagnosticEvent(DiagnosticEvent(
                 timestamp: nowProvider(),
                 level: .information,
@@ -404,27 +439,52 @@ final class SynchronizationViewModel {
         ))
         do {
             executionState = .writing
-            try await executionService.synchronize(preview: preview)
-            executionState = .validating
-            await loadPreview(
-                safari: sources.safari,
-                chrome: sources.chrome,
-                direction: preview.direction
+            let outcome = try await executionService.synchronize(
+                preview: preview
             )
-            executionState = .completed
-            await recordDiagnosticEvent(DiagnosticEvent(
-                timestamp: nowProvider(),
-                level: .information,
-                component: .synchronization,
-                stage: .validation,
-                outcome: .succeeded,
-                direction: Self.diagnosticDirection(preview.direction),
-                durationMilliseconds: durationSince(startedAt),
-                counts: DiagnosticCounts(
-                    changes: preview.totalOperationCount
+            switch outcome {
+            case .synchronized:
+                executionState = .validating
+                await loadPreview(
+                    safari: sources.safari,
+                    chrome: sources.chrome,
+                    direction: preview.direction
                 )
-            ))
-            return true
+                executionState = .completed
+                await recordDiagnosticEvent(DiagnosticEvent(
+                    timestamp: nowProvider(),
+                    level: .information,
+                    component: .synchronization,
+                    stage: .validation,
+                    outcome: .succeeded,
+                    direction: Self.diagnosticDirection(preview.direction),
+                    durationMilliseconds: durationSince(startedAt),
+                    counts: DiagnosticCounts(
+                        changes: preview.totalOperationCount
+                    )
+                ))
+                return true
+            case .safariImportPrepared(let importPresentation):
+                executionState = .awaitingSafariImport(
+                    importPresentation
+                )
+                safariImportPresenter?.present(importPresentation)
+                await recordDiagnosticEvent(DiagnosticEvent(
+                    timestamp: nowProvider(),
+                    level: .information,
+                    component: .synchronization,
+                    stage: .importPreparation,
+                    outcome: .succeeded,
+                    direction: .chromeToSafari,
+                    durationMilliseconds: durationSince(startedAt),
+                    counts: DiagnosticCounts(
+                        bookmarks: importPresentation.bookmarkCount,
+                        folders: importPresentation.folderCount,
+                        changes: preview.totalOperationCount
+                    )
+                ))
+                return false
+            }
         } catch is CancellationError {
             await recordDiagnosticEvent(DiagnosticEvent(
                 timestamp: nowProvider(),
@@ -467,6 +527,17 @@ final class SynchronizationViewModel {
             )
             return false
         }
+    }
+
+    func revealPreparedSafariImport() {
+        guard case .awaitingSafariImport(let importPresentation) =
+                executionState else { return }
+        safariImportPresenter?.reveal(importPresentation)
+    }
+
+    func openSafariForPreparedImport() {
+        guard case .awaitingSafariImport = executionState else { return }
+        safariImportPresenter?.openSafari()
     }
 
     private func recordDiagnosticEvent(_ event: DiagnosticEvent) async {
@@ -529,6 +600,10 @@ final class SynchronizationViewModel {
     }
 
     private static func diagnosticStage(for error: any Error) -> DiagnosticStage {
+        if error is SafariImportWorkflowError
+                || error is SafariImportPackageError {
+            return .importPreparation
+        }
         guard let transactionError = error as? SynchronizationTransactionError else {
             return .writing
         }
@@ -547,6 +622,13 @@ final class SynchronizationViewModel {
     private static func diagnosticErrorCode(
         for error: any Error
     ) -> DiagnosticErrorCode {
+        if let importError = error as? SafariImportWorkflowError {
+            switch importError {
+            case .invalidDirection, .unsupportedSelection,
+                    .noImportableChanges:
+                return .unknown
+            }
+        }
         if let bookmarkError = error as? BookmarkError {
             switch bookmarkError {
             case .sourceNotFound:
@@ -583,6 +665,16 @@ final class SynchronizationViewModel {
     private static func diagnosticErrorType(
         for error: any Error
     ) -> DiagnosticErrorType {
+        if let importError = error as? SafariImportWorkflowError {
+            switch importError {
+            case .invalidDirection, .unsupportedSelection,
+                    .noImportableChanges:
+                return .unsupportedOperation
+            }
+        }
+        if error is SafariImportPackageError {
+            return .writing
+        }
         if let bookmarkError = error as? BookmarkError {
             switch bookmarkError {
             case .accessDenied, .authorizationRequired:
@@ -615,6 +707,17 @@ final class SynchronizationViewModel {
     private static func executionFailureDescription(
         _ error: any Error
     ) -> String {
+        if let importError = error as? SafariImportWorkflowError {
+            if importError == .unsupportedSelection {
+                return DocumentationText.value(
+                    "safariImport.failure.selection"
+                )
+            }
+            return DocumentationText.value("safariImport.failure.generic")
+        }
+        if error is SafariImportPackageError {
+            return DocumentationText.value("safariImport.failure.generic")
+        }
         guard let transactionError = error as? SynchronizationTransactionError
         else {
             return DocumentationText.formatted(

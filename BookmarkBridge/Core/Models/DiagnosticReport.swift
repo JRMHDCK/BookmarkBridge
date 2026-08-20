@@ -133,6 +133,7 @@ nonisolated enum DiagnosticStage: String, Hashable, Codable, Sendable {
     case browserClosure
     case backup
     case writing
+    case importPreparation
     case validation
     case restoration
     case unknown
@@ -208,6 +209,40 @@ nonisolated enum DiagnosticComponent: String, Hashable, Codable, Sendable {
     case backup
     case writer
     case restoration
+}
+
+/// Privacy-safe identity and content evidence for the selected Safari file.
+/// The absolute path is deliberately represented as a category so reports can
+/// distinguish the standard library from an alternate target without exposing
+/// an account name.
+nonisolated enum DiagnosticSafariFileLocation: String, Hashable, Codable, Sendable {
+    case canonicalBookmarks
+    case alternateBookmarks
+}
+
+nonisolated struct DiagnosticFileEvidence: Hashable, Codable, Sendable {
+    let location: DiagnosticSafariFileLocation
+    let fileSize: UInt64
+    let modificationDate: Date
+    let sha256: Data
+    let fileSystemNumber: UInt64
+    let inode: UInt64
+
+    init(
+        location: DiagnosticSafariFileLocation,
+        fileSize: UInt64,
+        modificationDate: Date,
+        sha256: Data,
+        fileSystemNumber: UInt64,
+        inode: UInt64
+    ) {
+        self.location = location
+        self.fileSize = fileSize
+        self.modificationDate = modificationDate
+        self.sha256 = sha256
+        self.fileSystemNumber = fileSystemNumber
+        self.inode = inode
+    }
 }
 
 /// Aggregate-only metrics. They contain no bookmark content or identifiers.
@@ -321,6 +356,7 @@ nonisolated struct DiagnosticEvent: Hashable, Codable, Sendable {
     let errorCode: DiagnosticErrorCode?
     let durationMilliseconds: UInt64?
     let counts: DiagnosticCounts
+    let fileEvidence: DiagnosticFileEvidence?
 
     init(
         timestamp: Date,
@@ -333,7 +369,8 @@ nonisolated struct DiagnosticEvent: Hashable, Codable, Sendable {
         errorType: DiagnosticErrorType? = nil,
         errorCode: DiagnosticErrorCode? = nil,
         durationMilliseconds: UInt64? = nil,
-        counts: DiagnosticCounts = DiagnosticCounts()
+        counts: DiagnosticCounts = DiagnosticCounts(),
+        fileEvidence: DiagnosticFileEvidence? = nil
     ) {
         self.timestamp = timestamp
         self.level = level
@@ -346,6 +383,7 @@ nonisolated struct DiagnosticEvent: Hashable, Codable, Sendable {
         self.errorCode = errorCode
         self.durationMilliseconds = durationMilliseconds
         self.counts = counts
+        self.fileEvidence = fileEvidence
     }
 }
 

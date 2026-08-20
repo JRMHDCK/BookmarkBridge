@@ -18,7 +18,7 @@ struct SafariApplicationStateCheckerTests {
     func safariOpen() {
         let checker = SafariApplicationStateChecker(isSafariRunning: { true })
 
-        #expect(throws: SafariPersistenceError.safariIsOpen) {
+        #expect(throws: SafariApplicationStateError.safariIsOpen) {
             try checker.ensureSafariIsClosed()
         }
     }

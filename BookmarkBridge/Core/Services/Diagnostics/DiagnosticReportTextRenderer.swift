@@ -60,6 +60,12 @@ nonisolated struct DiagnosticReportTextRenderer:
             "folders=\(value(event.counts.folders))",
             "matches=\(value(event.counts.matches))",
             "changes=\(value(event.counts.changes))",
+            "safari_file_location=\(value(event.fileEvidence?.location))",
+            "safari_file_size=\(value(event.fileEvidence?.fileSize))",
+            "safari_file_modified_at=\(dateValue(event.fileEvidence?.modificationDate))",
+            "safari_file_sha256=\(digestValue(event.fileEvidence?.sha256))",
+            "safari_file_system=\(value(event.fileEvidence?.fileSystemNumber))",
+            "safari_file_inode=\(value(event.fileEvidence?.inode))",
         ].joined(separator: " | ")
     }
 
@@ -81,5 +87,14 @@ nonisolated struct DiagnosticReportTextRenderer:
     private func value<Value: BinaryInteger>(_ value: Value?) -> String {
         guard let value else { return "not-available" }
         return String(value)
+    }
+
+    private func dateValue(_ value: Date?) -> String {
+        value.map(dateString) ?? "not-available"
+    }
+
+    private func digestValue(_ value: Data?) -> String {
+        guard let value else { return "not-available" }
+        return value.map { String(format: "%02x", $0) }.joined()
     }
 }

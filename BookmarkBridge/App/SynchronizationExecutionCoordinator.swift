@@ -12,22 +12,32 @@ nonisolated struct SynchronizationExecutionCoordinator:
     SynchronizationProductionExecuting
 {
     private let productionService: ProductionSynchronizationService
+    private let safariImportWorkflow: any SafariImportWorkflowPreparing
     private let safariBackupDirectoryURL: URL
     private let chromeBackupDirectoryURL: URL
 
     init(
         productionService: ProductionSynchronizationService,
+        safariImportWorkflow: any SafariImportWorkflowPreparing,
         safariBackupDirectoryURL: URL,
         chromeBackupDirectoryURL: URL
     ) {
         self.productionService = productionService
+        self.safariImportWorkflow = safariImportWorkflow
         self.safariBackupDirectoryURL = safariBackupDirectoryURL
         self.chromeBackupDirectoryURL = chromeBackupDirectoryURL
     }
 
     func synchronize(
         preview: SynchronizationPreviewResult
-    ) async throws {
+    ) async throws -> SynchronizationProductionExecutionOutcome {
+        if preview.direction == .chromeToSafari {
+            let package = try await safariImportWorkflow.prepare(
+                preview: preview
+            )
+            return .safariImportPrepared(package.presentation)
+        }
+
         let previewRequest = preview.request
         let executionRequest = ProductionSynchronizationRequest(
             direction: preview.direction,
@@ -53,6 +63,7 @@ nonisolated struct SynchronizationExecutionCoordinator:
         _ = try await productionService.synchronize(
             confirmedPlan: confirmedPlan
         )
+        return .synchronized
     }
 }
 
@@ -62,7 +73,7 @@ nonisolated struct UnavailableSynchronizationExecutionCoordinator:
 {
     func synchronize(
         preview: SynchronizationPreviewResult
-    ) async throws {
+    ) async throws -> SynchronizationProductionExecutionOutcome {
         throw SynchronizationExecutionCompositionError.unavailable
     }
 }

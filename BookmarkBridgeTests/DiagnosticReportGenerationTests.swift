@@ -81,6 +81,11 @@ struct DiagnosticReportGenerationTests {
             "chrome_authorization=denied",
             "journal_status=available",
             "events_count=1",
+            "safari_file_location=alternateBookmarks",
+            "safari_file_size=512",
+            "safari_file_sha256=000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+            "safari_file_system=42",
+            "safari_file_inode=84",
         ] {
             #expect(first.text.contains(expected))
         }
@@ -272,7 +277,15 @@ struct DiagnosticReportGenerationTests {
             errorType: .authorization,
             errorCode: .accessDenied,
             durationMilliseconds: 184,
-            counts: DiagnosticCounts(bookmarks: 120, folders: 18)
+            counts: DiagnosticCounts(bookmarks: 120, folders: 18),
+            fileEvidence: DiagnosticFileEvidence(
+                location: .alternateBookmarks,
+                fileSize: 512,
+                modificationDate: Date(timeIntervalSince1970: 1_786_463_999),
+                sha256: Data((0..<32).map(UInt8.init)),
+                fileSystemNumber: 42,
+                inode: 84
+            )
         )
     }
 }

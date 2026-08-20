@@ -61,9 +61,13 @@ nonisolated struct SynchronizationPlanner: Sendable {
             .content(content),
             .cleanup(cleanup),
         ])
+        let predicted = try SynchronizationPlanModel.predicted(
+            request: request
+        )
         preparation = try orderCreateOperations(
             preparation,
-            before: request.before
+            before: request.before,
+            predicted: predicted
         )
         structural = try orderStructuralOperations(
             structural.filter {
@@ -75,9 +79,6 @@ nonisolated struct SynchronizationPlanner: Sendable {
                 guard case .delete = operation else { return nil }
                 return operation.logicalNodeID
             })
-        )
-        let predicted = try SynchronizationPlanModel.predicted(
-            request: request
         )
         let executableStructure = try ExecutableSynchronizationStructureBuilder(
             before: request.before,
@@ -341,11 +342,13 @@ nonisolated struct SynchronizationPlanner: Sendable {
 
     private func orderCreateOperations(
         _ operations: [SynchronizationOperation],
-        before: LogicalStateGraph
+        before: LogicalStateGraph,
+        predicted: SynchronizationPlanModel
     ) throws -> [SynchronizationOperation] {
         try CreationDependencyOrderer(
             operations: operations,
-            existingNodeIDs: Set(before.nodes.map(\.logicalNodeID))
+            existingNodeIDs: Set(before.nodes.map(\.logicalNodeID)),
+            predicted: predicted
         ).ordered()
     }
 
@@ -423,7 +426,7 @@ nonisolated struct SynchronizationPlanner: Sendable {
             ranksByIdentity[operation.logicalNodeID, default: []].insert(operation.rank)
         }
         for ranks in ranksByIdentity.values {
-            guard !(ranks.contains(0) && ranks.count > 1),
+            guard !(ranks.contains(0) && !ranks.isSubset(of: [0, 2])),
                   !(ranks.contains(6) && ranks.count > 1),
                   !(ranks.contains(5) && ranks.contains(6)),
                   !(ranks.contains(1) && ranks.contains(2)) else {
@@ -438,10 +441,12 @@ nonisolated struct SynchronizationPlanner: Sendable {
 private nonisolated struct CreationDependencyOrderer {
     private let operationsByID: [LogicalNodeID: SynchronizationOperation]
     private let existingNodeIDs: Set<LogicalNodeID>
+    private let predicted: SynchronizationPlanModel
 
     init(
         operations: [SynchronizationOperation],
-        existingNodeIDs: Set<LogicalNodeID>
+        existingNodeIDs: Set<LogicalNodeID>,
+        predicted: SynchronizationPlanModel
     ) throws {
         var indexed: [LogicalNodeID: SynchronizationOperation] = [:]
         for operation in operations {
@@ -455,6 +460,7 @@ private nonisolated struct CreationDependencyOrderer {
         }
         operationsByID = indexed
         self.existingNodeIDs = existingNodeIDs
+        self.predicted = predicted
     }
 
     func ordered() throws -> [SynchronizationOperation] {
@@ -480,15 +486,18 @@ private nonisolated struct CreationDependencyOrderer {
             childrenByParent[create.parentID, default: []].append(create)
         }
 
-        // Siblings are inserted at their final positions. Ordering them by
-        // position prevents an insertion from targeting a slot that has not
-        // been created yet; LogicalNodeID resolves equal-position ties.
-        for siblings in childrenByParent.values {
-            let orderedSiblings = siblings.sorted {
-                if $0.position != $1.position {
-                    return $0.position < $1.position
-                }
-                return $0.logicalNodeID < $1.logicalNodeID
+        // Raw diff positions can collide with surviving target siblings. Use
+        // the normalized projected order so created siblings are inserted in
+        // the same relative order the executable model must preserve.
+        for (parentID, siblings) in childrenByParent {
+            let siblingsByID = Dictionary(
+                uniqueKeysWithValues: siblings.map { ($0.logicalNodeID, $0) }
+            )
+            let orderedSiblings = predicted.children(of: parentID).compactMap {
+                siblingsByID[$0]
+            }
+            guard orderedSiblings.count == siblings.count else {
+                throw SynchronizationPlanningError.inconsistentPlan
             }
             for pair in zip(orderedSiblings, orderedSiblings.dropFirst()) {
                 dependencies[pair.1.logicalNodeID, default: []].insert(

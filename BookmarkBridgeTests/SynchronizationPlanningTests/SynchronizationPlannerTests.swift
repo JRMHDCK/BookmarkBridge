@@ -635,6 +635,68 @@ struct SynchronizationPlannerTests {
         ))])
     }
 
+    @Test("Created siblings remain executable across target position collisions")
+    func createdSiblingsAcrossReorderedTarget() throws {
+        let root = try PlanningTestSupport.folder(id: 100)
+        let firstBefore = try PlanningTestSupport.bookmark(
+            id: 1,
+            parent: 100,
+            position: 0
+        )
+        let secondBefore = try PlanningTestSupport.bookmark(
+            id: 2,
+            parent: 100,
+            position: 1
+        )
+        let firstAfter = try PlanningTestSupport.bookmark(
+            id: 1,
+            parent: 100,
+            position: 3
+        )
+        let secondAfter = try PlanningTestSupport.bookmark(
+            id: 2,
+            parent: 100,
+            position: 1
+        )
+        let firstCreated = try PlanningTestSupport.bookmark(
+            id: 3,
+            parent: 100,
+            position: 0
+        )
+        let secondCreated = try PlanningTestSupport.bookmark(
+            id: 4,
+            parent: 100,
+            position: 2
+        )
+        let thirdCreated = try PlanningTestSupport.bookmark(
+            id: 5,
+            parent: 100,
+            position: 4
+        )
+
+        let plan = try PlanningTestSupport.plan(
+            before: [root, firstBefore, secondBefore],
+            after: [
+                root,
+                firstCreated,
+                secondAfter,
+                secondCreated,
+                firstAfter,
+                thirdCreated,
+            ]
+        )
+
+        #expect(plan.operations.count { $0.kind == .create } == 3)
+        #expect(plan.operations.contains { operation in
+            operation.kind == .reorder
+                && [
+                    firstCreated.logicalNodeID,
+                    secondCreated.logicalNodeID,
+                    thirdCreated.logicalNodeID,
+                ].contains(operation.logicalNodeID)
+        })
+    }
+
     @Test("Position dependency ordering is independent of diff iteration order")
     func deterministicPositionDependencyOrder() throws {
         let root = try PlanningTestSupport.folder(id: 100)

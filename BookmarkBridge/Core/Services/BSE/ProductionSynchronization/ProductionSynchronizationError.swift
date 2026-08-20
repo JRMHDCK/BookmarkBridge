@@ -17,5 +17,6 @@ nonisolated struct ProductionSynchronizationFailureContext:
 }
 
 nonisolated enum ProductionSynchronizationError: Error, Hashable, Sendable {
+    case unsupportedDirection(ProductionSynchronizationDirection)
     case synchronizationFailed(ProductionSynchronizationFailureContext)
 }

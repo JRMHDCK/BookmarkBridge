@@ -1,18 +1,30 @@
 AddDefaultCharset UTF-8
 Options -Indexes
 
+AddType application/x-apple-diskimage .dmg
+AddType application/pdf .pdf
+AddType text/plain .txt
+
 <IfModule mod_deflate.c>
-  AddOutputFilterByType DEFLATE text/html text/css application/javascript text/plain
+  AddOutputFilterByType DEFLATE text/html text/css application/javascript text/plain application/xml
 </IfModule>
 
 <IfModule mod_expires.c>
   ExpiresActive On
+  ExpiresByType text/html "access plus 0 seconds"
   ExpiresByType text/css "access plus 7 days"
   ExpiresByType application/javascript "access plus 7 days"
-  ExpiresByType application/x-apple-diskimage "access plus 1 day"
+  ExpiresByType image/png "access plus 30 days"
+  ExpiresByType application/pdf "access plus 1 day"
+  ExpiresByType text/plain "access plus 1 day"
+  ExpiresByType application/x-apple-diskimage "access plus 0 seconds"
 </IfModule>
 
 <IfModule mod_headers.c>
   Header always set X-Content-Type-Options "nosniff"
   Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  <FilesMatch "\.dmg$">
+    Header always set Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
+    Header always set Content-Disposition "attachment"
+  </FilesMatch>
 </IfModule>

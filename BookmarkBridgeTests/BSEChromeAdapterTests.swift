@@ -911,6 +911,46 @@ struct BSEChromeAdapterTests {
         #expect(await dataSource.checkPermissions().state == .unavailable)
     }
 
+    @Test("AccountBookmarks is accepted as a read-only synchronization source")
+    func accountBookmarksSource() async throws {
+        let selectedProfile = try profile()
+        let data = try jsonData(roots: [
+            "bookmark_bar": folderJSON(
+                id: "account-root",
+                name: "Account",
+                children: [bookmarkJSON(id: "account-bookmark")]
+            ),
+        ])
+        let stableFingerprint = ChromeStorageFingerprint(
+            modificationDate: Date(timeIntervalSince1970: 1_760_000_000),
+            fileSize: data.count
+        )
+        let dataSource = DefaultChromeDataSource(
+            bookmarksFileURL: officialSourceURL(
+                profileIdentifier: selectedProfile,
+                fileName: "AccountBookmarks"
+            ),
+            profileIdentifier: selectedProfile,
+            fileExists: { _ in true },
+            isReadable: { _ in true },
+            readData: { _ in data },
+            fingerprint: { _ in stableFingerprint },
+            chromeVersion: { "126.0-test" },
+            startAccessing: { _ in false },
+            stopAccessing: { _ in }
+        )
+
+        #expect(await dataSource.checkPermissions().state == .granted)
+        let extraction = try await dataSource.extract()
+        #expect(extraction.records.count == 1)
+        let root = try #require(extraction.records.first)
+        guard case .folder(let folder) = root else {
+            Issue.record("Expected the account bookmark bar root")
+            return
+        }
+        #expect(folder.children.count == 1)
+    }
+
     private func executionStep() throws -> ExecutionStep {
         let id = try logicalID(1)
         let node = try BSENode(
@@ -944,11 +984,12 @@ struct BSEChromeAdapterTests {
     }
 
     private func officialSourceURL(
-        profileIdentifier: ChromeProfileIdentifier
+        profileIdentifier: ChromeProfileIdentifier,
+        fileName: String = "Bookmarks"
     ) -> URL {
         URL(fileURLWithPath: "/tmp/BookmarkBridgeTests/Library/Application Support/Google/Chrome")
             .appending(path: profileIdentifier.rawValue)
-            .appending(path: "Bookmarks")
+            .appending(path: fileName)
     }
 
     private func defaultDataSource(

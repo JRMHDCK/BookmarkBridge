@@ -2,54 +2,260 @@
 <html lang="fr">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="BookmarkBridge synchronise vos favoris Safari et Google Chrome sur Mac.">
-  <title>BookmarkBridge — Vos favoris Safari et Chrome réunis</title>
-  <link rel="stylesheet" href="css/site.css">
-  <script src="js/site.js" defer></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>BookmarkBridge — Synchronisez Safari et Chrome sur macOS</title>
+  <meta name="description" content="BookmarkBridge compare vos favoris Safari et Chrome et utilise un workflow local adapté à chaque direction, sans cloud.">
+  <meta name="theme-color" content="#f7f8fa">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://bookmarkbridge.fr/">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="fr_FR">
+  <meta property="og:site_name" content="BookmarkBridge">
+  <meta property="og:title" content="BookmarkBridge — Synchronisez Safari et Chrome sur macOS">
+  <meta property="og:description" content="Safari vers Chrome est transactionnel ; Chrome vers Safari prépare un import additif piloté par Safari.">
+  <meta property="og:url" content="https://bookmarkbridge.fr/">
+  <meta property="og:image" content="https://bookmarkbridge.fr/assets/images/bookmarkbridge-icon.png">
+  <meta property="og:image:alt" content="Icône de BookmarkBridge">
+  <meta name="twitter:card" content="summary">
+  <link rel="icon" type="image/png" href="assets/images/favicon.png">
+  <link rel="apple-touch-icon" href="assets/images/bookmarkbridge-icon.png">
+  <link rel="stylesheet" href="styles.css?v=0.9.4-workflows-1">
+  <script src="script.js?v=0.9.4-workflows-1" defer></script>
 </head>
-<body>
-  <header class="site-header">
-    <a class="brand" href="index.html" aria-label="BookmarkBridge, accueil"><span class="brand-mark">B</span>BookmarkBridge</a>
-    <button class="menu-button" type="button" aria-expanded="false" aria-controls="site-nav">Menu</button>
-    <nav id="site-nav" class="site-nav" aria-label="Navigation principale">
-      <a href="download.html">Télécharger</a><a href="faq.html">FAQ</a><a href="release-notes.html">Notes de version</a>
-    </nav>
+<body class="home-page">
+  <a class="skip-link" href="#contenu">Aller au contenu</a>
+
+  <header class="site-header" data-header>
+    <div class="container nav-wrap">
+      <a class="brand" href="#accueil" aria-label="BookmarkBridge — Accueil">
+        <img src="assets/images/bookmarkbridge-icon.png" width="34" height="34" alt="">
+        <span>BookmarkBridge</span>
+      </a>
+      <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="navigation" aria-label="Ouvrir le menu">
+        <span></span><span></span>
+      </button>
+      <nav id="navigation" class="navigation" aria-label="Navigation principale">
+        <a href="#fonctionnalites">Fonctionnalités</a>
+        <a href="#confidentialite">Confidentialité</a>
+        <a href="#fonctionnement">Fonctionnement</a>
+        <a href="#faq">FAQ</a>
+        <label class="language-picker">
+          <span class="visually-hidden">Langue du site</span>
+          <select data-language-selector aria-label="Langue du site" title="Langue du site">
+            <option value="fr">FR</option>
+            <option value="en">EN</option>
+            <option value="es">ES</option>
+            <option value="de">DE</option>
+          </select>
+        </label>
+        <a class="nav-download" href="download.html">Télécharger</a>
+      </nav>
+    </div>
   </header>
 
-  <main>
-    <section class="hero">
-      <div class="eyebrow">Bêta gratuite pour macOS</div>
-      <h1>Vos favoris Safari et Chrome, enfin réunis.</h1>
-      <p class="lead">BookmarkBridge compare et synchronise vos favoris dans les deux sens, directement sur votre Mac.</p>
-      <div class="actions">
-        <a class="button primary" href="downloads/BookmarkBridge-0.9.3-build-1.dmg">Télécharger gratuitement</a>
-        <a class="button secondary" href="download.html">Voir l’installation</a>
+  <main id="contenu">
+    <section id="accueil" class="hero" aria-labelledby="hero-title">
+      <div class="container hero-grid">
+        <div class="hero-copy">
+          <h1 id="hero-title">Safari et Chrome.<br><span>Enfin reliés.</span></h1>
+          <p class="hero-lead">BookmarkBridge compare vos favoris et utilise le workflow le plus sûr pour chaque direction, directement sur votre Mac et sans cloud.</p>
+          <div class="hero-actions" id="telecharger">
+            <a class="button button-primary" href="/downloads/BookmarkBridge-0.9.4-build-1.dmg" download aria-describedby="release-note">Tester gratuitement</a>
+            <a class="button button-secondary" href="#fonctionnement">Découvrir BookmarkBridge</a>
+          </div>
+          <p id="release-note" class="release-note">Bêta gratuite 0.9.4 (build 1) · macOS 26.5 minimum.</p>
+        </div>
+
+        <div class="app-preview" aria-label="Safari et Chrome reliés par BookmarkBridge" role="img">
+          <div class="window-bar" aria-hidden="true">
+            <span></span><span></span><span></span>
+            <b>BookmarkBridge</b>
+          </div>
+          <div class="bridge-stage">
+            <div class="browser-node">
+              <img src="assets/images/safari-icon.png" width="92" height="92" alt="">
+              <strong>Safari</strong>
+            </div>
+            <div class="bridge-core">
+              <span class="bridge-line" aria-hidden="true"></span>
+              <span class="bridge-mark" aria-hidden="true">↔</span>
+              <span class="bridge-line" aria-hidden="true"></span>
+            </div>
+            <div class="browser-node">
+              <img src="assets/images/chrome-icon.png" width="92" height="92" alt="">
+              <strong>Chrome</strong>
+            </div>
+          </div>
+          <div class="preview-panel">
+            <div><span class="status-dot"></span><strong>Aperçu prêt</strong></div>
+            <p>Créations importables et opérations non prises en charge visibles avant action.</p>
+          </div>
+        </div>
       </div>
-      <p class="microcopy">Version bêta 0.9.3 · build 1 · macOS 26.5 minimum</p>
-    </section>
-
-    <section class="section" aria-labelledby="features-title">
-      <div class="section-heading"><span>Simple et local</span><h2 id="features-title">Un pont fiable entre vos navigateurs</h2></div>
-      <div class="card-grid">
-        <article class="card"><div class="card-icon">↔</div><h3>Dans les deux sens</h3><p>Synchronisez Safari vers Chrome ou Chrome vers Safari selon votre besoin.</p></article>
-        <article class="card"><div class="card-icon">⌁</div><h3>Aperçu avant action</h3><p>Examinez les changements proposés avant de modifier vos favoris.</p></article>
-        <article class="card"><div class="card-icon">⌂</div><h3>Sur votre Mac</h3><p>Le traitement reste local, sans compte BookmarkBridge ni synchronisation cloud.</p></article>
+      <div class="container principle-row" aria-label="Principes de BookmarkBridge">
+        <span>Traitement local</span>
+        <span>Sans compte</span>
+        <span>Sans extension</span>
+        <span>Sans publicité ni tracking</span>
       </div>
     </section>
 
-    <section class="section split">
-      <div><span class="eyebrow">Démarrage rapide</span><h2>Installez, autorisez, synchronisez.</h2></div>
-      <ol class="steps">
-        <li><span>1</span><div><strong>Téléchargez le DMG</strong><p>Ouvrez l’image disque et glissez BookmarkBridge dans Applications.</p></div></li>
-        <li><span>2</span><div><strong>Ouvrez l’application</strong><p>À la première ouverture, utilisez clic droit puis « Ouvrir » si Gatekeeper l’exige.</p></div></li>
-        <li><span>3</span><div><strong>Choisissez le sens</strong><p>Accordez les accès demandés, prévisualisez puis lancez la synchronisation.</p></div></li>
-      </ol>
+    <section class="proofs" aria-labelledby="proofs-title">
+      <div class="container">
+        <h2 id="proofs-title" class="visually-hidden">Les preuves essentielles</h2>
+        <div class="proof-grid">
+          <div class="proof-item"><strong>2</strong><span>workflows adaptés</span></div>
+          <div class="proof-item"><strong>✓</strong><span>écriture Safari directe évitée</span></div>
+          <div class="proof-item"><strong>0</strong><span>donnée envoyée sur Internet</span></div>
+          <div class="proof-item"><strong>↗</strong><span>aperçu avant modification</span></div>
+          <div class="proof-item"><strong>—</strong><span>fonctionnement sans compte ni cloud</span></div>
+        </div>
+      </div>
     </section>
 
-    <section class="cta"><div><h2>Prêt à relier vos favoris ?</h2><p>Téléchargement gratuit pendant la phase bêta.</p></div><a class="button light" href="download.html">Télécharger BookmarkBridge</a></section>
+    <section id="fonctionnalites" class="section features" aria-labelledby="features-title">
+      <div class="container">
+        <div class="section-heading">
+          <p class="eyebrow">Tout est à sa place</p>
+          <h2 id="features-title">Une synchronisation claire, jusque dans les détails.</h2>
+          <p>BookmarkBridge rend une opération complexe lisible et maîtrisable, même sans connaissances techniques.</p>
+        </div>
+
+        <div class="feature-grid">
+          <article class="feature-card">
+            <div class="feature-visual browsers-mini" aria-hidden="true">
+              <img src="assets/images/safari-icon.png" width="42" height="42" alt="">
+              <span>↔</span>
+              <img src="assets/images/chrome-icon.png" width="42" height="42" alt="">
+            </div>
+            <h3>Deux directions, deux workflows sûrs</h3>
+            <p>Safari → Chrome est transactionnel. Chrome → Safari prépare un fichier HTML que Safari importe lui-même.</p>
+          </article>
+
+          <article class="feature-card">
+            <div class="feature-visual folder-visual" aria-hidden="true"><span></span><span></span><span></span></div>
+            <h3>Organisation maîtrisée</h3>
+            <p>Les nouveaux favoris importables conservent leur structure de dossiers ; les limites de l’import Safari sont signalées.</p>
+          </article>
+
+          <article class="feature-card">
+            <div class="feature-visual preview-visual" aria-hidden="true">
+              <span class="plus">+</span><span class="minus">−</span><span class="move">↗</span>
+            </div>
+            <h3>Aperçu avant application</h3>
+            <p>Examinez chaque différence avant d’agir, y compris les opérations qu’un import Safari additif ne peut pas appliquer.</p>
+          </article>
+
+          <article class="feature-card">
+            <div class="feature-visual native-visual" aria-hidden="true">
+              <span class="mac-window"><i></i><i></i><i></i></span>
+              <span>SwiftUI</span>
+            </div>
+            <h3>Vraiment natif sur Mac</h3>
+            <p>Développé en Swift et SwiftUI pour une expérience familière, fluide et intégrée à macOS.</p>
+          </article>
+
+          <article class="feature-card">
+            <div class="feature-visual detect-visual" aria-hidden="true"><span></span><span></span><b>✓</b></div>
+            <h3>Détection intelligente</h3>
+            <p>Les doublons, erreurs et conflits sont repérés pour vous aider à comprendre les changements.</p>
+          </article>
+
+          <article class="feature-card">
+            <div class="feature-visual performance-visual" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+            <h3>Prêt pour vos bibliothèques</h3>
+            <p>Des performances pensées pour les grandes collections, dans une interface accessible aux utilisateurs non techniques.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="confidentialite" class="section privacy" aria-labelledby="privacy-title">
+      <div class="container privacy-grid">
+        <div class="privacy-heading">
+          <p class="eyebrow light">Privé par conception</p>
+          <h2 id="privacy-title">Tout se passe sur votre Mac.</h2>
+          <p>BookmarkBridge traite vos favoris localement. Aucun serveur intermédiaire, aucun compte et aucun mécanisme publicitaire ne sont nécessaires.</p>
+        </div>
+        <ul class="privacy-list">
+          <li><span aria-hidden="true">⌂</span><div><strong>Traitement local</strong><small>Aucune donnée de favoris n’est envoyée sur Internet.</small></div></li>
+          <li><span aria-hidden="true">⊘</span><div><strong>Sans compte, publicité ou tracking</strong><small>Pas d’inscription, de profilage ni de suivi publicitaire.</small></div></li>
+          <li><span aria-hidden="true">✓</span><div><strong>Permissions officielles macOS</strong><small>Les accès sont demandés clairement avec les mécanismes prévus par macOS, sans accès caché.</small></div></li>
+          <li><span aria-hidden="true">↗</span><div><strong>Vous gardez la main</strong><small>L’aperçu vous permet de comprendre les changements avant leur application.</small></div></li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="fonctionnement" class="section process" aria-labelledby="process-title">
+      <div class="container">
+        <div class="section-heading centered">
+          <p class="eyebrow">Simple dès le premier lancement</p>
+          <h2 id="process-title">De vos navigateurs à une vue claire.</h2>
+        </div>
+        <ol class="steps">
+          <li>
+            <span>1</span>
+            <div><h3>Autorisez les dossiers</h3><p>macOS vous demande explicitement l’accès nécessaire aux favoris de Safari et Chrome.</p></div>
+          </li>
+          <li>
+            <span>2</span>
+            <div><h3>Consultez l’aperçu</h3><p>BookmarkBridge présente les différences et signale les doublons, erreurs ou conflits détectés.</p></div>
+          </li>
+          <li>
+            <span>3</span>
+            <div><h3>Suivez le workflow adapté</h3><p>Safari → Chrome est appliqué après confirmation. Chrome → Safari ouvre Safari et le fichier HTML à importer.</p></div>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <section id="faq" class="section faq" aria-labelledby="faq-title">
+      <div class="container faq-grid">
+        <div class="section-heading">
+          <p class="eyebrow">Questions fréquentes</p>
+          <h2 id="faq-title">L’essentiel, sans jargon.</h2>
+        </div>
+        <div class="faq-list">
+          <details>
+            <summary>Mes favoris sont-ils envoyés sur Internet ?</summary>
+            <p>Non. BookmarkBridge fonctionne localement sur votre Mac, sans cloud ni serveur pour traiter vos favoris.</p>
+          </details>
+          <details>
+            <summary>Mes dossiers et leur ordre sont-ils conservés ?</summary>
+            <p>Safari → Chrome préserve la structure par écriture transactionnelle. Chrome → Safari conserve la structure des nouveaux favoris importés, mais l’import additif ne peut pas appliquer les suppressions, déplacements, renommages ou changements d’URL.</p>
+          </details>
+          <details>
+            <summary>Faut-il installer une extension dans Safari ou Chrome ?</summary>
+            <p>Non. BookmarkBridge est une application macOS autonome : aucune extension ni aucun plugin de navigateur ne sont nécessaires.</p>
+          </details>
+          <details>
+            <summary>Comment BookmarkBridge accède-t-il aux favoris ?</summary>
+            <p>Uniquement après votre autorisation explicite, via les permissions officielles proposées par macOS.</p>
+          </details>
+          <details>
+            <summary>Quand l’application sera-t-elle disponible ?</summary>
+            <p>La bêta macOS est disponible gratuitement. Téléchargez le DMG depuis la <a href="download.html">page de téléchargement</a>, puis glissez BookmarkBridge dans Applications.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <section class="final-cta" aria-labelledby="cta-title">
+      <div class="container">
+        <p class="eyebrow">BookmarkBridge pour macOS</p>
+        <h2 id="cta-title">Safari et Chrome.<br>Enfin reliés.</h2>
+        <p>Découvrez BookmarkBridge gratuitement sur votre Mac.</p>
+        <a class="button button-primary" href="/downloads/BookmarkBridge-0.9.4-build-1.dmg" download>Tester gratuitement</a>
+      </div>
+    </section>
   </main>
 
-  <footer class="site-footer"><div><a class="brand" href="index.html"><span class="brand-mark">B</span>BookmarkBridge</a><p>Synchronisation de favoris pour macOS.</p></div><nav aria-label="Pied de page"><a href="privacy.html">Confidentialité</a><a href="legal.html">Mentions légales</a><a href="https://github.com/JRMHDCK/BookmarkBridge">GitHub</a><a href="mailto:contact@bookmarkbridge.fr">Contact</a></nav><p>© <span data-current-year>2026</span> BookmarkBridge</p></footer>
+  <footer class="site-footer">
+    <div class="container footer-wrap">
+      <a class="footer-brand" href="https://bookmarkbridge.fr/">BookmarkBridge</a>
+      <p><a href="#faq">FAQ</a> · <a href="https://github.com/JRMHDCK/BookmarkBridge#première-synchronisation">Documentation 0.9.4</a> · <a href="downloads/SHA256.txt" download>SHA-256</a> · <a href="https://github.com/JRMHDCK/BookmarkBridge">GitHub</a></p>
+      <p>© <span data-year></span> BookmarkBridge</p>
+    </div>
+  </footer>
 </body>
 </html>

@@ -21,11 +21,12 @@ nonisolated struct ProductionSynchronizationService: Sendable {
         any SafariApplicationStateChecking
     private let chromeApplicationStateChecker:
         any ChromeApplicationStateChecking
-    private let safariAdapterIdentifier: WriteAdapterIdentifier
     private let chromeAdapterIdentifier: WriteAdapterIdentifier
     private let sessionCoordinator:
         ProductionSynchronizationSessionCoordinator
     private let fileController: any SecurityScopedFileControlling
+    private let diagnosticRecorder: (any DiagnosticEventRecording)?
+    private let nowProvider: @Sendable () -> Date
 
     init(
         baselineRepository: BaselineRepository,
@@ -39,12 +40,13 @@ nonisolated struct ProductionSynchronizationService: Sendable {
         chromeApplicationStateChecker:
             any ChromeApplicationStateChecking =
                 ChromeApplicationStateChecker(),
-        safariAdapterIdentifier: WriteAdapterIdentifier,
         chromeAdapterIdentifier: WriteAdapterIdentifier,
         sessionCoordinator: ProductionSynchronizationSessionCoordinator =
             ProductionSynchronizationSessionCoordinator(),
         fileController: any SecurityScopedFileControlling =
-            SystemSecurityScopedFileController()
+            SystemSecurityScopedFileController(),
+        diagnosticRecorder: (any DiagnosticEventRecording)? = nil,
+        nowProvider: @escaping @Sendable () -> Date = Date.init
     ) {
         self.baselineRepository = baselineRepository
         self.identityProvider = identityProvider
@@ -52,17 +54,85 @@ nonisolated struct ProductionSynchronizationService: Sendable {
         self.nativeIdentifierProvider = nativeIdentifierProvider
         self.safariApplicationStateChecker = safariApplicationStateChecker
         self.chromeApplicationStateChecker = chromeApplicationStateChecker
-        self.safariAdapterIdentifier = safariAdapterIdentifier
         self.chromeAdapterIdentifier = chromeAdapterIdentifier
         self.sessionCoordinator = sessionCoordinator
         self.fileController = fileController
+        self.diagnosticRecorder = diagnosticRecorder
+        self.nowProvider = nowProvider
     }
 
     func synchronize(
         confirmedPlan: ConfirmedSynchronizationPlan
     ) async throws -> ProductionSynchronizationResult {
-        try await sessionCoordinator.withSession {
-            try await performSynchronization(confirmedPlan: confirmedPlan)
+        let request = confirmedPlan.executionRequest
+        let direction = diagnosticDirection(request.direction)
+        let changeCount = confirmedPlan.plan.operations.count
+        let startedAt = nowProvider()
+        let initialFileEvidence = safariFileEvidence(
+            at: request.safariBookmarksURL
+        )
+        await recordDiagnosticEvent(DiagnosticEvent(
+            timestamp: startedAt,
+            level: .information,
+            component: .synchronization,
+            stage: .planning,
+            outcome: .started,
+            direction: direction,
+            counts: DiagnosticCounts(changes: changeCount),
+            fileEvidence: initialFileEvidence
+        ))
+
+        do {
+            let result = try await sessionCoordinator.withSession {
+                try await performSynchronization(confirmedPlan: confirmedPlan)
+            }
+            await recordDiagnosticEvent(DiagnosticEvent(
+                timestamp: nowProvider(),
+                level: .information,
+                component: .synchronization,
+                stage: .validation,
+                outcome: .succeeded,
+                direction: direction,
+                durationMilliseconds: durationSince(startedAt),
+                counts: DiagnosticCounts(changes: changeCount),
+                fileEvidence: safariFileEvidence(
+                    at: request.safariBookmarksURL
+                )
+            ))
+            return result
+        } catch is CancellationError {
+            await recordDiagnosticEvent(DiagnosticEvent(
+                timestamp: nowProvider(),
+                level: .warning,
+                component: .synchronization,
+                stage: .unknown,
+                outcome: .cancelled,
+                direction: direction,
+                durationMilliseconds: durationSince(startedAt),
+                counts: DiagnosticCounts(changes: changeCount),
+                fileEvidence: safariFileEvidence(
+                    at: request.safariBookmarksURL
+                )
+            ))
+            throw CancellationError()
+        } catch {
+            let failure = diagnosticFailure(for: error)
+            await recordDiagnosticEvent(DiagnosticEvent(
+                timestamp: nowProvider(),
+                level: .error,
+                component: .synchronization,
+                stage: failure.stage,
+                outcome: .failed,
+                direction: direction,
+                errorType: failure.errorType,
+                errorCode: failure.errorCode,
+                durationMilliseconds: durationSince(startedAt),
+                counts: DiagnosticCounts(changes: changeCount),
+                fileEvidence: safariFileEvidence(
+                    at: request.safariBookmarksURL
+                )
+            ))
+            throw error
         }
     }
 
@@ -70,6 +140,11 @@ nonisolated struct ProductionSynchronizationService: Sendable {
         confirmedPlan: ConfirmedSynchronizationPlan
     ) async throws -> ProductionSynchronizationResult {
         let request = confirmedPlan.executionRequest
+        guard request.direction == .safariToChrome else {
+            throw ProductionSynchronizationError.unsupportedDirection(
+                request.direction
+            )
+        }
         let safariAccess = fileController.startAccessing(
             request.safariSecurityScopeURL
         )
@@ -91,28 +166,18 @@ nonisolated struct ProductionSynchronizationService: Sendable {
 
         var executionPlanValidation: ExecutionPlanValidation?
         do {
-            let direction: SynchronizationDirection
-            switch request.direction {
-            case .safariToChrome:
-                direction = .oneWay(
-                    source: request.safariSourceID,
-                    target: request.chromeSourceID
-                )
-            case .chromeToSafari:
-                direction = .oneWay(
-                    source: request.chromeSourceID,
-                    target: request.safariSourceID
-                )
-            }
+            let direction = SynchronizationDirection.oneWay(
+                source: request.safariSourceID,
+                target: request.chromeSourceID
+            )
 
             let validation = ExecutionPlanValidation()
             executionPlanValidation = validation
-            let target = transactionTarget(for: request)
             let coordinator = SynchronizationTransactionCoordinator(
-                targetFileURL: target.fileURL,
-                backupDirectoryURL: target.backupDirectoryURL,
+                targetFileURL: request.chromeBookmarksURL,
+                backupDirectoryURL: request.chromeBackupDirectoryURL,
                 confirmedPlan: confirmedPlan,
-                backupManager: transactionBackupManager(for: request),
+                backupManager: transactionBackupManager(),
                 participants: [
                     BaselineSynchronizationTransactionParticipant(
                         repository: baselineRepository
@@ -124,6 +189,20 @@ nonisolated struct ProductionSynchronizationService: Sendable {
             )
             let synchronizationStorage =
                 Mutex<EndToEndSynchronizationResult?>(nil)
+            await recordDiagnosticEvent(DiagnosticEvent(
+                timestamp: nowProvider(),
+                level: .information,
+                component: .backup,
+                stage: .backup,
+                outcome: .started,
+                direction: diagnosticDirection(request.direction),
+                counts: DiagnosticCounts(
+                    changes: confirmedPlan.plan.operations.count
+                ),
+                fileEvidence: safariFileEvidence(
+                    at: request.safariBookmarksURL
+                )
+            ))
             let transaction = try await coordinator.execute(preflight: {
                 try safariApplicationStateChecker.ensureSafariIsClosed()
                 try chromeApplicationStateChecker.ensureChromeIsClosed()
@@ -133,9 +212,37 @@ nonisolated struct ProductionSynchronizationService: Sendable {
                     nativeIdentityRepository: nativeIdentityRepository
                 ).preview(request: previewRequest(for: request))
                 try confirmedPlan.validate(against: preview)
+                await recordDiagnosticEvent(DiagnosticEvent(
+                    timestamp: nowProvider(),
+                    level: .information,
+                    component: .synchronization,
+                    stage: .planning,
+                    outcome: .succeeded,
+                    direction: diagnosticDirection(request.direction),
+                    counts: DiagnosticCounts(
+                        changes: confirmedPlan.plan.operations.count
+                    ),
+                    fileEvidence: safariFileEvidence(
+                        at: request.safariBookmarksURL
+                    )
+                ))
             }) {
                 transactionExecutor,
                 backup in
+                await recordDiagnosticEvent(DiagnosticEvent(
+                    timestamp: nowProvider(),
+                    level: .information,
+                    component: .backup,
+                    stage: .backup,
+                    outcome: .succeeded,
+                    direction: diagnosticDirection(request.direction),
+                    counts: DiagnosticCounts(
+                        changes: confirmedPlan.plan.operations.count
+                    ),
+                    fileEvidence: safariFileEvidence(
+                        at: request.safariBookmarksURL
+                    )
+                ))
                 let components = makeComponents(
                     request: request,
                     transactionBackup: backup
@@ -144,36 +251,33 @@ nonisolated struct ProductionSynchronizationService: Sendable {
                     confirmedPlan: confirmedPlan,
                     validation: validation
                 )
-                let pipeline: EndToEndSynchronizationPipeline
-                switch request.direction {
-                case .safariToChrome:
-                    pipeline = EndToEndSynchronizationPipeline(
-                        sourceReader: components.safariReader,
-                        targetReader: components.chromeReader,
-                        matchingPipeline: components.matchingPipeline,
-                        identityResolver: NativeIdentityResolver(
-                            repository: nativeIdentityRepository
-                        ),
-                        bootstrapper: components.bootstrapper,
-                        planner: confirmedPlanner,
-                        executor: transactionExecutor,
-                        writeAdapter: components.chromeWriter
-                    )
-                case .chromeToSafari:
-                    pipeline = EndToEndSynchronizationPipeline(
-                        sourceReader: components.chromeReader,
-                        targetReader: components.safariReader,
-                        matchingPipeline: components.matchingPipeline,
-                        identityResolver: NativeIdentityResolver(
-                            repository: nativeIdentityRepository
-                        ),
-                        bootstrapper: components.bootstrapper,
-                        planner: confirmedPlanner,
-                        executor: transactionExecutor,
-                        writeAdapter: components.safariWriter
-                    )
-                }
+                let pipeline = EndToEndSynchronizationPipeline(
+                    sourceReader: components.safariReader,
+                    targetReader: components.chromeReader,
+                    matchingPipeline: components.matchingPipeline,
+                    identityResolver: NativeIdentityResolver(
+                        repository: nativeIdentityRepository
+                    ),
+                    bootstrapper: components.bootstrapper,
+                    planner: confirmedPlanner,
+                    executor: transactionExecutor,
+                    writeAdapter: components.chromeWriter
+                )
 
+                await recordDiagnosticEvent(DiagnosticEvent(
+                    timestamp: nowProvider(),
+                    level: .information,
+                    component: .writer,
+                    stage: .writing,
+                    outcome: .started,
+                    direction: diagnosticDirection(request.direction),
+                    counts: DiagnosticCounts(
+                        changes: confirmedPlan.plan.operations.count
+                    ),
+                    fileEvidence: safariFileEvidence(
+                        at: request.safariBookmarksURL
+                    )
+                ))
                 let synchronization = try await pipeline.execute(
                     request: EndToEndSynchronizationRequest(
                         synchronizationPolicy: .allChanges(
@@ -189,6 +293,21 @@ nonisolated struct ProductionSynchronizationService: Sendable {
                 synchronizationStorage.withLock {
                     $0 = synchronization
                 }
+                await recordDiagnosticEvent(DiagnosticEvent(
+                    timestamp: nowProvider(),
+                    level: .information,
+                    component: .writer,
+                    stage: .writing,
+                    outcome: .succeeded,
+                    direction: diagnosticDirection(request.direction),
+                    counts: DiagnosticCounts(
+                        changes: synchronization.execution.report
+                            .appliedOperationCount
+                    ),
+                    fileEvidence: safariFileEvidence(
+                        at: request.safariBookmarksURL
+                    )
+                ))
             }
             guard let synchronization = synchronizationStorage.withLock({
                 $0
@@ -246,31 +365,17 @@ nonisolated struct ProductionSynchronizationService: Sendable {
             selection: request.chromeSelection
         )
 
-        let safariBackupService: any SafariBookmarkBackingUp
         let chromeBackupService: any ChromeBookmarkBackingUp
         if let transactionBackup {
-            safariBackupService = TransactionSafariBackupRelay(
-                backup: transactionBackup
-            )
             chromeBackupService = TransactionChromeBackupRelay(
                 backup: transactionBackup
             )
         } else {
-            safariBackupService = SafariBookmarkBackupService(
-                backupDirectoryURL: request.safariBackupDirectoryURL
-            )
             chromeBackupService = ChromeBookmarkBackupService(
                 backupDirectoryURL: request.chromeBackupDirectoryURL
             )
         }
 
-        let safariStore = SafariBookmarkStore(
-            bookmarksFileURL: request.safariBookmarksURL,
-            validator: SafariBookmarkValidator(),
-            backupService: safariBackupService,
-            atomicWriter: SafariAtomicWriter(),
-            applicationStateChecker: safariApplicationStateChecker
-        )
         let chromeStore = ChromeBookmarkStore(
             bookmarksFileURL: request.chromeBookmarksURL,
             validator: ChromeBookmarkValidator(),
@@ -279,22 +384,10 @@ nonisolated struct ProductionSynchronizationService: Sendable {
             applicationStateChecker: chromeApplicationStateChecker
         )
 
-        let safariMutator = SafariBookmarkMutator(
-            sourceID: request.safariSourceID,
-            nativeIdentityRepository: nativeIdentityRepository,
-            nativeIdentifierProvider: nativeIdentifierProvider
-        )
         let chromeMutator = ChromeBookmarkMutator(
             sourceID: request.chromeSourceID,
             nativeIdentityRepository: nativeIdentityRepository,
             nativeIdentifierProvider: nativeIdentifierProvider
-        )
-        let safariWriter = SafariBookmarkWriteAdapter(
-            identifier: safariAdapterIdentifier,
-            sourceID: request.safariSourceID,
-            store: safariStore,
-            mutator: SafariWriter(mutator: safariMutator),
-            nativeIdentityRepository: nativeIdentityRepository
         )
         let chromeWriter = ChromeBookmarkWriteAdapter(
             identifier: chromeAdapterIdentifier,
@@ -320,7 +413,6 @@ nonisolated struct ProductionSynchronizationService: Sendable {
         return Components(
             safariReader: safariReader,
             chromeReader: chromeReader,
-            safariWriter: safariWriter,
             chromeWriter: chromeWriter,
             matchingPipeline: matchingPipeline,
             bootstrapper: NativeIdentityBootstrapper(
@@ -346,47 +438,91 @@ nonisolated struct ProductionSynchronizationService: Sendable {
         )
     }
 
-    private func transactionTarget(
-        for request: ProductionSynchronizationRequest
-    ) -> (fileURL: URL, backupDirectoryURL: URL) {
-        switch request.direction {
-        case .safariToChrome:
-            (
-                request.chromeBookmarksURL,
-                request.chromeBackupDirectoryURL
-            )
-        case .chromeToSafari:
-            (
-                request.safariBookmarksURL,
-                request.safariBackupDirectoryURL
-            )
+    private func transactionBackupManager(
+    ) -> any SynchronizationBackupManaging {
+        return GuardedTransactionBackupManager(
+            underlying: FileSynchronizationBackupManager(),
+            restorationReadinessCheck: {
+                try chromeApplicationStateChecker.ensureChromeIsClosed()
+            }
+        )
+    }
+
+    private func recordDiagnosticEvent(_ event: DiagnosticEvent) async {
+        guard let diagnosticRecorder else { return }
+        try? await diagnosticRecorder.record(event, now: event.timestamp)
+    }
+
+    private func durationSince(_ start: Date) -> UInt64? {
+        let milliseconds = nowProvider().timeIntervalSince(start) * 1_000
+        guard milliseconds.isFinite else { return nil }
+        return UInt64(min(max(0, milliseconds), Double(Int.max)))
+    }
+
+    private func diagnosticDirection(
+        _ direction: ProductionSynchronizationDirection
+    ) -> DiagnosticSynchronizationDirection {
+        switch direction {
+        case .safariToChrome: .safariToChrome
+        case .chromeToSafari: .chromeToSafari
         }
     }
 
-    private func transactionBackupManager(
-        for request: ProductionSynchronizationRequest
-    ) -> any SynchronizationBackupManaging {
-        let readinessCheck: @Sendable () throws -> Void
-        switch request.direction {
-        case .safariToChrome:
-            readinessCheck = {
-                try chromeApplicationStateChecker.ensureChromeIsClosed()
-            }
-        case .chromeToSafari:
-            readinessCheck = {
-                try safariApplicationStateChecker.ensureSafariIsClosed()
-            }
+    private func safariFileEvidence(
+        at fileURL: URL
+    ) -> DiagnosticFileEvidence? {
+        guard let fingerprint = try? DiagnosticFileFingerprint.capture(
+            at: fileURL
+        ) else {
+            return nil
         }
-        return GuardedTransactionBackupManager(
-            underlying: FileSynchronizationBackupManager(),
-            restorationReadinessCheck: readinessCheck
+        let canonicalURL = FileManager.default.homeDirectoryForCurrentUser
+            .appending(path: "Library", directoryHint: .isDirectory)
+            .appending(path: "Safari", directoryHint: .isDirectory)
+            .appending(path: "Bookmarks.plist", directoryHint: .notDirectory)
+            .standardizedFileURL
+            .resolvingSymlinksInPath()
+        let resolvedURL = fileURL.standardizedFileURL.resolvingSymlinksInPath()
+        return DiagnosticFileEvidence(
+            location: resolvedURL == canonicalURL
+                ? .canonicalBookmarks
+                : .alternateBookmarks,
+            fileSize: fingerprint.fileSize,
+            modificationDate: fingerprint.modificationDate,
+            sha256: fingerprint.contentDigest,
+            fileSystemNumber: fingerprint.fileSystemNumber,
+            inode: fingerprint.fileNumber
         )
+    }
+
+    private func diagnosticFailure(
+        for error: any Error
+    ) -> (
+        stage: DiagnosticStage,
+        errorType: DiagnosticErrorType,
+        errorCode: DiagnosticErrorCode
+    ) {
+        if error is PlanConfirmationError {
+            return (.planning, .planning, .validationFailed)
+        }
+        guard let transactionError = error as? SynchronizationTransactionError else {
+            return (.unknown, .synchronization, .unknown)
+        }
+        switch transactionError {
+        case .backupCreationFailed, .participantCaptureFailed:
+            return (.backup, .backup, .backupFailed)
+        case .executionFailed:
+            return (.writing, .writing, .transactionFailed)
+        case .finalValidationFailed:
+            return (.validation, .validation, .validationFailed)
+        case .restorationFailed:
+            return (.restoration, .restoration, .restorationFailed)
+        }
     }
 
     private struct Components {
         let safariReader: SelectionScopedSynchronizationReader
         let chromeReader: SelectionScopedSynchronizationReader
-        let safariWriter: SafariBookmarkWriteAdapter
         let chromeWriter: ChromeBookmarkWriteAdapter
         let matchingPipeline: MatchingPipeline
         let bootstrapper: NativeIdentityBootstrapper
@@ -394,19 +530,6 @@ nonisolated struct ProductionSynchronizationService: Sendable {
 }
 
 nonisolated private struct MissingTransactionSynchronizationResult: Error {}
-
-nonisolated private struct TransactionSafariBackupRelay:
-    SafariBookmarkBackingUp
-{
-    let backup: SynchronizationBackup
-
-    func createBackup(of sourceURL: URL) throws -> URL {
-        guard sourceURL.standardizedFileURL == backup.targetURL.standardizedFileURL else {
-            throw SafariPersistenceError.backupFailed
-        }
-        return backup.backupURL
-    }
-}
 
 nonisolated private struct TransactionChromeBackupRelay:
     ChromeBookmarkBackingUp

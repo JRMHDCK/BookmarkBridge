@@ -138,29 +138,12 @@ nonisolated struct ExecutableSynchronizationStructureBuilder: Sendable {
                 }
                 let expectedID = desired[mismatchIndex]
                 let displacedID = currentDesiredOrder[mismatchIndex]
-                let logicalNodeID: LogicalNodeID
-                let position: Int
-                if createdNodeIDs.contains(expectedID) {
-                    guard !createdNodeIDs.contains(displacedID),
-                          let expectedPosition = current.firstIndex(
-                            of: expectedID
-                          ) else {
-                        throw SynchronizationPlanningError.inconsistentPlan
-                    }
-                    logicalNodeID = displacedID
-                    position = expectedPosition
-                } else {
-                    guard let displacedPosition = current.firstIndex(
-                        of: displacedID
-                    ) else {
-                        throw SynchronizationPlanningError.inconsistentPlan
-                    }
-                    logicalNodeID = expectedID
-                    position = displacedPosition
+                guard let position = current.firstIndex(of: displacedID) else {
+                    throw SynchronizationPlanningError.inconsistentPlan
                 }
                 let operation = SynchronizationOperation.reorder(
                     ReorderNodeOperation(
-                        logicalNodeID: logicalNodeID,
+                        logicalNodeID: expectedID,
                         position: position
                     )
                 )

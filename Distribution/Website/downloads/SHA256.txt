@@ -1,1 +1,1 @@
-087eaf77d1f3fca6f45f384fb547f144a1e8869feb39d0554510e509cda57168  BookmarkBridge-0.9.3-build-1.dmg
+4cfe937a1fd4dd36be19f8f133946be24c3a3d9a40f5b1561ef4059d3fda1e1a  BookmarkBridge-0.9.4-build-1.dmg

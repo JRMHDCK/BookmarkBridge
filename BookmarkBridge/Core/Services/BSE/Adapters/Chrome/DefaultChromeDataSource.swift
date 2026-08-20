@@ -11,7 +11,9 @@ nonisolated struct ChromeStorageFingerprint: Hashable, Sendable {
     let fileSize: Int
 }
 
-/// Extracts one official local Chrome `Bookmarks` file into private records.
+/// Extracts one official Chrome `Bookmarks` or `AccountBookmarks` file into
+/// private records. Both are readable; account-backed storage remains
+/// read-only at the writer boundary.
 /// It never creates, updates, replaces, or deletes a file and never starts Chrome.
 nonisolated struct DefaultChromeDataSource: ChromeDataSource {
     private static let validatedStorageVersions = Set(["1"])
@@ -201,8 +203,10 @@ nonisolated struct DefaultChromeDataSource: ChromeDataSource {
     }
 
     private var isOfficialLocalSource: Bool {
+        let supportedFileNames = ["Bookmarks", "AccountBookmarks"]
         guard bookmarksFileURL.isFileURL,
-              bookmarksFileURL.lastPathComponent == "Bookmarks" else {
+              supportedFileNames.contains(bookmarksFileURL.lastPathComponent)
+        else {
             return false
         }
         let profileDirectory = bookmarksFileURL.deletingLastPathComponent()

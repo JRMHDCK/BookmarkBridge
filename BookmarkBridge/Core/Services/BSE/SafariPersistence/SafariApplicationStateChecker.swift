@@ -5,6 +5,10 @@
 
 import AppKit
 
+nonisolated enum SafariApplicationStateError: Error, Hashable, Sendable {
+    case safariIsOpen
+}
+
 nonisolated struct SafariApplicationStateChecker: SafariApplicationStateChecking {
     private let isSafariRunning: @Sendable () -> Bool
 
@@ -18,7 +22,7 @@ nonisolated struct SafariApplicationStateChecker: SafariApplicationStateChecking
 
     func ensureSafariIsClosed() throws {
         guard !isSafariRunning() else {
-            throw SafariPersistenceError.safariIsOpen
+            throw SafariApplicationStateError.safariIsOpen
         }
     }
 }

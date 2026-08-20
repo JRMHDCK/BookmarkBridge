@@ -101,6 +101,14 @@ extension AppDependencies {
         let backupsRoot = (FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
             ?? FileManager.default.temporaryDirectory)
             .appendingPathComponent("BookmarkBridge/Backups", isDirectory: true)
+        let safariImportsRoot = (FileManager.default.urls(
+            for: .applicationSupportDirectory,
+            in: .userDomainMask
+        ).first ?? FileManager.default.temporaryDirectory)
+            .appendingPathComponent(
+                "BookmarkBridge/SafariImports",
+                isDirectory: true
+            )
 
         let safariReader = SafariBookmarkReader(
             locator: safariLocator,
@@ -139,12 +147,15 @@ extension AppDependencies {
                 baselineRepository: baselineRepository,
                 identityProvider: identityProvider,
                 nativeIdentityRepository: nativeIdentityRepository,
-                safariAdapterIdentifier: WriteAdapterIdentifier(UUID()),
-                chromeAdapterIdentifier: WriteAdapterIdentifier(UUID())
+                chromeAdapterIdentifier: WriteAdapterIdentifier(UUID()),
+                diagnosticRecorder: diagnosticEventStore
             )
             synchronizationExecutionService =
                 SynchronizationExecutionCoordinator(
                     productionService: productionService,
+                    safariImportWorkflow: SafariImportWorkflow(
+                        destinationDirectory: safariImportsRoot
+                    ),
                     safariBackupDirectoryURL: backupsRoot.appendingPathComponent(
                         "Safari",
                         isDirectory: true

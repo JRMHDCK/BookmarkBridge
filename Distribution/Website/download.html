@@ -1,17 +1,175 @@
 <!doctype html>
 <html lang="fr">
 <head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Téléchargez gratuitement la bêta de BookmarkBridge pour macOS.">
-  <title>Télécharger BookmarkBridge</title><link rel="stylesheet" href="css/site.css"><script src="js/site.js" defer></script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Télécharger BookmarkBridge pour macOS</title>
+  <meta name="description" content="Téléchargez BookmarkBridge 0.9.4 pour macOS et suivez le guide illustré pour autoriser sa première ouverture avec Gatekeeper.">
+  <meta name="theme-color" content="#f7f8fa" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0d1016" media="(prefers-color-scheme: dark)">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://bookmarkbridge.fr/download.html">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="fr_FR">
+  <meta property="og:site_name" content="BookmarkBridge">
+  <meta property="og:title" content="Télécharger BookmarkBridge pour macOS">
+  <meta property="og:description" content="Téléchargez BookmarkBridge et suivez les trois étapes pour autoriser sa première ouverture sur macOS.">
+  <meta property="og:url" content="https://bookmarkbridge.fr/download.html">
+  <meta property="og:image" content="https://bookmarkbridge.fr/assets/images/bookmarkbridge-icon.png">
+  <meta property="og:image:alt" content="Icône de BookmarkBridge">
+  <link rel="icon" type="image/png" href="assets/images/favicon.png">
+  <link rel="apple-touch-icon" href="assets/images/bookmarkbridge-icon.png">
+  <link rel="stylesheet" href="styles.css?v=0.9.4-workflows-1">
+  <script src="script.js?v=0.9.4-workflows-1" defer></script>
 </head>
-<body>
-  <header class="site-header"><a class="brand" href="index.html"><span class="brand-mark">B</span>BookmarkBridge</a><button class="menu-button" type="button" aria-expanded="false" aria-controls="site-nav">Menu</button><nav id="site-nav" class="site-nav"><a class="active" href="download.html">Télécharger</a><a href="faq.html">FAQ</a><a href="release-notes.html">Notes de version</a></nav></header>
-  <main>
-    <section class="page-hero"><span class="eyebrow">Téléchargement gratuit</span><h1>BookmarkBridge pour macOS</h1><p class="lead">Bêta 0.9.3 (build 1), compatible avec macOS 26.5 ou version ultérieure.</p><a class="button primary" href="downloads/BookmarkBridge-0.9.3-build-1.dmg">Télécharger le DMG</a><p class="microcopy">Fichier : BookmarkBridge-0.9.3-build-1.dmg · 10 401 977 octets</p></section>
-    <section class="section narrow"><h2>Installation</h2><ol class="steps numbered"><li><span>1</span><div><strong>Téléchargez et ouvrez le fichier DMG.</strong></div></li><li><span>2</span><div><strong>Glissez BookmarkBridge dans le raccourci Applications.</strong></div></li><li><span>3</span><div><strong>Ouvrez le dossier Applications puis lancez BookmarkBridge.</strong></div></li><li><span>4</span><div><strong>Accordez uniquement les accès Safari et Chrome nécessaires.</strong></div></li></ol></section>
-    <section class="notice"><h2>Si macOS bloque la première ouverture</h2><p>Dans le dossier Applications, faites un <strong>clic droit sur BookmarkBridge</strong>, choisissez <strong>Ouvrir</strong>, puis confirmez avec <strong>Ouvrir</strong>. Cette opération n’est normalement nécessaire qu’une fois.</p></section>
-    <section class="section narrow"><h2>Vérifier le téléchargement</h2><p>La somme SHA-256 permet de contrôler l’intégrité du DMG.</p><code class="hash">087eaf77d1f3fca6f45f384fb547f144a1e8869feb39d0554510e509cda57168</code><p><a class="text-link" href="downloads/SHA256.txt">Télécharger SHA256.txt</a> · <a class="text-link" href="downloads/BookmarkBridge-User-Guide.pdf">Consulter le manuel PDF</a></p></section>
+<body class="download-page">
+  <a class="skip-link" href="#contenu">Aller au contenu</a>
+
+  <header class="site-header" data-header>
+    <div class="container nav-wrap">
+      <a class="brand" href="index.html" aria-label="BookmarkBridge — Accueil">
+        <img src="assets/images/bookmarkbridge-icon.png" width="34" height="34" alt="">
+        <span>BookmarkBridge</span>
+      </a>
+      <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="navigation" aria-label="Ouvrir le menu">
+        <span></span><span></span>
+      </button>
+      <nav id="navigation" class="navigation" aria-label="Navigation principale">
+        <a href="index.html#fonctionnalites">Fonctionnalités</a>
+        <a href="index.html#confidentialite">Confidentialité</a>
+        <a href="index.html#fonctionnement">Fonctionnement</a>
+        <a href="index.html#faq">FAQ</a>
+        <label class="language-picker">
+          <span class="visually-hidden">Langue du site</span>
+          <select data-language-selector aria-label="Langue du site" title="Langue du site">
+            <option value="fr">FR</option>
+            <option value="en">EN</option>
+            <option value="es">ES</option>
+            <option value="de">DE</option>
+          </select>
+        </label>
+        <a class="nav-download" href="download.html" aria-current="page">Télécharger</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="contenu">
+    <section class="download-hero" aria-labelledby="download-title">
+      <div class="container download-hero-grid">
+        <div class="download-hero-copy">
+          <p class="eyebrow">Bêta gratuite pour macOS</p>
+          <h1 id="download-title">Télécharger<br><span>BookmarkBridge.</span></h1>
+          <p class="download-lead">La version bêta n’est pas encore notariée par Apple. Le message de sécurité affiché au premier lancement est donc attendu : les trois étapes ci-dessous vous guident sans désactiver les protections de votre Mac.</p>
+          <div class="download-actions">
+            <a class="button button-primary" href="/downloads/BookmarkBridge-0.9.4-build-1.dmg" download>Télécharger le DMG</a>
+            <a class="button button-secondary" href="https://github.com/JRMHDCK/BookmarkBridge#première-synchronisation">Voir le workflow 0.9.4</a>
+          </div>
+          <p class="release-note">Version 0.9.4 (build 1) · macOS 26.5 minimum · environ 9,96 Mio.</p>
+        </div>
+
+        <div class="app-preview download-app-preview" aria-label="Aperçu de BookmarkBridge dans une fenêtre macOS" role="img">
+          <div class="window-bar" aria-hidden="true">
+            <span></span><span></span><span></span>
+            <b>BookmarkBridge</b>
+          </div>
+          <div class="bridge-stage">
+            <div class="browser-node">
+              <img src="assets/images/safari-icon.png" width="92" height="92" alt="">
+              <strong>Safari</strong>
+            </div>
+            <div class="bridge-core">
+              <span class="bridge-line" aria-hidden="true"></span>
+              <span class="bridge-mark" aria-hidden="true">↔</span>
+              <span class="bridge-line" aria-hidden="true"></span>
+            </div>
+            <div class="browser-node">
+              <img src="assets/images/chrome-icon.png" width="92" height="92" alt="">
+              <strong>Chrome</strong>
+            </div>
+          </div>
+          <div class="preview-panel">
+            <div><span class="status-dot"></span><strong>Prêt à installer</strong></div>
+            <p>Une application macOS native, locale et sans extension.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section gatekeeper-guide" aria-labelledby="guide-title">
+      <div class="container">
+        <div class="section-heading centered download-guide-heading">
+          <p class="eyebrow">Première ouverture</p>
+          <h2 id="guide-title">Trois étapes, une seule fois.</h2>
+          <p>Installez BookmarkBridge puis autorisez sa première ouverture avec les réglages prévus par macOS. Ces écrans peuvent varier légèrement selon votre version du système.</p>
+        </div>
+
+        <ol class="gatekeeper-steps">
+          <li class="gatekeeper-step">
+            <div class="step-copy">
+              <span class="step-number" aria-hidden="true">1</span>
+              <div>
+                <h3>Télécharger et ouvrir BookmarkBridge</h3>
+                <p>Téléchargez le DMG, ouvrez-le et glissez <strong>BookmarkBridge.app</strong> dans <strong>Applications</strong>. Lancez ensuite BookmarkBridge depuis ce dossier. macOS affiche le blocage ci-dessous : cliquez sur <strong>Terminé</strong>.</p>
+              </div>
+            </div>
+            <figure class="gatekeeper-shot compact-shot">
+              <img src="/assets/images/gatekeeper/step-1-blocked-en.png" data-gatekeeper-step="1" width="306" height="284" alt="Message macOS indiquant que BookmarkBridge ne peut pas être ouvert, avec le bouton Terminé">
+              <figcaption>Le premier blocage est normal pour cette bêta non notariée.</figcaption>
+            </figure>
+          </li>
+
+          <li class="gatekeeper-step">
+            <div class="step-copy">
+              <span class="step-number" aria-hidden="true">2</span>
+              <div>
+                <h3>Autoriser dans Réglages Système</h3>
+                <p>Ouvrez <strong>Réglages Système</strong>, puis <strong>Confidentialité et sécurité</strong>. Descendez jusqu’à la section Sécurité et cliquez sur <strong>Ouvrir quand même</strong> à côté du message concernant BookmarkBridge.</p>
+              </div>
+            </div>
+            <figure class="gatekeeper-shot wide-shot">
+              <img src="/assets/images/gatekeeper/step-2-settings-en.png" data-gatekeeper-step="2" width="1060" height="901" loading="lazy" alt="Réglages Système, rubrique Confidentialité et sécurité, avec le bouton Ouvrir quand même pour BookmarkBridge">
+              <figcaption>Le bouton n’apparaît qu’après une première tentative d’ouverture.</figcaption>
+            </figure>
+          </li>
+
+          <li class="gatekeeper-step">
+            <div class="step-copy">
+              <span class="step-number" aria-hidden="true">3</span>
+              <div>
+                <h3>Cliquer sur « Ouvrir quand même »</h3>
+                <p>Dans la dernière fenêtre de confirmation, cliquez sur <strong>Ouvrir quand même</strong>. macOS peut demander votre mot de passe ou Touch ID. BookmarkBridge s’ouvrira ensuite normalement.</p>
+              </div>
+            </div>
+            <figure class="gatekeeper-shot compact-shot">
+              <img src="/assets/images/gatekeeper/step-3-confirm-en.png" data-gatekeeper-step="3" width="610" height="702" loading="lazy" alt="Fenêtre de confirmation macOS avec le bouton Ouvrir quand même pour BookmarkBridge">
+              <figcaption>Vérifiez toujours que le nom affiché est bien « BookmarkBridge ».</figcaption>
+            </figure>
+          </li>
+        </ol>
+
+        <div class="security-note" role="note">
+          <strong>Gardez les protections macOS actives.</strong>
+          <p>Cette procédure autorise uniquement BookmarkBridge. Elle ne désactive ni Gatekeeper ni les contrôles de sécurité des autres applications.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="download-footer-cta" aria-labelledby="download-again-title">
+      <div class="container">
+        <h2 id="download-again-title">Prêt à commencer ?</h2>
+        <p>Le DMG contient BookmarkBridge.app et un raccourci vers Applications.</p>
+        <a class="button button-primary" href="/downloads/BookmarkBridge-0.9.4-build-1.dmg" download>Télécharger BookmarkBridge</a>
+        <p class="download-links"><a href="downloads/SHA256.txt">Somme SHA-256</a> · <a href="https://github.com/JRMHDCK/BookmarkBridge#première-synchronisation">Documentation 0.9.4</a></p>
+      </div>
+    </section>
   </main>
-  <footer class="site-footer"><div><a class="brand" href="index.html"><span class="brand-mark">B</span>BookmarkBridge</a><p>Synchronisation Safari ↔ Chrome.</p></div><nav><a href="privacy.html">Confidentialité</a><a href="legal.html">Mentions légales</a><a href="https://github.com/JRMHDCK/BookmarkBridge">GitHub</a><a href="mailto:contact@bookmarkbridge.fr">Contact</a></nav><p>© <span data-current-year>2026</span> BookmarkBridge</p></footer>
-</body></html>
+
+  <footer class="site-footer">
+    <div class="container footer-wrap">
+      <a class="footer-brand" href="index.html">BookmarkBridge</a>
+      <p><a href="index.html#faq">FAQ</a> · <a href="https://github.com/JRMHDCK/BookmarkBridge#première-synchronisation">Documentation 0.9.4</a> · <a href="downloads/SHA256.txt">SHA-256</a> · <a href="https://github.com/JRMHDCK/BookmarkBridge">GitHub</a></p>
+      <p>© <span data-year></span> BookmarkBridge</p>
+    </div>
+  </footer>
+</body>
+</html>

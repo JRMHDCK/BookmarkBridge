@@ -65,13 +65,7 @@ struct HelpCenterView: View {
                                 )
                             )
                         } icon: {
-                            switch page.id.icon {
-                            case .browser(let browser):
-                                BrowserLogo(browser: browser, size: 22)
-                            case .system(let name):
-                                Image(systemName: name)
-                                    .symbolRenderingMode(.hierarchical)
-                            }
+                            HelpMenuIcon(icon: page.id.icon)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
@@ -197,5 +191,34 @@ struct HelpCenterView: View {
     private func goBack() {
         guard let pageID = history.popLast() else { return }
         navigate(to: pageID, recordingHistory: false)
+    }
+}
+
+private struct HelpMenuIcon: View {
+    let icon: DocumentationIcon
+
+    var body: some View {
+        Group {
+            switch icon {
+            case .browser(.safari):
+                Image(systemName: "safari")
+                    .resizable()
+                    .scaledToFit()
+                    .padding(2.5)
+            case .browser(.chrome):
+                Image(BrowserLogo.chromeAssetName)
+                    .renderingMode(.template)
+                    .resizable()
+                    .interpolation(.high)
+                    .scaledToFit()
+                    .scaleEffect(380.0 / 441.0)
+            case .system(let name):
+                Image(systemName: name)
+                    .symbolRenderingMode(.hierarchical)
+            }
+        }
+        .frame(width: 22, height: 22)
+        .foregroundStyle(.primary)
+        .accessibilityHidden(true)
     }
 }

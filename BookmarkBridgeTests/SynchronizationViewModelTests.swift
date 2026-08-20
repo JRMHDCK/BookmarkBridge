@@ -121,7 +121,7 @@ struct SynchronizationViewModelTests {
         #expect(preview.target.name == "Chrome — Default")
     }
 
-    @Test("Chrome to Safari uses the normal executable preview")
+    @Test("Chrome to Safari enables import only when creations exist")
     func chromeToSafariPreview() async throws {
         let result = try makeResult(
             operations: [
@@ -149,7 +149,62 @@ struct SynchronizationViewModelTests {
         #expect(preview.target.name == "Safari")
         #expect(preview.totalOperationCount == 1)
         #expect(viewModel.previewDirection == .chromeToSafari)
-        #expect(viewModel.canSynchronize)
+        #expect(!viewModel.canSynchronize)
+    }
+
+    @Test("Chrome to Safari prepares and presents a native import")
+    func chromeToSafariPreparesImport() async throws {
+        let result = try makeResult(
+            operations: [
+                .create(CreateNodeOperation(
+                    logicalNodeID: logicalID(1),
+                    kind: .bookmark,
+                    title: "New bookmark",
+                    url: URL(string: "https://new.example")!,
+                    parentID: nil,
+                    position: 0
+                )),
+            ],
+            direction: .chromeToSafari
+        )
+        let importPresentation = SafariImportPresentation(
+            fileURL: URL(fileURLWithPath: "/tmp/SafariImport.html"),
+            bookmarkCount: 8,
+            folderCount: 2,
+            skippedBookmarkCount: 1,
+            unsupportedOperationCount: 1,
+            sha256: Data([1, 2, 3])
+        )
+        let executionService = ExecutionServiceDouble(
+            outcome: .safariImportPrepared(importPresentation)
+        )
+        let presenter = SafariImportPresenterSpy()
+        let viewModel = makeViewModel(
+            service: PreviewServiceDouble(result: result),
+            executionService: executionService,
+            safariImportPresenter: presenter
+        )
+        await viewModel.loadPreview(
+            safari: safariSummary,
+            chrome: chromeSummary,
+            direction: .chromeToSafari
+        )
+
+        let directlySynchronized = await viewModel.synchronize()
+
+        #expect(!directlySynchronized)
+        #expect(
+            viewModel.executionState
+                == .awaitingSafariImport(importPresentation)
+        )
+        #expect(!viewModel.canSynchronize)
+        #expect(presenter.presented == [importPresentation])
+        #expect(await executionService.callCount == 1)
+
+        viewModel.revealPreparedSafariImport()
+        viewModel.openSafariForPreparedImport()
+        #expect(presenter.revealed == [importPresentation])
+        #expect(presenter.openSafariCallCount == 1)
     }
 
     @Test("Reset clears a previously loaded preview")
@@ -722,6 +777,7 @@ struct SynchronizationViewModelTests {
             PreviewRequestProviderDouble(),
         executionService:
             (any SynchronizationProductionExecuting)? = nil,
+        safariImportPresenter: (any SafariImportPresenting)? = nil,
         diagnosticRecorder: (any DiagnosticEventRecording)? = nil,
         nowProvider: @escaping @MainActor @Sendable () -> Date = Date.init
     ) -> SynchronizationViewModel {
@@ -729,6 +785,7 @@ struct SynchronizationViewModelTests {
             previewService: service,
             requestProvider: requestProvider,
             executionService: executionService,
+            safariImportPresenter: safariImportPresenter,
             diagnosticRecorder: diagnosticRecorder,
             nowProvider: nowProvider
         )
@@ -848,6 +905,25 @@ struct SynchronizationViewModelTests {
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, value
         )))
+    }
+}
+
+@MainActor
+private final class SafariImportPresenterSpy: SafariImportPresenting {
+    private(set) var presented: [SafariImportPresentation] = []
+    private(set) var revealed: [SafariImportPresentation] = []
+    private(set) var openSafariCallCount = 0
+
+    func present(_ importPresentation: SafariImportPresentation) {
+        presented.append(importPresentation)
+    }
+
+    func reveal(_ importPresentation: SafariImportPresentation) {
+        revealed.append(importPresentation)
+    }
+
+    func openSafari() {
+        openSafariCallCount += 1
     }
 }
 
@@ -975,19 +1051,25 @@ private actor SequencedPreviewService: SynchronizationPreviewProviding {
 
 private actor ExecutionServiceDouble: SynchronizationProductionExecuting {
     private let error: (any Error & Sendable)?
+    private let outcome: SynchronizationProductionExecutionOutcome
     private(set) var callCount = 0
 
-    init(error: (any Error & Sendable)? = nil) {
+    init(
+        error: (any Error & Sendable)? = nil,
+        outcome: SynchronizationProductionExecutionOutcome = .synchronized
+    ) {
         self.error = error
+        self.outcome = outcome
     }
 
     func synchronize(
         preview: SynchronizationPreviewResult
-    ) async throws {
+    ) async throws -> SynchronizationProductionExecutionOutcome {
         callCount += 1
         if let error {
             throw error
         }
+        return outcome
     }
 }
 
@@ -1000,12 +1082,13 @@ private actor SuspendedExecutionService:
 
     func synchronize(
         preview: SynchronizationPreviewResult
-    ) async throws {
+    ) async throws -> SynchronizationProductionExecutionOutcome {
         hasStarted = true
         callCount += 1
         await withCheckedContinuation {
             continuation = $0
         }
+        return .synchronized
     }
 
     func complete() {

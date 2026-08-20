@@ -112,6 +112,7 @@ struct BookmarkBridgeApp: App {
                 dependencies.synchronizationPreviewRequestProvider,
             executionService:
                 dependencies.synchronizationExecutionService,
+            safariImportPresenter: SystemSafariImportPresenter(),
             preferencesStore: preferencesStore,
             diagnosticRecorder: dependencies.diagnosticEventStore
         )
