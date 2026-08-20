@@ -318,7 +318,7 @@ struct SynchronizationViewModelTests {
     @Test("Maps a path-bearing error to a stable private diagnostic code")
     func previewDiagnosticDoesNotRetainErrorPath() async throws {
         let recorder = DiagnosticRecorderDouble()
-        let privatePath = "/Users/private/Library/Safari/Bookmarks.plist"
+        let privatePath = "/Users/tester/Library/Safari/Bookmarks.plist"
         let viewModel = makeViewModel(
             service: PreviewServiceDouble(
                 error: BookmarkError.accessDenied(BrowserLocation(

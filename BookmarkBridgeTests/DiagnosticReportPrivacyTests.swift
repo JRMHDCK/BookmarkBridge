@@ -13,7 +13,7 @@ struct DiagnosticReportPrivacyTests {
     func versionValuesRejectUntrustedText() {
         #expect(DiagnosticVersionValue("0.9.2-beta")?.rawValue == "0.9.2-beta")
         #expect(DiagnosticVersionValue("26.5.1")?.rawValue == "26.5.1")
-        #expect(DiagnosticVersionValue("/Users/jerome/Library/Safari") == nil)
+        #expect(DiagnosticVersionValue("/Users/tester/Library/Safari") == nil)
         #expect(DiagnosticVersionValue("https://private.example/favorite") == nil)
         #expect(DiagnosticVersionValue("Titre personnel") == nil)
         #expect(DiagnosticVersionValue(String(repeating: "A", count: 65)) == nil)
@@ -23,14 +23,14 @@ struct DiagnosticReportPrivacyTests {
     func reportIDValidation() {
         #expect(DiagnosticReportID("BB-A73F29")?.rawValue == "BB-A73F29")
         #expect(DiagnosticReportID("bb-a73f29") == nil)
-        #expect(DiagnosticReportID("BB-/Users/jerome") == nil)
+        #expect(DiagnosticReportID("BB-/Users/tester") == nil)
         #expect(DiagnosticReportID("BB-PRIVATE-TITLE") == nil)
     }
 
     @Test("Rejects unsafe values while decoding persisted data")
     func decodingCannotBypassValidation() {
         let unsafeVersion = Data(
-            #""/Users/jerome/Library/Safari""#.utf8
+            #""/Users/tester/Library/Safari""#.utf8
         )
         let unsafeIdentifier = Data(#""BB-/USER""#.utf8)
 
@@ -60,7 +60,7 @@ struct DiagnosticReportPrivacyTests {
             "Dossier personnel",
             "BRICKS PRO",
             "jerome",
-            "/Users/jerome/Library/Safari/Bookmarks.plist",
+            "/Users/tester/Library/Safari/Bookmarks.plist",
             "security-scoped-bookmark-secret",
         ]
         for value in forbiddenValues {

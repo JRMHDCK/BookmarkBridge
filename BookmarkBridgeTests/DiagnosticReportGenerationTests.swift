@@ -112,7 +112,7 @@ struct DiagnosticReportGenerationTests {
             "Titre favori privé",
             "Dossier personnel",
             "BRICKS PRO",
-            "/Users/jerome",
+            "/Users/tester",
             "security-scoped-bookmark-secret",
         ] {
             #expect(!artifact.text.localizedCaseInsensitiveContains(forbidden))

@@ -27,7 +27,13 @@ secret_patterns = {
   "private key block" => /-----BEGIN [A-Z ]*PRIVATE\s+KEY-----/
 }.freeze
 
-allowed_email_domains = %w[example.com example.org example.test example.invalid].freeze
+allowed_email_domains = %w[
+  bookmarkbridge.fr
+  example.com
+  example.org
+  example.test
+  example.invalid
+].freeze
 violations = []
 markdown_files = []
 yaml_files = []

@@ -94,7 +94,7 @@ struct BugReportEmailComposerTests {
             "Titre favori privé",
             "Dossier personnel",
             "BRICKS PRO",
-            "/Users/jerome",
+            "/Users/tester",
         ] {
             #expect(!generatedFields.localizedCaseInsensitiveContains(forbidden))
         }
