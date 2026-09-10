@@ -178,7 +178,9 @@ nonisolated struct SynchronizationPreviewService: Sendable {
             sourceSnapshot: result.sourceRead.snapshot,
             targetSnapshot: result.targetRead.snapshot,
             logicalDiff: result.logicalDiff,
-            plan: result.plan
+            plan: result.plan,
+            before: result.projection.before,
+            after: result.projection.after
         )
         #if DEBUG
         synchronizationPreviewLogger.debug(

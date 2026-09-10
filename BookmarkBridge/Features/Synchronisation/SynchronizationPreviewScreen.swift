@@ -15,6 +15,7 @@ struct SynchronizationPreviewScreen: View {
     let onReportError: @MainActor () async -> Void
     let onBack: (() -> Void)?
     let allowsSynchronization: Bool
+    @State private var expandedSections: Set<SynchronizationPreviewSectionKind> = []
 
     init(
         model: SynchronizationViewModel,
@@ -41,6 +42,7 @@ struct SynchronizationPreviewScreen: View {
                     DocumentationText.value("synchronization.title"),
                     subtitle: DocumentationText.value("preview.subtitle")
                 )
+                topPrimaryAction
                 SynchronizationSummaryCard(
                     DocumentationText.value("preview.summary")
                 ) {
@@ -62,6 +64,7 @@ struct SynchronizationPreviewScreen: View {
             .frame(maxWidth: .infinity, alignment: .top)
         }
         .navigationTitle(DocumentationText.value("synchronization.title"))
+        .onAppear { expandedSections.removeAll() }
         .toolbar {
             if let onBack {
                 ToolbarItem(placement: .navigation) {
@@ -95,6 +98,38 @@ struct SynchronizationPreviewScreen: View {
                 )
 
                 ContextualHelpButton(pageID: .synchronization)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var topPrimaryAction: some View {
+        if case .awaitingSafariImport = model.executionState {
+            PrimaryActionRow {
+                PrimaryActionButton(
+                    DocumentationText.value("safariImport.action.openSafari"),
+                    systemImage: "safari"
+                ) {
+                    model.openSafariForPreparedImport()
+                }
+            }
+        } else if allowsSynchronization,
+           case .loaded(let preview) = model.state,
+           preview.totalOperationCount > 0 {
+            PrimaryActionRow {
+                PrimaryActionButton(
+                    synchronizationActionTitle,
+                    systemImage: model.previewDirection == .chromeToSafari
+                        ? "square.and.arrow.down"
+                        : "arrow.triangle.2.circlepath"
+                ) {
+                    Task { _ = await onSynchronize() }
+                }
+                .disabled(!isAuthorized || !model.canSynchronize)
+                .accessibilityHint(
+                    DocumentationText.value("preview.apply.hint")
+                )
+                .help(synchronizationHelp)
             }
         }
     }
@@ -165,23 +200,11 @@ struct SynchronizationPreviewScreen: View {
             }
 
             HStack(spacing: Theme.Spacing.s) {
-                PrimaryActionButton(
-                    DocumentationText.value("safariImport.action.openSafari"),
-                    systemImage: "safari"
-                ) {
-                    model.openSafariForPreparedImport()
-                }
                 SecondaryActionButton(
                     DocumentationText.value("safariImport.action.showFile"),
                     systemImage: "folder"
                 ) {
                     model.revealPreparedSafariImport()
-                }
-                SecondaryActionButton(
-                    DocumentationText.value("preview.reload"),
-                    systemImage: "arrow.clockwise"
-                ) {
-                    Task { await onReload() }
                 }
             }
         }
@@ -265,9 +288,17 @@ struct SynchronizationPreviewScreen: View {
             browserRelationship(preview)
 
             if isEmpty && model.executionState != .completed {
-                SuccessStateView(
-                    message: DocumentationText.value("preview.upToDate")
-                )
+                if preview.hasUnsupportedChanges {
+                    Label(
+                        DocumentationText.value("safariImport.preview.noApplicableChanges"),
+                        systemImage: "info.circle"
+                    )
+                    .foregroundStyle(.secondary)
+                } else {
+                    SuccessStateView(
+                        message: DocumentationText.value("preview.upToDate")
+                    )
+                }
             } else {
                 if !isEmpty {
                     Text(operationCount(preview.totalOperationCount))
@@ -275,25 +306,24 @@ struct SynchronizationPreviewScreen: View {
                 }
             }
 
-            SynchronizationStatistics(preview: preview)
+            SynchronizationChangeCards(
+                preview: preview,
+                expandedSections: $expandedSections
+            )
 
             if !isEmpty {
-                if allowsSynchronization {
-                    PrimaryActionButton(
-                        synchronizationActionTitle,
-                        systemImage: model.previewDirection == .chromeToSafari
-                            ? "square.and.arrow.down"
-                            : "arrow.triangle.2.circlepath"
-                    ) {
-                        Task { _ = await onSynchronize() }
-                    }
-                    .disabled(!isAuthorized || !model.canSynchronize)
-                    .accessibilityHint(
-                        DocumentationText.value("preview.apply.hint")
+                if model.previewDirection == .chromeToSafari {
+                    Label(
+                        DocumentationText.value(
+                            "safariImport.preview.additiveNotice"
+                        ),
+                        systemImage: "info.circle"
                     )
-                    .help(synchronizationHelp)
-                    .frame(maxWidth: .infinity, alignment: .trailing)
-                } else {
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                }
+
+                if !allowsSynchronization {
                     Label(
                         DocumentationText.value("preview.safariWritingSoon"),
                         systemImage: "clock"
@@ -394,96 +424,129 @@ struct SynchronizationPreviewScreen: View {
     }
 }
 
-private struct SynchronizationStatistics: View {
+private struct SynchronizationChangeCards: View {
     let preview: SynchronizationPreviewPresentation
+    @Binding var expandedSections: Set<SynchronizationPreviewSectionKind>
 
     var body: some View {
-        ViewThatFits(in: .horizontal) {
-            HStack(alignment: .top, spacing: Theme.Spacing.s) {
-                creation
-                deletion
-                move
-                rename
-                update
+        LazyVStack(alignment: .leading, spacing: Theme.Spacing.m) {
+            ForEach(preview.sections, id: \.self) {
+                section in
+                SynchronizationChangeCard(
+                    section: section,
+                    items: preview.items(in: section),
+                    isExpanded: Binding(
+                        get: { expandedSections.contains(section) },
+                        set: { expanded in
+                            if expanded {
+                                expandedSections.insert(section)
+                            } else {
+                                expandedSections.remove(section)
+                            }
+                        }
+                    )
+                )
             }
-            .fixedSize(horizontal: true, vertical: false)
+        }
+    }
+}
 
-            Grid(
-                alignment: .leading,
-                horizontalSpacing: Theme.Spacing.l,
-                verticalSpacing: Theme.Spacing.m
-            ) {
-                GridRow {
-                    creation
-                    deletion
+private struct SynchronizationChangeCard: View {
+    let section: SynchronizationPreviewSectionKind
+    let items: [SynchronizationPreviewItem]
+
+    @Binding var isExpanded: Bool
+
+    var body: some View {
+        GroupBox {
+            DisclosureGroup(isExpanded: $isExpanded) {
+                if !items.isEmpty {
+                    Divider()
+                        .padding(.top, Theme.Spacing.s)
+                    LazyVStack(alignment: .leading, spacing: 0) {
+                        ForEach(Array(items.enumerated()), id: \.element.id) {
+                            index, item in
+                            changeRow(item)
+                            if index < items.count - 1 {
+                                Divider()
+                            }
+                        }
+                    }
                 }
-                GridRow {
-                    move
-                    rename
+            } label: {
+                HStack(spacing: Theme.Spacing.s) {
+                    Label(title, systemImage: systemImage)
+                        .font(.headline)
+                    Spacer()
+                    Text(verbatim: String(items.count))
+                        .font(.callout.monospacedDigit().weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, Theme.Spacing.s)
+                        .padding(.vertical, Theme.Spacing.xs)
+                        .background(.quaternary, in: Capsule())
                 }
-                GridRow {
-                    update
-                    Color.clear
+            }
+        }
+        .accessibilityElement(children: .contain)
+    }
+
+    private func changeRow(_ item: SynchronizationPreviewItem) -> some View {
+        HStack(alignment: .top, spacing: Theme.Spacing.s) {
+            Image(systemName: item.isFolder ? "folder" : "bookmark")
+                .foregroundStyle(.secondary)
+                .frame(width: 18)
+
+            VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
+                Text(item.title)
+                    .font(.callout.weight(.medium))
+                    .textSelection(.enabled)
+                if let detail = item.detail, !detail.isEmpty {
+                    Text(detail)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .textSelection(.enabled)
+                }
+                if let url = item.url {
+                    Link(destination: url) {
+                        Text(url.absoluteString)
+                            .font(.caption)
+                            .lineLimit(2)
+                            .multilineTextAlignment(.leading)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(Color.accentColor)
+                    .textSelection(.enabled)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+            Spacer(minLength: 0)
+        }
+        .padding(.vertical, Theme.Spacing.s)
+    }
+
+    private var title: String {
+        switch section {
+        case .creation:
+            DocumentationText.value("preview.stat.creations")
+        case .deletion:
+            DocumentationText.value("preview.stat.deletions")
+        case .move:
+            DocumentationText.value("preview.stat.moves")
+        case .rename:
+            DocumentationText.value("preview.stat.renames")
+        case .update:
+            DocumentationText.value("preview.stat.updates")
         }
     }
 
-    private var creation: some View {
-        statistic(
-            value: preview.creationCount,
-            label: DocumentationText.value("preview.stat.creations"),
-            systemImage: "plus"
-        )
-    }
-
-    private var deletion: some View {
-        statistic(
-            value: preview.deletionCount,
-            label: DocumentationText.value("preview.stat.deletions"),
-            systemImage: "trash"
-        )
-    }
-
-    private var move: some View {
-        statistic(
-            value: preview.moveCount,
-            label: DocumentationText.value("preview.stat.moves"),
-            systemImage: "arrow.right"
-        )
-    }
-
-    private var rename: some View {
-        statistic(
-            value: preview.renameCount,
-            label: DocumentationText.value("preview.stat.renames"),
-            systemImage: "pencil"
-        )
-    }
-
-    private var update: some View {
-        statistic(
-            value: preview.urlModificationCount,
-            label: DocumentationText.value("preview.stat.updates"),
-            systemImage: "link"
-        )
-    }
-
-    private func statistic(
-        value: Int,
-        label: String,
-        systemImage: String
-    ) -> some View {
-        StatisticCard(
-            value: value,
-            label: label,
-            systemImage: systemImage,
-            prominent: false
-        )
-        .frame(
-            minWidth: Theme.Size.statisticMinimumWidth,
-            alignment: .leading
-        )
+    private var systemImage: String {
+        switch section {
+        case .creation: "plus.circle"
+        case .deletion: "trash"
+        case .move: "arrow.right.circle"
+        case .rename: "pencil"
+        case .update: "link"
+        }
     }
 }

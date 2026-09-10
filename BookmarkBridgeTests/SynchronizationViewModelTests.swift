@@ -141,15 +141,94 @@ struct SynchronizationViewModelTests {
             direction: .chromeToSafari
         )
 
-        guard case .loaded(let preview) = viewModel.state else {
-            Issue.record("Expected a loaded Chrome to Safari preview")
+        guard case .empty(let preview) = viewModel.state else {
+            Issue.record("Expected an empty applicable Safari import preview")
             return
         }
         #expect(preview.source.name == "Chrome — Default")
         #expect(preview.target.name == "Safari")
-        #expect(preview.totalOperationCount == 1)
+        #expect(preview.totalOperationCount == 0)
+        #expect(preview.deletionCount == 0)
+        #expect(preview.hasUnsupportedChanges)
+        #expect(preview.sections == [.creation])
         #expect(viewModel.previewDirection == .chromeToSafari)
         #expect(!viewModel.canSynchronize)
+        #expect(await viewModel.synchronize() == false)
+        #expect(await executionService.callCount == 0)
+    }
+
+    @Test("Safari preview counts only operations supported by its HTML exporter")
+    func chromeToSafariFiltersUnsupportedChanges() async throws {
+        let operations: [SynchronizationOperation] = [
+            .create(CreateNodeOperation(
+                logicalNodeID: logicalID(1), kind: .folder,
+                title: "Folder", url: nil, parentID: nil, position: 0
+            )),
+            .create(CreateNodeOperation(
+                logicalNodeID: logicalID(2), kind: .bookmark,
+                title: "Importable", url: URL(string: "https://example.com")!,
+                parentID: logicalID(1), position: 0
+            )),
+            .create(CreateNodeOperation(
+                logicalNodeID: logicalID(3), kind: .bookmark,
+                title: "Chrome internal", url: URL(string: "chrome://settings")!,
+                parentID: nil, position: 1
+            )),
+            .create(CreateNodeOperation(
+                logicalNodeID: logicalID(4), kind: .bookmark,
+                title: "Missing URL", url: nil, parentID: nil, position: 2
+            )),
+            .delete(DeleteNodeOperation(logicalNodeID: logicalID(5))),
+            .move(MoveNodeOperation(logicalNodeID: logicalID(6), parentID: nil, position: 0)),
+            .rename(RenameNodeOperation(logicalNodeID: logicalID(7), title: "Renamed")),
+            .updateURL(UpdateURLOperation(logicalNodeID: logicalID(8), url: URL(string: "https://updated.example")!)),
+        ]
+        let result = try makeResult(operations: operations, direction: .chromeToSafari)
+        let viewModel = makeViewModel(
+            service: PreviewServiceDouble(result: result),
+            executionService: ExecutionServiceDouble()
+        )
+        await viewModel.loadPreview(
+            safari: safariSummary, chrome: chromeSummary, direction: .chromeToSafari
+        )
+        guard case .loaded(let preview) = viewModel.state else {
+            Issue.record("Expected importable additions")
+            return
+        }
+        #expect(preview.totalOperationCount == 2)
+        #expect(preview.items.map(\.title) == ["Folder", "Importable"])
+        #expect(preview.creationCount == 2)
+        #expect(preview.deletionCount + preview.moveCount + preview.renameCount + preview.urlModificationCount == 0)
+        #expect(preview.sections == [.creation])
+        #expect(viewModel.canSynchronize)
+        let tree = SafariImportDeltaTreeBuilder().build(from: result.plan)
+        let exported = SafariBookmarkHTMLExporter().export(tree)
+        #expect(preview.totalOperationCount == exported.folderCount + exported.bookmarkCount)
+    }
+
+    @Test("An unsupported Safari creation cannot enable export")
+    func chromeToSafariUnsupportedURLIsNotActionable() async throws {
+        let result = try makeResult(operations: [
+            .create(CreateNodeOperation(
+                logicalNodeID: logicalID(1), kind: .bookmark,
+                title: "Internal", url: URL(string: "chrome://settings")!,
+                parentID: nil, position: 0
+            )),
+        ], direction: .chromeToSafari)
+        let executor = ExecutionServiceDouble()
+        let viewModel = makeViewModel(
+            service: PreviewServiceDouble(result: result), executionService: executor
+        )
+        await viewModel.loadPreview(safari: safariSummary, chrome: chromeSummary, direction: .chromeToSafari)
+        guard case .empty(let preview) = viewModel.state else {
+            Issue.record("Expected no applicable changes")
+            return
+        }
+        #expect(preview.totalOperationCount == 0)
+        #expect(preview.hasUnsupportedChanges)
+        #expect(!viewModel.canSynchronize)
+        #expect(await viewModel.synchronize() == false)
+        #expect(await executor.callCount == 0)
     }
 
     @Test("Chrome to Safari prepares and presents a native import")

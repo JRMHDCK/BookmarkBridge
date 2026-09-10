@@ -16,13 +16,14 @@ nonisolated struct SafariImportPresentation: Hashable, Sendable {
 
 nonisolated enum SafariImportWorkflowError: Error, Hashable, Sendable {
     case invalidDirection
-    case unsupportedSelection
     case noImportableChanges
+    case destinationRequired
 }
 
 nonisolated protocol SafariImportWorkflowPreparing: Sendable {
     func prepare(
-        preview: SynchronizationPreviewResult
+        preview: SynchronizationPreviewResult,
+        destinationFileURL: URL
     ) async throws -> SafariImportPackage
 }
 
@@ -30,18 +31,18 @@ nonisolated protocol SafariImportWorkflowPreparing: Sendable {
 /// shown to the user. Existing Chrome nodes are intentionally excluded, and
 /// Safari's private bookmark storage is never written.
 nonisolated struct SafariImportWorkflow: SafariImportWorkflowPreparing {
-    private let destinationDirectory: URL
+    private let defaultDestinationDirectory: URL?
     private let deltaTreeBuilder: SafariImportDeltaTreeBuilder
     private let packageBuilder: SafariImportPackageBuilder
 
     init(
-        destinationDirectory: URL,
+        destinationDirectory: URL? = nil,
         deltaTreeBuilder: SafariImportDeltaTreeBuilder =
             SafariImportDeltaTreeBuilder(),
         packageBuilder: SafariImportPackageBuilder =
             SafariImportPackageBuilder()
     ) {
-        self.destinationDirectory = destinationDirectory
+        defaultDestinationDirectory = destinationDirectory
         self.deltaTreeBuilder = deltaTreeBuilder
         self.packageBuilder = packageBuilder
     }
@@ -49,12 +50,25 @@ nonisolated struct SafariImportWorkflow: SafariImportWorkflowPreparing {
     func prepare(
         preview: SynchronizationPreviewResult
     ) async throws -> SafariImportPackage {
+        guard let defaultDestinationDirectory else {
+            throw SafariImportWorkflowError.destinationRequired
+        }
+        return try await prepare(
+            preview: preview,
+            destinationFileURL: defaultDestinationDirectory
+                .appendingPathComponent(
+                    "BookmarkBridge-Safari-Import.html",
+                    isDirectory: false
+                )
+        )
+    }
+
+    func prepare(
+        preview: SynchronizationPreviewResult,
+        destinationFileURL: URL
+    ) async throws -> SafariImportPackage {
         guard preview.direction == .chromeToSafari else {
             throw SafariImportWorkflowError.invalidDirection
-        }
-        guard preview.request.chromeSelection == .all,
-              preview.request.safariSelection == .all else {
-            throw SafariImportWorkflowError.unsupportedSelection
         }
 
         let tree = deltaTreeBuilder.build(from: preview.plan)
@@ -65,7 +79,7 @@ nonisolated struct SafariImportWorkflow: SafariImportWorkflowPreparing {
         return try packageBuilder.build(
             tree: tree,
             plan: preview.plan,
-            destinationDirectory: destinationDirectory,
+            destinationFileURL: destinationFileURL,
             compatibilityPolicy: .allowAdditiveImport
         )
     }

@@ -7,22 +7,27 @@ import SwiftUI
 
 struct SynchronizationSelectionScreen: View {
     let model: SynchronizationSelectionViewModel
-    let direction: SynchronizationDirectionOption
-    let onContinue: @MainActor () async -> Void
-    let onBack: () -> Void
-
-    @State private var isLoadingPreview = false
+    let onContinue: @MainActor () -> Void
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
                 ScreenHeader(
                     DocumentationText.value("selection.title"),
-                    subtitle: DocumentationText.formatted(
-                        "selection.subtitle",
-                        direction.title
-                    )
+                    subtitle: DocumentationText.value("selection.subtitle")
                 )
+
+                PrimaryActionRow {
+                    PrimaryActionButton(
+                        DocumentationText.value("onboarding.next"),
+                        systemImage: "arrow.right",
+                        action: onContinue
+                    )
+                    .disabled(!model.canPreview)
+                    .accessibilityIdentifier(
+                        "synchronization-selection-continue"
+                    )
+                }
 
                 ForEach(model.sources, id: \.source.id) { source in
                     SynchronizationSummaryCard(source.source.displayName) {
@@ -41,30 +46,6 @@ struct SynchronizationSelectionScreen: View {
                     }
                 }
 
-                HStack {
-                    Button(
-                        DocumentationText.value("action.back"),
-                        action: onBack
-                    )
-                    Spacer()
-                    Button {
-                        isLoadingPreview = true
-                        Task {
-                            await onContinue()
-                            isLoadingPreview = false
-                        }
-                    } label: {
-                        if isLoadingPreview {
-                            ProgressView()
-                                .controlSize(.small)
-                        } else {
-                            Text(DocumentationText.value("selection.preview"))
-                        }
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(isLoadingPreview || !model.canPreview)
-                    .accessibilityIdentifier("synchronization-selection-continue")
-                }
             }
             .frame(maxWidth: Theme.Size.contentMaxWidth, alignment: .leading)
             .padding(Theme.Spacing.xl)
@@ -72,15 +53,6 @@ struct SynchronizationSelectionScreen: View {
         }
         .navigationTitle(DocumentationText.value("synchronization.title"))
         .toolbar {
-            ToolbarItem(placement: .navigation) {
-                Button(action: onBack) {
-                    Label(
-                        DocumentationText.value("action.back"),
-                        systemImage: "chevron.left"
-                    )
-                }
-                .disabled(isLoadingPreview)
-            }
             ToolbarItem(placement: .primaryAction) {
                 ContextualHelpButton(pageID: .synchronization)
             }

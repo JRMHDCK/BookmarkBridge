@@ -100,6 +100,31 @@ nonisolated struct SynchronizationBrowserSummary:
     let folderCount: Int
 }
 
+nonisolated enum SynchronizationPreviewSectionKind:
+    CaseIterable,
+    Hashable,
+    Sendable
+{
+    case creation
+    case deletion
+    case move
+    case rename
+    case update
+}
+
+nonisolated struct SynchronizationPreviewItem:
+    Hashable,
+    Identifiable,
+    Sendable
+{
+    let id: String
+    let section: SynchronizationPreviewSectionKind
+    let title: String
+    let url: URL?
+    let detail: String?
+    let isFolder: Bool
+}
+
 /// Presentation-only preview consumed by SwiftUI.
 nonisolated struct SynchronizationPreviewPresentation: Hashable, Sendable {
     let source: SynchronizationBrowserSummary
@@ -110,6 +135,15 @@ nonisolated struct SynchronizationPreviewPresentation: Hashable, Sendable {
     let moveCount: Int
     let renameCount: Int
     let urlModificationCount: Int
+    let items: [SynchronizationPreviewItem]
+    let sections: [SynchronizationPreviewSectionKind]
+    let hasUnsupportedChanges: Bool
+
+    func items(
+        in section: SynchronizationPreviewSectionKind
+    ) -> [SynchronizationPreviewItem] {
+        items.filter { $0.section == section }
+    }
 }
 
 /// Drives the synchronization preview and execution state shown by the
@@ -164,12 +198,8 @@ final class SynchronizationViewModel {
         if case .awaitingSafariImport = executionState {
             return false
         }
-        if case .loaded = state {
-            guard let latestPreviewResult else { return false }
-            if latestPreviewResult.direction == .chromeToSafari {
-                return latestPreviewResult.creationCount > 0
-            }
-            return true
+        if case .loaded(let preview) = state {
+            return latestPreviewResult != nil && preview.totalOperationCount > 0
         }
         return false
     }
@@ -318,13 +348,12 @@ final class SynchronizationViewModel {
                 safari: safari,
                 chrome: chrome
             )
-            state = result.totalOperationCount == 0
+            state = preview.totalOperationCount == 0
                 ? .empty(preview)
                 : .loaded(preview)
             if case .awaitingSafariImport = executionState {
                 executionState = result.totalOperationCount == 0
-                    ? .completed
-                    : .idle
+                    ? .completed : .idle
             }
             await recordDiagnosticEvent(DiagnosticEvent(
                 timestamp: nowProvider(),
@@ -418,7 +447,7 @@ final class SynchronizationViewModel {
     /// recomputed automatically; on failure the last valid preview is retained.
     @discardableResult
     func synchronize() async -> Bool {
-        guard !isSynchronizing,
+        guard canSynchronize,
               let executionService,
               let preview = latestPreviewResult,
               let sources = latestSources,
@@ -624,8 +653,8 @@ final class SynchronizationViewModel {
     ) -> DiagnosticErrorCode {
         if let importError = error as? SafariImportWorkflowError {
             switch importError {
-            case .invalidDirection, .unsupportedSelection,
-                    .noImportableChanges:
+            case .invalidDirection, .noImportableChanges,
+                    .destinationRequired:
                 return .unknown
             }
         }
@@ -667,8 +696,8 @@ final class SynchronizationViewModel {
     ) -> DiagnosticErrorType {
         if let importError = error as? SafariImportWorkflowError {
             switch importError {
-            case .invalidDirection, .unsupportedSelection,
-                    .noImportableChanges:
+            case .invalidDirection, .noImportableChanges,
+                    .destinationRequired:
                 return .unsupportedOperation
             }
         }
@@ -707,12 +736,7 @@ final class SynchronizationViewModel {
     private static func executionFailureDescription(
         _ error: any Error
     ) -> String {
-        if let importError = error as? SafariImportWorkflowError {
-            if importError == .unsupportedSelection {
-                return DocumentationText.value(
-                    "safariImport.failure.selection"
-                )
-            }
+        if error is SafariImportWorkflowError {
             return DocumentationText.value("safariImport.failure.generic")
         }
         if error is SafariImportPackageError {
@@ -812,15 +836,70 @@ final class SynchronizationViewModel {
             target = safari
         }
 
+        let analyzer = SafariImportCompatibilityAnalyzer()
+        let items: [SynchronizationPreviewItem] = zip(
+            result.plan.operations, result.changeDetails
+        ).enumerated().compactMap { index, pair in
+            let (operation, detail) = pair
+            guard result.direction != .chromeToSafari
+                    || analyzer.supports(operation) else { return nil }
+            return previewItem(detail, index: index)
+        }
         return SynchronizationPreviewPresentation(
             source: browserSummary(source),
             target: browserSummary(target),
-            totalOperationCount: result.totalOperationCount,
-            creationCount: result.creationCount,
-            deletionCount: result.deletionCount,
-            moveCount: result.moveCount,
-            renameCount: result.renameCount,
-            urlModificationCount: result.urlModificationCount
+            totalOperationCount: items.count,
+            creationCount: items.count { $0.section == .creation },
+            deletionCount: items.count { $0.section == .deletion },
+            moveCount: items.count { $0.section == .move },
+            renameCount: items.count { $0.section == .rename },
+            urlModificationCount: items.count { $0.section == .update },
+            items: items,
+            sections: result.direction == .chromeToSafari
+                ? [.creation] : SynchronizationPreviewSectionKind.allCases,
+            hasUnsupportedChanges: items.count < result.totalOperationCount
+        )
+    }
+
+    private static func previewItem(
+        _ detail: SynchronizationPreviewChangeDetail,
+        index: Int
+    ) -> SynchronizationPreviewItem {
+        let title = detail.title.isEmpty
+            ? DocumentationText.value("bookmark.untitled")
+            : detail.title
+        let section: SynchronizationPreviewSectionKind
+        let secondaryDetail: String?
+        switch detail.kind {
+        case .creation:
+            section = .creation
+            secondaryDetail = nil
+        case .deletion:
+            section = .deletion
+            secondaryDetail = nil
+        case .move:
+            section = .move
+            secondaryDetail = detail.destinationTitle.map { "→ \($0)" }
+        case .rename:
+            section = .rename
+            secondaryDetail = detail.previousTitle.flatMap {
+                $0 == title ? nil : "\($0) → \(title)"
+            }
+        case .update:
+            section = .update
+            secondaryDetail = detail.previousURL.flatMap { previousURL in
+                guard previousURL != detail.url else { return nil }
+                return "\(previousURL.absoluteString) → "
+                    + (detail.url?.absoluteString ?? "")
+            }
+        }
+        return SynchronizationPreviewItem(
+            id: "\(detail.logicalNodeID.description)-\(index)",
+            section: section,
+            title: title,
+            url: detail.url,
+            detail: secondaryDetail,
+            isFolder: detail.isFolder
         )
     }
 

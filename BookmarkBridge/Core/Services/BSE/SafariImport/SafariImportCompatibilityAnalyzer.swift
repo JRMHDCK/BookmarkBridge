@@ -54,6 +54,10 @@ nonisolated struct SafariImportCompatibilityAnalyzer: Sendable {
         )
     }
 
+    func supports(_ operation: SynchronizationOperation) -> Bool {
+        incompatibilityReason(for: operation) == nil
+    }
+
     func supports(_ url: URL) -> Bool {
         guard let scheme = url.scheme?.lowercased(), !scheme.isEmpty else {
             return false

@@ -10,6 +10,7 @@ nonisolated enum DashboardSynchronizationSummary: Equatable, Sendable {
     case loading
     case changes(Int)
     case upToDate
+    case noApplicableChanges
     case failed(String)
 }
 
@@ -144,10 +145,23 @@ struct DashboardView: View {
                     )
                 )
 
+                if let onShowSynchronization {
+                    PrimaryActionRow {
+                        PrimaryActionButton(
+                            DocumentationText.value("dashboard.reviewChanges"),
+                            systemImage: "arrow.right",
+                            action: onShowSynchronization
+                        )
+                        .help(DocumentationText.value("tooltip.compare"))
+                        .accessibilityHint(
+                            DocumentationText.value("dashboard.reviewChanges.hint")
+                        )
+                    }
+                }
+
                 DashboardSynchronizationCard(
                     summary: synchronizationSummary,
-                    onReportError: reportPreviewError,
-                    onShowSynchronization: onShowSynchronization
+                    onReportError: reportPreviewError
                 )
 
                 if let authorizationViewModel {
@@ -409,7 +423,6 @@ private struct ApplicationAuthorizationCard: View {
 private struct DashboardSynchronizationCard: View {
     let summary: DashboardSynchronizationSummary
     let onReportError: (() -> Void)?
-    let onShowSynchronization: (() -> Void)?
 
     var body: some View {
         SynchronizationSummaryCard(
@@ -421,22 +434,6 @@ private struct DashboardSynchronizationCard: View {
                 .font(Theme.Typography.metadata)
                 .foregroundStyle(.secondary)
             summaryContent
-            if let onShowSynchronization {
-                PrimaryActionButton(
-                    DocumentationText.value("dashboard.reviewChanges"),
-                    systemImage: "arrow.right",
-                    action: onShowSynchronization
-                )
-                .accessibilityHint(
-                    DocumentationText.value("dashboard.reviewChanges.hint")
-                )
-                .help(
-                    DocumentationText.value(
-                        "tooltip.compare"
-                    )
-                )
-                .frame(maxWidth: .infinity, alignment: .trailing)
-            }
         }
         .contentTransition(.opacity)
         .animation(Theme.Motion.stateChange, value: summary)
@@ -463,6 +460,12 @@ private struct DashboardSynchronizationCard: View {
                 changeCount(count),
                 systemImage: "exclamationmark.circle"
             )
+        case .noApplicableChanges:
+            Label(
+                DocumentationText.value("safariImport.preview.noApplicableChanges"),
+                systemImage: "info.circle"
+            )
+            .foregroundStyle(.secondary)
         case .upToDate:
             Label(
                 DocumentationText.value("preview.upToDate"),

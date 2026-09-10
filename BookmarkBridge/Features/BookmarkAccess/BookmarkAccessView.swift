@@ -11,6 +11,10 @@ struct BookmarkAccessView: View {
     let onTestAccess: (Browser) async -> Void
     let onReselect: (Browser) async -> Void
     let onChangeProfile: (String) async -> Void
+    let onContinue: () -> Void
+
+    @State private var showsSafariDetails = false
+    @State private var showsChromeDetails = false
 
     var body: some View {
         ScrollView {
@@ -20,6 +24,16 @@ struct BookmarkAccessView: View {
                     subtitle: DocumentationText.value("access.subtitle")
                 )
 
+                PrimaryActionRow {
+                    PrimaryActionButton(
+                        DocumentationText.value("onboarding.next"),
+                        systemImage: "arrow.right"
+                    ) {
+                        onContinue()
+                    }
+                    .disabled(!model.canContinue)
+                }
+
                 safariSection
                 chromeSection
             }
@@ -28,20 +42,16 @@ struct BookmarkAccessView: View {
             .frame(maxWidth: .infinity, alignment: .top)
         }
         .navigationTitle(DocumentationText.value("access.title"))
+        .onAppear {
+            showsSafariDetails = false
+            showsChromeDetails = false
+        }
         .task { await onLoad() }
     }
 
     private var safariSection: some View {
         GroupBox(DocumentationText.value("browser.safari.name")) {
             VStack(alignment: .leading, spacing: Theme.Spacing.m) {
-                pathRow(
-                    title: DocumentationText.value("access.detectedPath"),
-                    path: model.snapshot?.safari.detectedURL.path
-                )
-                pathRow(
-                    title: DocumentationText.value("access.authorizedPath"),
-                    path: model.snapshot?.safari.authorizedURL?.path
-                )
                 statusRow(model.snapshot?.safari.status)
                 if let tested = model.safariTestStatus {
                     Text(
@@ -60,6 +70,35 @@ struct BookmarkAccessView: View {
                         Task { await onReselect(.safari) }
                     }
                 }
+
+                DisclosureGroup(
+                    isExpanded: $showsSafariDetails
+                ) {
+                    VStack(
+                        alignment: .leading,
+                        spacing: Theme.Spacing.m
+                    ) {
+                        pathRow(
+                            title: DocumentationText.value(
+                                "access.detectedPath"
+                            ),
+                            path: model.snapshot?.safari.detectedURL.path
+                        )
+                        pathRow(
+                            title: DocumentationText.value(
+                                "access.authorizedPath"
+                            ),
+                            path: model.snapshot?.safari.authorizedURL?.path
+                        )
+                    }
+                    .padding(.top, Theme.Spacing.s)
+                } label: {
+                    Label(
+                        DocumentationText.value("access.details"),
+                        systemImage: "info.circle"
+                    )
+                    .font(.callout.weight(.medium))
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(Theme.Spacing.s)
@@ -69,27 +108,6 @@ struct BookmarkAccessView: View {
     private var chromeSection: some View {
         GroupBox(DocumentationText.value("browser.chrome.name")) {
             VStack(alignment: .leading, spacing: Theme.Spacing.m) {
-                pathRow(
-                    title: DocumentationText.value("access.authorizedFolder"),
-                    path: model.snapshot?.chrome.authorizedDirectoryURL?.path
-                )
-                if let profile = model.selectedChromeProfile {
-                    valueRow(
-                        title: DocumentationText.value("access.profile"),
-                        value: profile.profileName
-                    )
-                    valueRow(
-                        title: DocumentationText.value("access.profileFolder"),
-                        value: profile.directoryName
-                    )
-                    pathRow(
-                        title: DocumentationText.value("access.bookmarksFile"),
-                        path: profile.bookmarksURL.path
-                    )
-                } else {
-                    Text(DocumentationText.value("access.noChromeProfile"))
-                        .foregroundStyle(.secondary)
-                }
                 statusRow(model.snapshot?.chrome.status)
                 if let tested = model.chromeTestStatus {
                     Text(
@@ -115,6 +133,57 @@ struct BookmarkAccessView: View {
                     Button(DocumentationText.value("access.reselect")) {
                         Task { await onReselect(.chrome) }
                     }
+                }
+
+                DisclosureGroup(
+                    isExpanded: $showsChromeDetails
+                ) {
+                    VStack(
+                        alignment: .leading,
+                        spacing: Theme.Spacing.m
+                    ) {
+                        pathRow(
+                            title: DocumentationText.value(
+                                "access.authorizedFolder"
+                            ),
+                            path: model.snapshot?.chrome
+                                .authorizedDirectoryURL?.path
+                        )
+                        if let profile = model.selectedChromeProfile {
+                            valueRow(
+                                title: DocumentationText.value(
+                                    "access.profile"
+                                ),
+                                value: profile.profileName
+                            )
+                            valueRow(
+                                title: DocumentationText.value(
+                                    "access.profileFolder"
+                                ),
+                                value: profile.directoryName
+                            )
+                            pathRow(
+                                title: DocumentationText.value(
+                                    "access.bookmarksFile"
+                                ),
+                                path: profile.bookmarksURL.path
+                            )
+                        } else {
+                            Text(
+                                DocumentationText.value(
+                                    "access.noChromeProfile"
+                                )
+                            )
+                            .foregroundStyle(.secondary)
+                        }
+                    }
+                    .padding(.top, Theme.Spacing.s)
+                } label: {
+                    Label(
+                        DocumentationText.value("access.details"),
+                        systemImage: "info.circle"
+                    )
+                    .font(.callout.weight(.medium))
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)

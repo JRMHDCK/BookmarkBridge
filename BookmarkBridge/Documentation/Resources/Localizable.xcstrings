@@ -1326,6 +1326,112 @@
         }
       }
     },
+    "access.details" : {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Details zu Dateien und Zugriff"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "File and access details"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Detalles de archivos y acceso"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Détails des fichiers et des accès"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dettagli dei file e degli accessi"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bestands- en toegangsgegevens"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Szczegóły plików i dostępu"
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Detalhes dos ficheiros e acessos"
+          }
+        }
+      }
+    },
+    "safariImport.preview.noApplicableChanges" : {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keine importierbaren Ergänzungen. Die verbleibenden Unterschiede können mit dem Safari-HTML-Import nicht angewendet werden."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No importable additions. The remaining differences cannot be applied through Safari’s HTML import."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No hay adiciones que importar. La importación HTML de Safari no puede aplicar las diferencias restantes."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aucun ajout à importer. Les différences restantes ne peuvent pas être appliquées par l’import HTML de Safari."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nessuna aggiunta da importare. Le differenze rimanenti non possono essere applicate tramite l’importazione HTML di Safari."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Geen toevoegingen om te importeren. De overige verschillen kunnen niet via de HTML-import van Safari worden toegepast."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Brak dodatków do zaimportowania. Pozostałych różnic nie można zastosować przez import HTML Safari."
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não há adições a importar. As diferenças restantes não podem ser aplicadas pela importação HTML do Safari."
+          }
+        }
+      }
+    },
     "access.detectedPath" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -27833,49 +27939,49 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Beginnen Sie mit der Erteilung von Berechtigungen in Home. Sie finden diese Anleitung in den Einstellungen und die gesamte Dokumentation im Hilfemenü."
+            "value" : "Wählen Sie anschließend die Safari- und Chrome-Dateien aus. BookmarkBridge führt Sie dann durch Auswahl, Richtung und Vorschau."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Start by granting permissions in Home. You can find this guide from Settings and all the documentation from the Help menu."
+            "value" : "Next, choose the Safari and Chrome files. BookmarkBridge will then guide you through selection, direction, and preview."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Comience otorgando permisos en Inicio. Puedes encontrar esta guía en Configuración y toda la documentación en el menú Ayuda."
+            "value" : "A continuación, elija los archivos de Safari y Chrome. BookmarkBridge le guiará por la selección, la dirección y la vista previa."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Commencez par accorder les autorisations dans Accueil. Vous pourrez retrouver ce guide depuis Réglages et toute la documentation depuis le menu Aide."
+            "value" : "Choisissez ensuite les fichiers Safari et Chrome. BookmarkBridge vous guidera alors dans la sélection, le sens et l’aperçu."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Inizia concedendo le autorizzazioni in Home. Puoi trovare questa guida da Impostazioni e tutta la documentazione dal menu Aiuto."
+            "value" : "Quindi scegli i file di Safari e Chrome. BookmarkBridge ti guiderà nella selezione, nella direzione e nell’anteprima."
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Begin met het verlenen van machtigingen in Home. U kunt deze handleiding vinden via Instellingen en alle documentatie via het Help-menu."
+            "value" : "Kies vervolgens de Safari- en Chrome-bestanden. BookmarkBridge begeleidt u daarna bij selectie, richting en voorbeeld."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zacznij od przyznania uprawnień na stronie głównej. Ten przewodnik znajdziesz w Ustawieniach, a całą dokumentację w menu Pomoc."
+            "value" : "Następnie wybierz pliki Safari i Chrome. BookmarkBridge przeprowadzi Cię przez wybór elementów, kierunku i podglądu."
           }
         },
         "pt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Comece concedendo permissões na página inicial. Você pode encontrar este guia em Configurações e toda a documentação no menu Ajuda."
+            "value" : "Em seguida, escolha os ficheiros do Safari e do Chrome. O BookmarkBridge guiará a seleção, direção e pré-visualização."
           }
         }
       }
@@ -29547,7 +29653,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Se déplace"
+            "value" : "Déplacements"
           }
         },
         "it" : {
@@ -29600,7 +29706,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Renomme"
+            "value" : "Renommages"
           }
         },
         "it" : {
@@ -30106,6 +30212,536 @@
         }
       }
     },
+    "safariImport.action.help" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bereitet eine Datei für den nativen Lesezeichenimport von Safari vor."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prepare a file for Safari's native bookmark import."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prepare un archivo para la importación nativa de marcadores de Safari."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prépare un fichier pour l’import natif des favoris de Safari."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prepara un file per l’importazione nativa dei preferiti di Safari."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maak een bestand klaar voor de ingebouwde bladwijzerimport van Safari."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przygotuj plik do natywnego importu zakładek w Safari."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prepare um ficheiro para a importação nativa de marcadores do Safari."
+          }
+        }
+      }
+    },
+    "safariImport.action.openSafari" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Safari öffnen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Safari"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir Safari"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvrir Safari"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apri Safari"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Safari"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otwórz Safari"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir o Safari"
+          }
+        }
+      }
+    },
+    "safariImport.action.prepare" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Safari-Import vorbereiten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prepare Safari Import"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preparar importación de Safari"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Préparer l’import Safari"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prepara importazione Safari"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Safari-import voorbereiden"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przygotuj import do Safari"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preparar importação do Safari"
+          }
+        }
+      }
+    },
+    "safariImport.action.showFile" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Datei anzeigen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show File"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrar archivo"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher le fichier"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostra file"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toon bestand"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pokaż plik"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrar ficheiro"
+          }
+        }
+      }
+    },
+    "safariImport.failure.generic" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Safari-Importdatei konnte nicht vorbereitet werden. Überprüfen Sie den Chrome-Zugriff und versuchen Sie es erneut."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The Safari import file could not be prepared. Check Chrome access and try again."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo preparar el archivo de importación de Safari. Compruebe el acceso a Chrome e inténtelo de nuevo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le fichier d’import Safari n’a pas pu être préparé. Vérifiez l’accès à Chrome puis réessayez."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile preparare il file di importazione Safari. Verifica l’accesso a Chrome e riprova."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Het Safari-importbestand kon niet worden voorbereid. Controleer de toegang tot Chrome en probeer het opnieuw."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się przygotować pliku importu do Safari. Sprawdź dostęp do Chrome i spróbuj ponownie."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível preparar o ficheiro de importação do Safari. Verifique o acesso ao Chrome e tente novamente."
+          }
+        }
+      }
+    },
+    "safariImport.preview.additiveNotice" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der native Safari-HTML-Import ist additiv: Nur Erstellungen werden importiert. Löschungen, Verschiebungen, Umbenennungen und Aktualisierungen bleiben unverändert."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Safari’s native HTML import is additive: only creations are imported. Deletions, moves, renames, and updates remain unchanged."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La importación HTML nativa de Safari es aditiva: solo se importan las creaciones. Las eliminaciones, movimientos, cambios de nombre y actualizaciones no se modifican."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’import HTML natif de Safari est additif : seules les créations sont importées. Les suppressions, déplacements, renommages et mises à jour restent inchangés."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’importazione HTML nativa di Safari è additiva: vengono importate solo le creazioni. Eliminazioni, spostamenti, rinomine e aggiornamenti restano invariati."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De ingebouwde HTML-import van Safari is aanvullend: alleen nieuwe items worden geïmporteerd. Verwijderingen, verplaatsingen, naamswijzigingen en updates blijven ongewijzigd."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Natywny import HTML Safari jest addytywny: importowane są tylko nowe elementy. Usunięcia, przeniesienia, zmiany nazw i aktualizacje pozostają bez zmian."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A importação HTML nativa do Safari é aditiva: apenas as criações são importadas. Eliminações, deslocações, alterações de nome e atualizações permanecem inalteradas."
+          }
+        }
+      }
+    },
+    "safariImport.ready.instructions" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wählen Sie in Safari „Ablage“ > „Importieren von“ > „Lesezeichen-HTML-Datei“ und dann die im Finder angezeigte Datei."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In Safari, choose File > Import From > Bookmarks HTML File, then select the file shown in Finder."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En Safari, seleccione Archivo > Importar desde > Archivo HTML de marcadores y elija el archivo mostrado en Finder."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dans Safari, choisissez Fichier > Importer depuis > Fichier HTML de signets, puis sélectionnez le fichier affiché dans le Finder."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In Safari, scegli File > Importa da > File HTML dei segnalibri, quindi seleziona il file mostrato nel Finder."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kies in Safari Archief > Importeer uit > HTML-bladwijzerbestand en selecteer het bestand dat in Finder wordt getoond."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "W Safari wybierz Plik > Importuj z > Plik HTML zakładek, a następnie wybierz plik pokazany w Finderze."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Safari, escolha Ficheiro > Importar de > Ficheiro HTML de marcadores e selecione o ficheiro mostrado no Finder."
+          }
+        }
+      }
+    },
+    "safariImport.ready.limitations" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%ld Lesezeichen wurden übersprungen; %ld Änderungen können durch einen additiven Import nicht angewendet werden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%ld bookmarks were skipped; %ld changes cannot be applied by an additive import."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se omitieron %ld marcadores; una importación aditiva no puede aplicar %ld cambios."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%ld favoris ont été ignorés ; %ld modifications ne peuvent pas être appliquées par un import additif."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sono stati ignorati %ld preferiti; %ld modifiche non possono essere applicate da un’importazione additiva."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%ld bladwijzers zijn overgeslagen; %ld wijzigingen kunnen niet met een aanvullende import worden toegepast."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pominięto %ld zakładek; import addytywny nie może zastosować %ld zmian."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Foram ignorados %ld marcadores; uma importação aditiva não pode aplicar %ld alterações."
+          }
+        }
+      }
+    },
+    "safariImport.ready.summary" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Importdatei enthält %ld Lesezeichen in %ld Ordnern."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The import file contains %ld bookmarks in %ld folders."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El archivo de importación contiene %ld marcadores en %ld carpetas."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le fichier d’import contient %ld favoris dans %ld dossiers."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il file di importazione contiene %ld preferiti in %ld cartelle."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Het importbestand bevat %ld bladwijzers in %ld mappen."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plik importu zawiera %ld zakładek w %ld folderach."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O ficheiro de importação contém %ld marcadores em %ld pastas."
+          }
+        }
+      }
+    },
+    "safariImport.ready.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Safari-Import ist bereit"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Safari Import Is Ready"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La importación de Safari está lista"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’import Safari est prêt"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’importazione Safari è pronta"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Safari-import is gereed"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Import do Safari jest gotowy"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A importação do Safari está pronta"
+          }
+        }
+      }
+    },
     "search.result.bookmark.accessibility" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -30589,49 +31225,49 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wählen Sie die in %@ enthaltenen Profile, Ordner und Lesezeichen aus."
+            "value" : "Wählen Sie die Profile, Ordner und Lesezeichen aus, die synchronisiert werden sollen."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Choose the profiles, folders, and bookmarks included in %@."
+            "value" : "Choose the profiles, folders, and bookmarks to synchronize."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Elija los perfiles, carpetas y marcadores incluidos en %@."
+            "value" : "Elija los perfiles, carpetas y marcadores que desea sincronizar."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Choisissez les profils, dossiers et signets inclus dans %@."
+            "value" : "Choisissez les profils, dossiers et signets à synchroniser."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Scegli i profili, le cartelle e i segnalibri inclusi in %@."
+            "value" : "Scegli i profili, le cartelle e i segnalibri da sincronizzare."
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Kies de profielen, mappen en bladwijzers die zijn opgenomen in %@."
+            "value" : "Kies de profielen, mappen en bladwijzers die u wilt synchroniseren."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wybierz profile, foldery i zakładki zawarte w %@."
+            "value" : "Wybierz profile, foldery i zakładki do synchronizacji."
           }
         },
         "pt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Escolha os perfis, pastas e marcadores incluídos em %@."
+            "value" : "Escolha os perfis, pastas e marcadores a sincronizar."
           }
         }
       }
@@ -31692,536 +32328,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Configurações"
-          }
-        }
-      }
-    },
-    "safariImport.action.help" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Bereitet eine Datei für den nativen Lesezeichenimport von Safari vor."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Prepare a file for Safari's native bookmark import."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Prepare un archivo para la importación nativa de marcadores de Safari."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Prépare un fichier pour l’import natif des favoris de Safari."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Prepara un file per l’importazione nativa dei preferiti di Safari."
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Maak een bestand klaar voor de ingebouwde bladwijzerimport van Safari."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Przygotuj plik do natywnego importu zakładek w Safari."
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Prepare um ficheiro para a importação nativa de marcadores do Safari."
-          }
-        }
-      }
-    },
-    "safariImport.action.openSafari" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Safari öffnen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Open Safari"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Abrir Safari"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ouvrir Safari"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Apri Safari"
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Open Safari"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Otwórz Safari"
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Abrir o Safari"
-          }
-        }
-      }
-    },
-    "safariImport.action.prepare" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Safari-Import vorbereiten"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Prepare Safari Import"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Preparar importación de Safari"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Préparer l’import Safari"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Prepara importazione Safari"
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Safari-import voorbereiden"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Przygotuj import do Safari"
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Preparar importação do Safari"
-          }
-        }
-      }
-    },
-    "safariImport.action.showFile" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Datei anzeigen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Show File"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mostrar archivo"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Afficher le fichier"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mostra file"
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Toon bestand"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pokaż plik"
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mostrar ficheiro"
-          }
-        }
-      }
-    },
-    "safariImport.failure.generic" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Die Safari-Importdatei konnte nicht vorbereitet werden. Überprüfen Sie den Chrome-Zugriff und versuchen Sie es erneut."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The Safari import file could not be prepared. Check Chrome access and try again."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No se pudo preparar el archivo de importación de Safari. Compruebe el acceso a Chrome e inténtelo de nuevo."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Le fichier d’import Safari n’a pas pu être préparé. Vérifiez l’accès à Chrome puis réessayez."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Impossibile preparare il file di importazione Safari. Verifica l’accesso a Chrome e riprova."
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Het Safari-importbestand kon niet worden voorbereid. Controleer de toegang tot Chrome en probeer het opnieuw."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nie udało się przygotować pliku importu do Safari. Sprawdź dostęp do Chrome i spróbuj ponownie."
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Não foi possível preparar o ficheiro de importação do Safari. Verifique o acesso ao Chrome e tente novamente."
-          }
-        }
-      }
-    },
-    "safariImport.failure.selection" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Der Safari-Import unterstützt derzeit nur die Auswahl „Alle Lesezeichen“. Kehren Sie zur Auswahl zurück und wählen Sie alles aus."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Safari import currently supports only the All Bookmarks selection. Go back to the selection and choose everything."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "La importación de Safari solo admite actualmente la selección Todos los marcadores. Vuelva a la selección y elija todo."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "L’import Safari prend actuellement en charge uniquement la sélection Tous les favoris. Revenez à la sélection et choisissez tout."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "L’importazione Safari attualmente supporta solo la selezione Tutti i preferiti. Torna alla selezione e scegli tutto."
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Safari-import ondersteunt momenteel alleen de selectie Alle bladwijzers. Ga terug naar de selectie en kies alles."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Import do Safari obsługuje obecnie tylko wybór Wszystkie zakładki. Wróć do wyboru i zaznacz wszystko."
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "A importação do Safari suporta atualmente apenas a seleção Todos os marcadores. Volte à seleção e escolha tudo."
-          }
-        }
-      }
-    },
-    "safariImport.ready.instructions" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Wählen Sie in Safari „Ablage“ > „Importieren von“ > „Lesezeichen-HTML-Datei“ und dann die im Finder angezeigte Datei."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "In Safari, choose File > Import From > Bookmarks HTML File, then select the file shown in Finder."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "En Safari, seleccione Archivo > Importar desde > Archivo HTML de marcadores y elija el archivo mostrado en Finder."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dans Safari, choisissez Fichier > Importer depuis > Fichier HTML de signets, puis sélectionnez le fichier affiché dans le Finder."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "In Safari, scegli File > Importa da > File HTML dei segnalibri, quindi seleziona il file mostrato nel Finder."
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Kies in Safari Archief > Importeer uit > HTML-bladwijzerbestand en selecteer het bestand dat in Finder wordt getoond."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "W Safari wybierz Plik > Importuj z > Plik HTML zakładek, a następnie wybierz plik pokazany w Finderze."
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No Safari, escolha Ficheiro > Importar de > Ficheiro HTML de marcadores e selecione o ficheiro mostrado no Finder."
-          }
-        }
-      }
-    },
-    "safariImport.ready.limitations" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%ld Lesezeichen wurden übersprungen; %ld Änderungen können durch einen additiven Import nicht angewendet werden."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%ld bookmarks were skipped; %ld changes cannot be applied by an additive import."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Se omitieron %ld marcadores; una importación aditiva no puede aplicar %ld cambios."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%ld favoris ont été ignorés ; %ld modifications ne peuvent pas être appliquées par un import additif."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sono stati ignorati %ld preferiti; %ld modifiche non possono essere applicate da un’importazione additiva."
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%ld bladwijzers zijn overgeslagen; %ld wijzigingen kunnen niet met een aanvullende import worden toegepast."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pominięto %ld zakładek; import addytywny nie może zastosować %ld zmian."
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Foram ignorados %ld marcadores; uma importação aditiva não pode aplicar %ld alterações."
-          }
-        }
-      }
-    },
-    "safariImport.ready.summary" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Die Importdatei enthält %ld Lesezeichen in %ld Ordnern."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The import file contains %ld bookmarks in %ld folders."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "El archivo de importación contiene %ld marcadores en %ld carpetas."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Le fichier d’import contient %ld favoris dans %ld dossiers."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Il file di importazione contiene %ld preferiti in %ld cartelle."
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Het importbestand bevat %ld bladwijzers in %ld mappen."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Plik importu zawiera %ld zakładek w %ld folderach."
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "O ficheiro de importação contém %ld marcadores em %ld pastas."
-          }
-        }
-      }
-    },
-    "safariImport.ready.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Safari-Import ist bereit"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Safari Import Is Ready"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "La importación de Safari está lista"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "L’import Safari est prêt"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "L’importazione Safari è pronta"
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Safari-import is gereed"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Import do Safari jest gotowy"
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "A importação do Safari está pronta"
           }
         }
       }
@@ -33875,49 +33981,49 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wählen Sie die Synchronisierungsrichtung."
+            "value" : "Wählen Sie die Richtung manuell. Ohne dauerhaften Änderungsverlauf kann BookmarkBridge die neueste Quelle nicht zuverlässig automatisch bestimmen."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Choose the synchronization direction."
+            "value" : "Choose the direction manually. Without a durable change history, BookmarkBridge cannot reliably determine the newest source automatically."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Elija la dirección de sincronización."
+            "value" : "Elija la dirección manualmente. Sin un historial de cambios persistente, BookmarkBridge no puede determinar de forma fiable la fuente más reciente."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Choisissez le sens de synchronisation."
+            "value" : "Choisissez le sens manuellement. Sans historique durable des modifications, BookmarkBridge ne peut pas déterminer automatiquement la source la plus récente de façon fiable."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Scegli la direzione di sincronizzazione."
+            "value" : "Scegli manualmente la direzione. Senza una cronologia persistente, BookmarkBridge non può determinare automaticamente la fonte più recente in modo affidabile."
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Kies de synchronisatierichting."
+            "value" : "Kies de richting handmatig. Zonder blijvende wijzigingsgeschiedenis kan BookmarkBridge de nieuwste bron niet betrouwbaar automatisch bepalen."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wybierz kierunek synchronizacji."
+            "value" : "Wybierz kierunek ręcznie. Bez trwałej historii zmian BookmarkBridge nie może wiarygodnie automatycznie określić najnowszego źródła."
           }
         },
         "pt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Escolha a direção de sincronização."
+            "value" : "Escolha a direção manualmente. Sem um histórico persistente, o BookmarkBridge não pode determinar automaticamente a fonte mais recente com segurança."
           }
         }
       }

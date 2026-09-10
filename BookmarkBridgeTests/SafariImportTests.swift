@@ -159,6 +159,38 @@ struct SafariImportTests {
         ))
     }
 
+    @Test("Package builder honors the exact user-selected file URL")
+    func buildsAtSelectedFileURL() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent(
+                "BookmarkBridge-SafariImportDestination-\(UUID().uuidString)",
+                isDirectory: true
+            )
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let selectedFile = directory.appendingPathComponent(
+            "BookmarkBridge-Safari-Import.html"
+        )
+        let safePlan = plan([
+            .create(CreateNodeOperation(
+                logicalNodeID: logicalID(210),
+                kind: .folder,
+                title: "Imported",
+                url: nil,
+                parentID: nil,
+                position: 0
+            )),
+        ])
+
+        let package = try SafariImportPackageBuilder().build(
+            tree: try bookmarkTree(),
+            plan: safePlan,
+            destinationFileURL: selectedFile
+        )
+
+        #expect(package.fileURL == selectedFile)
+        #expect(FileManager.default.fileExists(atPath: selectedFile.path))
+    }
+
     @Test("Package builder refuses an incompatible plan before file creation")
     func rejectsIncompatiblePlan() throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(
@@ -268,20 +300,39 @@ struct SafariImportTests {
         #expect(tree.allBookmarks.map(\.title) == ["Created bookmark"])
     }
 
-    @Test("Workflow refuses scoped selections before reading Chrome")
-    func workflowRejectsScopedSelection() async throws {
+    @Test("Workflow honors the scoped plan without reading browser storage")
+    func workflowSupportsScopedSelection() async throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent(
+                "BookmarkBridge-SafariImportScoped-\(UUID().uuidString)",
+                isDirectory: true
+            )
+        defer { try? FileManager.default.removeItem(at: directory) }
         let result = try preview(
             chromeURL: URL(fileURLWithPath: "/unread/Bookmarks"),
             safariURL: URL(fileURLWithPath: "/unread/Bookmarks.plist"),
             chromeSelection: .nativeIdentifiers(["2"]),
-            operations: []
+            operations: [
+                .create(CreateNodeOperation(
+                    logicalNodeID: logicalID(510),
+                    kind: .bookmark,
+                    title: "Selected bookmark",
+                    url: URL(string: "https://selected.example")!,
+                    parentID: nil,
+                    position: 0
+                )),
+            ]
         )
 
-        await #expect(throws: SafariImportWorkflowError.unsupportedSelection) {
-            _ = try await SafariImportWorkflow(
-                destinationDirectory: URL(fileURLWithPath: "/unused")
-            ).prepare(preview: result)
-        }
+        let package = try await SafariImportWorkflow(
+            destinationDirectory: directory
+        ).prepare(preview: result)
+
+        #expect(package.bookmarkCount == 1)
+        #expect(
+            try String(contentsOf: package.fileURL, encoding: .utf8)
+                .contains("https://selected.example")
+        )
     }
 
     private func bookmarkTree() throws -> BookmarkTree {

@@ -10,9 +10,11 @@ import Foundation
 /// cannot duplicate the whole source library.
 nonisolated struct SafariImportDeltaTreeBuilder: Sendable {
     func build(from plan: SynchronizationPlan) -> BookmarkTree {
+        let analyzer = SafariImportCompatibilityAnalyzer()
         let creations: [CreateNodeOperation] = plan.operations.compactMap {
             operation -> CreateNodeOperation? in
-            guard case .create(let creation) = operation else { return nil }
+            guard analyzer.supports(operation),
+                  case .create(let creation) = operation else { return nil }
             return creation
         }
         var foldersByID: [LogicalNodeID: CreateNodeOperation] = [:]

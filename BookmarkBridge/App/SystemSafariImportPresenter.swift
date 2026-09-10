@@ -5,6 +5,33 @@
 
 import AppKit
 import Foundation
+import UniformTypeIdentifiers
+
+nonisolated protocol SafariImportDestinationSelecting: Sendable {
+    @MainActor
+    func selectDestinationFile() -> URL?
+}
+
+/// Uses the sandbox-supported Powerbox flow and starts on the Desktop. The
+/// chosen URL is therefore writable without broad filesystem entitlements.
+nonisolated struct SystemSafariImportDestinationSelector:
+    SafariImportDestinationSelecting
+{
+    @MainActor
+    func selectDestinationFile() -> URL? {
+        let panel = NSSavePanel()
+        panel.title = DocumentationText.value("safariImport.action.prepare")
+        panel.directoryURL = FileManager.default.urls(
+            for: .desktopDirectory,
+            in: .userDomainMask
+        ).first
+        panel.nameFieldStringValue = "BookmarkBridge-Safari-Import.html"
+        panel.allowedContentTypes = [.html]
+        panel.canCreateDirectories = true
+        panel.isExtensionHidden = false
+        return panel.runModal() == .OK ? panel.url : nil
+    }
+}
 
 nonisolated struct SystemSafariImportPresenter: SafariImportPresenting {
     @MainActor

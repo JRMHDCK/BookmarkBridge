@@ -5,6 +5,24 @@
 
 import SwiftUI
 
+/// Keeps the main, text-labelled workflow action in the same visible place on
+/// every page instead of relying on compact toolbar rendering.
+struct PrimaryActionRow<Content: View>: View {
+    let content: Content
+
+    init(@ViewBuilder content: () -> Content) {
+        self.content = content()
+    }
+
+    var body: some View {
+        HStack {
+            Spacer(minLength: 0)
+            content
+        }
+        .frame(maxWidth: .infinity, alignment: .trailing)
+    }
+}
+
 struct PrimaryActionButton: View {
     let title: String
     let systemImage: String?

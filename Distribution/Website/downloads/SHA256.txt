@@ -1,1 +1,2 @@
+7944fdeb9c609b02011c9741cf64e348871bedb263da92cb5f6f9dfbb889544f  BookmarkBridge-0.9.4-build-2.dmg
 4cfe937a1fd4dd36be19f8f133946be24c3a3d9a40f5b1561ef4059d3fda1e1a  BookmarkBridge-0.9.4-build-1.dmg

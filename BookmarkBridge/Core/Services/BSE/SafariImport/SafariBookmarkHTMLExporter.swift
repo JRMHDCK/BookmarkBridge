@@ -128,18 +128,42 @@ nonisolated struct SafariImportPackageBuilder: Sendable {
         compatibilityPolicy: SafariImportCompatibilityPolicy =
             .requireExactPlan
     ) throws -> SafariImportPackage {
-        let compatibility = compatibilityAnalyzer.analyze(plan)
-        guard compatibility.isCompatible
-                || compatibilityPolicy == .allowAdditiveImport else {
-            throw SafariImportPackageError.incompatiblePlan(compatibility)
-        }
         guard !fileName.isEmpty,
               fileName == URL(fileURLWithPath: fileName).lastPathComponent,
               fileName.lowercased().hasSuffix(".html") else {
             throw SafariImportPackageError.invalidFileName
         }
+        return try build(
+            tree: tree,
+            plan: plan,
+            destinationFileURL: destinationDirectory.appendingPathComponent(
+                fileName,
+                isDirectory: false
+            ),
+            compatibilityPolicy: compatibilityPolicy
+        )
+    }
+
+    func build(
+        tree: BookmarkTree,
+        plan: SynchronizationPlan,
+        destinationFileURL: URL,
+        compatibilityPolicy: SafariImportCompatibilityPolicy =
+            .requireExactPlan
+    ) throws -> SafariImportPackage {
+        let compatibility = compatibilityAnalyzer.analyze(plan)
+        guard compatibility.isCompatible
+                || compatibilityPolicy == .allowAdditiveImport else {
+            throw SafariImportPackageError.incompatiblePlan(compatibility)
+        }
+        guard destinationFileURL.isFileURL,
+              !destinationFileURL.lastPathComponent.isEmpty,
+              destinationFileURL.pathExtension.lowercased() == "html" else {
+            throw SafariImportPackageError.invalidFileName
+        }
 
         let exported = exporter.export(tree)
+        let destinationDirectory = destinationFileURL.deletingLastPathComponent()
         do {
             try FileManager.default.createDirectory(
                 at: destinationDirectory,
@@ -149,18 +173,14 @@ nonisolated struct SafariImportPackageBuilder: Sendable {
             throw SafariImportPackageError.cannotCreateDirectory
         }
 
-        let fileURL = destinationDirectory.appendingPathComponent(
-            fileName,
-            isDirectory: false
-        )
         do {
-            try exported.data.write(to: fileURL, options: .atomic)
+            try exported.data.write(to: destinationFileURL, options: .atomic)
         } catch {
             throw SafariImportPackageError.cannotWriteFile
         }
 
         return SafariImportPackage(
-            fileURL: fileURL,
+            fileURL: destinationFileURL,
             byteCount: exported.data.count,
             sha256: Data(SHA256.hash(data: exported.data)),
             folderCount: exported.folderCount,

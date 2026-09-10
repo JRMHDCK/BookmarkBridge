@@ -46,6 +46,11 @@ struct SynchronizationPreviewServiceTests {
             result.urlModificationCount
                 == scenario.expectedOperationKinds.count { $0 == .updateURL }
         )
+        #expect(
+            result.changeDetails.map(\.kind)
+                == scenario.expectedOperationKinds.map(previewChangeKind)
+        )
+        #expect(result.changeDetails.allSatisfy { !$0.title.isEmpty })
         try fixture.expectNoFileSystemMutation()
     }
 
@@ -442,6 +447,18 @@ private func previewOperationKind(
     case .move: .move
     case .reorder: .reorder
     case .archive: .archive
+    }
+}
+
+private func previewChangeKind(
+    _ operation: PreviewOperationKind
+) -> SynchronizationPreviewChangeKind {
+    switch operation {
+    case .create: .creation
+    case .delete, .archive: .deletion
+    case .move, .reorder: .move
+    case .rename: .rename
+    case .updateURL: .update
     }
 }
 

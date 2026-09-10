@@ -68,8 +68,8 @@ final class ApplicationViewModel {
             .loading
         case .loaded(let preview):
             .changes(preview.totalOperationCount)
-        case .empty:
-            .upToDate
+        case .empty(let preview):
+            preview.hasUnsupportedChanges ? .noApplicableChanges : .upToDate
         case .failed(let message):
             .failed(message)
         }
@@ -248,6 +248,15 @@ final class ApplicationViewModel {
 
     func showSynchronization() {
         selection = .synchronization
+    }
+
+    /// Starts the guided first-use path after the informational onboarding.
+    /// Existing authorizations are respected, so returning users never have to
+    /// select the same files again.
+    func beginFirstSynchronizationWorkflow() {
+        selection = authorization.state.status == .complete
+            ? .synchronization
+            : .bookmarkAccess
     }
 
     func reportBug(

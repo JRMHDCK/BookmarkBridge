@@ -34,6 +34,12 @@ final class BookmarkAccessViewModel {
         }
     }
 
+    var canContinue: Bool {
+        snapshot?.safari.status == .ok
+            && snapshot?.chrome.status == .ok
+            && selectedChromeProfile != nil
+    }
+
     func load() async {
         isLoading = true
         let inspected = await service.inspectAccess()

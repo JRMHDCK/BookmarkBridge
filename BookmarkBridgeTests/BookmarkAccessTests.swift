@@ -204,6 +204,35 @@ struct BookmarkAccessTests {
         #expect(selection.savedDirectories == ["Default"])
     }
 
+    @Test("First-use workflow continues only after both locations are ready")
+    func requiresBothLocationsBeforeContinuing() async {
+        let profile = ChromeProfileAccess(
+            directoryName: "Default",
+            profileName: "Personal",
+            bookmarksURL: URL(fileURLWithPath: "/Chrome/Default/Bookmarks")
+        )
+        let ready = BookmarkAccessSnapshot(
+            safari: SafariBookmarkAccess(
+                detectedURL: URL(fileURLWithPath: "/Safari/Bookmarks.plist"),
+                authorizedURL: URL(fileURLWithPath: "/Safari/Bookmarks.plist"),
+                status: .ok
+            ),
+            chrome: ChromeBookmarkAccess(
+                authorizedDirectoryURL: URL(fileURLWithPath: "/Chrome"),
+                profiles: [profile],
+                status: .ok
+            )
+        )
+        let viewModel = BookmarkAccessViewModel(
+            service: BookmarkAccessServiceDouble(snapshot: ready),
+            selectionStore: ChromeProfileSelectionStoreDouble(selected: nil)
+        )
+
+        #expect(!viewModel.canContinue)
+        await viewModel.load()
+        #expect(viewModel.canContinue)
+    }
+
     @Test("Re-select delegates to the existing authorization requester")
     func reselectUsesExistingAuthorizationFlow() async throws {
         let requester = BookmarkAccessRequesterSpy()

@@ -74,6 +74,7 @@ struct ApplicationNavigationView: View {
             OnboardingView {
                 hasCompletedOnboarding = true
                 presentsOnboarding = false
+                model.beginFirstSynchronizationWorkflow()
             }
         }
         .alert(
@@ -230,7 +231,8 @@ struct ApplicationNavigationView: View {
                 onLoad: { await model.loadBookmarkAccess() },
                 onTestAccess: { await model.testBookmarkAccess($0) },
                 onReselect: { await model.reselectBookmarkAccess($0) },
-                onChangeProfile: { await model.selectChromeProfile($0) }
+                onChangeProfile: { await model.selectChromeProfile($0) },
+                onContinue: { model.showSynchronization() }
             )
         case .settings:
             SettingsView()
